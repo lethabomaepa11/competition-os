@@ -1012,42 +1012,180 @@ export default function EventDetailPage() {
         <div>
           <Row gutter={[16, 16]}>
             <Col xs={24} sm={12} md={12} lg={6}>
-              <Card className="animate-fade-in-up delay-1">
-                <Statistic
-                  title="Participants"
-                  value={participants.length}
-                  prefix={<TeamOutlined />}
-                />
+              <Card
+                className="animate-fade-in-up delay-1 stat-card"
+                style={{
+                  borderRadius: 20,
+                  border: "1px solid #e2e8f0",
+                  background:
+                    "linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)",
+                  boxShadow:
+                    "0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01)",
+                  transition: "all 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
+                }}
+              >
+                <div style={{ textAlign: "center" }}>
+                  <div
+                    className="stat-icon"
+                    style={{
+                      fontSize: 40,
+                      marginBottom: 12,
+                      background: "linear-gradient(135deg, #3b82f6, #1e3a8a)",
+                      borderRadius: 14,
+                      padding: 14,
+                      display: "inline-flex",
+                      boxShadow: "0 10px 25px rgba(59, 130, 246, 0.3)",
+                    }}
+                  >
+                    <TeamOutlined style={{ color: "#fff", fontSize: 24 }} />
+                  </div>
+                  <Statistic
+                    title="PARTICIPANTS"
+                    value={participants.length}
+                    valueStyle={{
+                      fontSize: 36,
+                      fontWeight: 800,
+                      background: "linear-gradient(135deg, #1e3a8a, #3b82f6)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      letterSpacing: "-0.02em",
+                    }}
+                  />
+                </div>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={12} lg={6}>
-              <Card className="animate-fade-in-up delay-2">
-                <Statistic
-                  title="Matches"
-                  value={matches.length}
-                  prefix={<ScheduleOutlined />}
-                />
+              <Card
+                className="animate-fade-in-up delay-2 stat-card"
+                style={{
+                  borderRadius: 20,
+                  border: "1px solid #e2e8f0",
+                  background:
+                    "linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)",
+                  boxShadow:
+                    "0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01)",
+                  transition: "all 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
+                }}
+              >
+                <div style={{ textAlign: "center" }}>
+                  <div
+                    className="stat-icon"
+                    style={{
+                      fontSize: 40,
+                      marginBottom: 12,
+                      background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                      borderRadius: 14,
+                      padding: 14,
+                      display: "inline-flex",
+                      boxShadow: "0 10px 25px rgba(245, 158, 11, 0.3)",
+                    }}
+                  >
+                    <ScheduleOutlined style={{ color: "#fff", fontSize: 24 }} />
+                  </div>
+                  <Statistic
+                    title="MATCHES"
+                    value={matches.length}
+                    valueStyle={{
+                      fontSize: 36,
+                      fontWeight: 800,
+                      background: "linear-gradient(135deg, #d97706, #f59e0b)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      letterSpacing: "-0.02em",
+                    }}
+                  />
+                </div>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={12} lg={6}>
-              <Card className="animate-fade-in-up delay-3">
-                <Statistic
-                  title="Completed"
-                  value={
-                    matches.filter((m) => m.status === MatchStatus.Completed)
-                      .length
-                  }
-                  prefix={<TrophyOutlined />}
-                />
+              <Card
+                className="animate-fade-in-up delay-3 stat-card"
+                style={{
+                  borderRadius: 20,
+                  border: "1px solid #e2e8f0",
+                  background:
+                    "linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)",
+                  boxShadow:
+                    "0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01)",
+                  transition: "all 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
+                }}
+              >
+                <div style={{ textAlign: "center" }}>
+                  <div
+                    className="stat-icon"
+                    style={{
+                      fontSize: 40,
+                      marginBottom: 12,
+                      background: "linear-gradient(135deg, #22c55e, #16a34a)",
+                      borderRadius: 14,
+                      padding: 14,
+                      display: "inline-flex",
+                      boxShadow: "0 10px 25px rgba(34, 197, 94, 0.3)",
+                    }}
+                  >
+                    <TrophyOutlined style={{ color: "#fff", fontSize: 24 }} />
+                  </div>
+                  <Statistic
+                    title="COMPLETED"
+                    value={
+                      matches.filter((m) => m.status === MatchStatus.Completed)
+                        .length
+                    }
+                    valueStyle={{
+                      fontSize: 36,
+                      fontWeight: 800,
+                      background: "linear-gradient(135deg, #16a34a, #22c55e)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      letterSpacing: "-0.02em",
+                    }}
+                  />
+                </div>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={12} lg={6}>
-              <Card className="animate-fade-in-up delay-4">
-                <Statistic
-                  title="Stages"
-                  value={stages.length}
-                  prefix={<NodeIndexOutlined />}
-                />
+              <Card
+                className="animate-fade-in-up delay-4 stat-card"
+                style={{
+                  borderRadius: 20,
+                  border: "1px solid #e2e8f0",
+                  background:
+                    "linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)",
+                  boxShadow:
+                    "0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01)",
+                  transition: "all 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
+                }}
+              >
+                <div style={{ textAlign: "center" }}>
+                  <div
+                    className="stat-icon"
+                    style={{
+                      fontSize: 40,
+                      marginBottom: 12,
+                      background: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+                      borderRadius: 14,
+                      padding: 14,
+                      display: "inline-flex",
+                      boxShadow: "0 10px 25px rgba(139, 92, 246, 0.3)",
+                    }}
+                  >
+                    <NodeIndexOutlined
+                      style={{ color: "#fff", fontSize: 24 }}
+                    />
+                  </div>
+                  <Statistic
+                    title="STAGES"
+                    value={stages.length}
+                    valueStyle={{
+                      fontSize: 36,
+                      fontWeight: 800,
+                      background: "linear-gradient(135deg, #7c3aed, #8b5cf6)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      letterSpacing: "-0.02em",
+                    }}
+                  />
+                </div>
               </Card>
             </Col>
           </Row>
