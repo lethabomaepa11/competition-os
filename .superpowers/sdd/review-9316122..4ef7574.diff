@@ -1,0 +1,34 @@
+﻿# Review package: 931612235ee48ab4e8efba8f0b0b63cf88dc74f1..HEAD
+
+## Commits
+4ef7574 feat: add cover_image and content columns, storage bucket
+
+## Files changed
+ .../migrations/20260720000013_competition_content.sql  | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+## Diff
+diff --git a/competitionos/supabase/migrations/20260720000013_competition_content.sql b/competitionos/supabase/migrations/20260720000013_competition_content.sql
+new file mode 100644
+index 0000000..aed0157
+--- /dev/null
++++ b/competitionos/supabase/migrations/20260720000013_competition_content.sql
+@@ -0,0 +1,18 @@
++-- Add cover_image and content to competitions
++alter table competitions
++  add column cover_image text,
++  add column content jsonb;
++
++-- Add cover_image to events
++alter table events
++  add column cover_image text;
++
++-- Create storage bucket for cover images
++insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
++values (
++  'competition-covers',
++  'competition-covers',
++  true,
++  10485760,
++  array['image/png', 'image/jpeg', 'image/webp']
++);

@@ -1,0 +1,77 @@
+﻿# Review package: 4ef7574..HEAD
+
+## Commits
+832b461 feat: add coverImage and content to domain types
+
+## Files changed
+ competitionos/src/domain/competition.ts | 20 +++++++++++++++++++
+ competitionos/src/domain/event.ts       | 34 +++++++++++++++++++++++++++++++++
+ 2 files changed, 54 insertions(+)
+
+## Diff
+diff --git a/competitionos/src/domain/competition.ts b/competitionos/src/domain/competition.ts
+new file mode 100644
+index 0000000..f555b9f
+--- /dev/null
++++ b/competitionos/src/domain/competition.ts
+@@ -0,0 +1,20 @@
++import { type ID, type Timestamps, CompetitionStatus, Visibility } from "./types";
++
++export interface Competition extends Timestamps {
++  id: ID;
++  organizationId: ID;
++  blueprintId?: ID;
++  name: string;
++  description: string;
++  logoUrl?: string;
++  coverImage?: string;
++  content?: Record<string, unknown>;
++  visibility: Visibility;
++  game?: {
++    name: string;
++    category?: string;
++  };
++  dateStart?: string;
++  dateEnd?: string;
++  status: CompetitionStatus;
++}
+diff --git a/competitionos/src/domain/event.ts b/competitionos/src/domain/event.ts
+new file mode 100644
+index 0000000..233d19b
+--- /dev/null
++++ b/competitionos/src/domain/event.ts
+@@ -0,0 +1,34 @@
++import { type ID, type Timestamps, EventStatus, FormatType, ParticipantType, RegistrationPolicy } from "./types";
++
++export interface Stage extends Timestamps {
++  id: ID;
++  eventId: ID;
++  name: string;
++  type: string;
++  orderIndex: number;
++  config: Record<string, unknown>;
++}
++
++export interface Round extends Timestamps {
++  id: ID;
++  stageId: ID;
++  name: string;
++  roundNumber: number;
++  config: Record<string, unknown>;
++}
++
++export interface Event extends Timestamps {
++  id: ID;
++  competitionId: ID;
++  name: string;
++  format: FormatType;
++  participantType: ParticipantType;
++  maxParticipants?: number;
++  minParticipants?: number;
++  status: EventStatus;
++  registrationPolicy: RegistrationPolicy;
++  config: Record<string, unknown>;
++  dateStart?: string;
++  dateEnd?: string;
++  coverImage?: string;
++}

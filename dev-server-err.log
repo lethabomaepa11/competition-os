@@ -1,0 +1,9 @@
+⚠ Port 3000 is in use by process 19476, using available port 3001 instead.
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3000
+- PID:          19476
+- Dir:          C:\Users\Lethabo\Desktop\projects\personal\ai-tries\competitionos
+- Log:          .next\dev\logs\next-development.log
+
+Run taskkill /PID 19476 /F to stop it.

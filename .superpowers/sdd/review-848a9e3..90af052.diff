@@ -1,0 +1,302 @@
+﻿# Review package: 848a9e3..HEAD
+
+## Commits
+90af052 feat: redesign invite page with cover image and TipTap content
+
+## Files changed
+ .../src/app/invite/competition/[token]/page.tsx    | 286 +++++++++++++++++++++
+ 1 file changed, 286 insertions(+)
+
+## Diff
+diff --git a/competitionos/src/app/invite/competition/[token]/page.tsx b/competitionos/src/app/invite/competition/[token]/page.tsx
+new file mode 100644
+index 0000000..4a41db1
+--- /dev/null
++++ b/competitionos/src/app/invite/competition/[token]/page.tsx
+@@ -0,0 +1,286 @@
++"use client";
++
++import { useEffect, useState } from "react";
++import { useParams, useRouter } from "next/navigation";
++import { Card, Typography, Button, Spin, message, Layout, Result, Tag, Row, Col, Space, Divider, Input, Form } from "antd";
++import { TrophyOutlined, TeamOutlined, LoginOutlined, UserAddOutlined, RightOutlined } from "@ant-design/icons";
++import { AppProvider, useApp } from "@/lib/app-context";
++import { CompetitionInviteService } from "@/domain/services/competition-invite.service";
++import { CompetitionService } from "@/domain/services/competition.service";
++import { EventService } from "@/domain/services/event.service";
++import { RegistrationService } from "@/domain/services/registration.service";
++import { MemberService } from "@/domain/services/organization.service";
++import type { Competition } from "@/domain/competition";
++import type { Event } from "@/domain/event";
++import { EventStatus } from "@/domain/types";
++import { sendMailEvent } from "@/lib/mail/client";
++import TipTapRenderer from "@/components/editor/tiptap-renderer";
++
++const { Content } = Layout;
++const { Title, Text } = Typography;
++
++function AcceptCompetitionInviteInner() {
++  const params = useParams();
++  const router = useRouter();
++  const { currentMember } = useApp();
++  const [loading, setLoading] = useState(true);
++  const [error, setError] = useState("");
++  const [competition, setCompetition] = useState<Competition | null>(null);
++  const [events, setEvents] = useState<Event[]>([]);
++  const [registeredEvents, setRegisteredEvents] = useState<Set<string>>(new Set());
++  const [joiningId, setJoiningId] = useState<string | null>(null);
++  const [authLoading, setAuthLoading] = useState(false);
++
++  const token = params.token as string;
++
++  useEffect(() => {
++    const inviteSvc = new CompetitionInviteService();
++    (async () => {
++      const inv = await inviteSvc.getByToken(token);
++      if (!inv) {
++        setError("Invite not found");
++      } else if (inv.status !== "active") {
++        setError("This invite link is no longer active");
++      } else {
++        const compSvc = new CompetitionService();
++        const comp = await compSvc.get(inv.competitionId);
++        if (!comp) {
++          setError("Competition not found");
++        } else {
++          setCompetition(comp);
++          const evtSvc = new EventService();
++          setEvents(await evtSvc.list(comp.id));
++        }
++      }
++      setLoading(false);
++    })();
++  }, [token]);
++
++  useEffect(() => {
++    (async () => {
++    if (!currentMember || !competition) return;
++    const regSvc = new RegistrationService();
++    const joined = new Set<string>();
++    for (const evt of events) {
++      if (await regSvc.isRegistered(evt.id, currentMember.id)) {
++        joined.add(evt.id);
++      }
++    }
++    setRegisteredEvents(joined);
++    })();
++  }, [currentMember, competition, events]);
++
++  const handleAuth = async (values: { displayName: string; email: string }) => {
++    setAuthLoading(true);
++    try {
++      const password = crypto.randomUUID();
++      const regRes = await fetch("/api/auth/register", {
++        method: "POST",
++        headers: { "Content-Type": "application/json" },
++        body: JSON.stringify({ email: values.email, password, displayName: values.displayName }),
++      });
++      if (!regRes.ok) {
++        const json = await regRes.json();
++        message.error(json.error ?? "Could not create account");
++        setAuthLoading(false);
++        return;
++      }
++      const logRes = await fetch("/api/auth/login", {
++        method: "POST",
++        headers: { "Content-Type": "application/json" },
++        body: JSON.stringify({ email: values.email, password }),
++      });
++      if (!logRes.ok) {
++        message.error("Account created but could not sign in. Please log in manually.");
++        router.push(`/login?redirect=/invite/competition/${token}`);
++        return;
++      }
++      sessionStorage.setItem("invite_display_name", values.displayName);
++      window.location.reload();
++    } catch {
++      message.error("Something went wrong");
++      setAuthLoading(false);
++    }
++  };
++
++  const handleJoinEvent = async (eventId: string) => {
++    if (!currentMember) return;
++    setJoiningId(eventId);
++    try {
++      const regSvc = new RegistrationService();
++      const evt = events.find((e) => e.id === eventId);
++      const displayName = sessionStorage.getItem("invite_display_name") ?? currentMember.displayName;
++      await regSvc.register(eventId, currentMember.id, displayName);
++      sendMailEvent({
++        kind: "participant_registered",
++        to: [{ email: currentMember.email, name: displayName }],
++        actionUrl: `${window.location.origin}/app`,
++        params: {
++          eventName: evt?.name ?? "event",
++          competitionName: competition?.name,
++          participantName: displayName,
++          actionLabel: "Open dashboard",
++        },
++      });
++      sessionStorage.removeItem("invite_display_name");
++      message.success("Joined event!");
++      setRegisteredEvents((prev) => new Set(prev).add(eventId));
++    } catch {
++      message.error("Failed to join");
++    } finally {
++      setJoiningId(null);
++    }
++  };
++
++  if (loading) return <Spin style={{ display: "flex", justifyContent: "center", marginTop: 100 }} />;
++
++  if (error) {
++    return (
++      <Content style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: "#F8FAFC" }}>
++        <Result status="error" title="Invalid Invite" subTitle={error} extra={<Button onClick={() => router.push("/")}>Go Home</Button>} />
++      </Content>
++    );
++  }
++
++  return (
++    <Layout style={{ minHeight: "100vh", background: "#F8FAFC" }}>
++      <Content style={{ maxWidth: 800, margin: "0 auto", padding: "48px 24px" }}>
++
++        {/* Hero section */}
++        {competition?.coverImage && (
++          <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", marginBottom: 24, aspectRatio: "21/9" }}>
++            <img src={competition.coverImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
++            {competition && (
++              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "32px 24px 20px", background: "linear-gradient(transparent, rgba(0,0,0,0.6))" }}>
++                <Title level={1} style={{ color: "#fff", margin: 0, fontSize: 28 }}>{competition.name}</Title>
++                {competition.game && <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 14 }}>{competition.game.name}</Text>}
++              </div>
++            )}
++          </div>
++        )}
++
++        {(!competition?.coverImage) && (
++          <Card style={{ borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", marginBottom: 24 }}>
++            <div style={{ textAlign: "center", marginBottom: 24 }}>
++              <div style={{ fontSize: 48, marginBottom: 8 }}>≡ƒÅå</div>
++              <Title level={2} style={{ margin: 0, fontSize: 24 }}>{competition?.name}</Title>
++              {competition?.description && (
++                <Text style={{ color: "#64748B", display: "block", marginTop: 4 }}>{competition.description}</Text>
++              )}
++            </div>
++          </Card>
++        )}
++
++        {/* Content section */}
++        {(competition?.content) && (
++          <Card style={{ borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", marginBottom: 24, padding: "8px 0" }}>
++            <TipTapRenderer content={competition.content} />
++          </Card>
++        )}
++
++        {/* Info bar (if cover is shown, render description under hero) */}
++        {competition?.coverImage && competition?.description && (
++          <Card style={{ borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", marginBottom: 24 }}>
++            <Text style={{ color: "#475569", fontSize: 15, lineHeight: 1.6 }}>{competition.description}</Text>
++          </Card>
++        )}
++
++        {/* Auth / Events section ΓÇö same as before */}
++        <Card style={{ borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", marginBottom: 24 }}>
++          {!currentMember ? (
++            <div>
++              <div style={{ textAlign: "center", marginBottom: 20 }}>
++                <Title level={4}>You're invited!</Title>
++                <Text style={{ color: "#64748B", display: "block" }}>
++                  Enter your name to create an account and join.
++                </Text>
++              </div>
++              <Form layout="vertical" onFinish={handleAuth} requiredMark={false}>
++                <Form.Item label="Your Name" name="displayName" rules={[{ required: true, message: "Enter your name" }]}>
++                  <Input placeholder="e.g., Alex" size="large" />
++                </Form.Item>
++                <Form.Item label="Email" name="email" rules={[{ required: true, type: "email", message: "Enter your email" }]}>
++                  <Input placeholder="you@example.com" size="large" />
++                </Form.Item>
++                <Form.Item style={{ marginBottom: 12 }}>
++                  <Button type="primary" htmlType="submit" size="large" icon={<UserAddOutlined />} block loading={authLoading}>
++                    Create Account & Join
++                  </Button>
++                </Form.Item>
++              </Form>
++              <div style={{ textAlign: "center" }}>
++                <Button type="link" icon={<LoginOutlined />} onClick={() => router.push(`/login?redirect=/invite/competition/${token}`)}>
++                  I already have an account
++                </Button>
++              </div>
++            </div>
++          ) : (
++            <div>
++              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
++                <Title level={4} style={{ margin: 0 }}>Events</Title>
++                <Text style={{ color: "#64748B", fontSize: 13 }}>{events.length} available</Text>
++              </div>
++              {events.length === 0 ? (
++                <Text type="secondary">No events in this competition yet.</Text>
++              ) : (
++                <Row gutter={[12, 12]}>
++                  {events.map((evt) => {
++                    const joined = registeredEvents.has(evt.id);
++                    return (
++                      <Col span={24} key={evt.id}>
++                        <Card
++                          size="small"
++                          style={{ borderRadius: 12, border: joined ? "1px solid #22C55E" : "1px solid #E2E8F0" }}
++                        >
++                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
++                            <div>
++                              <Text strong>{evt.name}</Text>
++                              <div style={{ marginTop: 4 }}>
++                                <Tag style={{ fontSize: 11 }}>{evt.format}</Tag>
++                                <Tag color={evt.status === EventStatus.InProgress ? "green" : evt.status === EventStatus.Completed ? "purple" : "default"} style={{ fontSize: 11 }}>
++                                  {evt.status}
++                                </Tag>
++                              </div>
++                            </div>
++                            {joined ? (
++                              <Tag color="green" icon={<TeamOutlined />}>Joined</Tag>
++                            ) : (
++                              <Button
++                                type="primary"
++                                size="small"
++                                loading={joiningId === evt.id}
++                                onClick={() => handleJoinEvent(evt.id)}
++                              >
++                                Join
++                              </Button>
++                            )}
++                          </div>
++                        </Card>
++                      </Col>
++                    );
++                  })}
++                </Row>
++              )}
++            </div>
++          )}
++        </Card>
++
++        {currentMember && (
++          <div style={{ textAlign: "center" }}>
++            <Button type="link" icon={<RightOutlined />} onClick={() => router.push("/app")}>
++              Go to Dashboard
++            </Button>
++          </div>
++        )}
++      </Content>
++    </Layout>
++  );
++}
++
++export default function AcceptCompetitionInvitePage() {
++  return (
++    <AppProvider>
++      <AcceptCompetitionInviteInner />
++    </AppProvider>
++  );
++}

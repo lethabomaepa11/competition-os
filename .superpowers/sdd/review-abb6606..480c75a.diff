@@ -1,0 +1,78 @@
+﻿# Review package: abb6606..HEAD
+
+## Commits
+480c75a feat: add Supabase Storage image upload component
+
+## Files changed
+ .../src/components/upload/image-upload.tsx         | 47 ++++++++++++++++++++++
+ competitionos/src/lib/supabase/client.ts           |  8 ++++
+ 2 files changed, 55 insertions(+)
+
+## Diff
+diff --git a/competitionos/src/components/upload/image-upload.tsx b/competitionos/src/components/upload/image-upload.tsx
+new file mode 100644
+index 0000000..acf94f4
+--- /dev/null
++++ b/competitionos/src/components/upload/image-upload.tsx
+@@ -0,0 +1,47 @@
++"use client";
++
++import { useState } from "react";
++import { Button, Upload, message } from "antd";
++import { UploadOutlined } from "@ant-design/icons";
++import { createClient } from "@/lib/supabase/client";
++
++const BUCKET = "competition-covers";
++
++export default function ImageUpload({ currentUrl, onUpload }: { currentUrl?: string | null; onUpload: (url: string) => void }) {
++  const [uploading, setUploading] = useState(false);
++
++  const handleUpload = async (file: File) => {
++    setUploading(true);
++    try {
++      const supabase = createClient();
++      const ext = file.name.split(".").pop();
++      const path = `${crypto.randomUUID()}.${ext}`;
++      const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
++        cacheControl: "3600",
++        upsert: false,
++      });
++      if (error) throw error;
++      const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
++      onUpload(publicUrl);
++      message.success("Image uploaded");
++    } catch (err) {
++      message.error("Upload failed");
++    } finally {
++      setUploading(false);
++    }
++    return false; // prevent default antd upload
++  };
++
++  return (
++    <div>
++      {currentUrl && (
++        <img src={currentUrl} alt="Cover" style={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: 8, marginBottom: 8 }} />
++      )}
++      <Upload beforeUpload={handleUpload} showUploadList={false} accept="image/png,image/jpeg,image/webp">
++        <Button icon={<UploadOutlined />} loading={uploading}>
++          {currentUrl ? "Change Image" : "Upload Cover Image"}
++        </Button>
++      </Upload>
++    </div>
++  );
++}
+diff --git a/competitionos/src/lib/supabase/client.ts b/competitionos/src/lib/supabase/client.ts
+new file mode 100644
+index 0000000..9f2891b
+--- /dev/null
++++ b/competitionos/src/lib/supabase/client.ts
+@@ -0,0 +1,8 @@
++import { createBrowserClient } from "@supabase/ssr";
++
++export function createClient() {
++  return createBrowserClient(
++    process.env.NEXT_PUBLIC_SUPABASE_URL!,
++    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
++  );
++}
