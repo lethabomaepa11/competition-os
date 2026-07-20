@@ -1,0 +1,445 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #F8FAFC;
+  color: #0F172A;
+  line-height: 1.6;
+}
+
+::selection {
+  background: rgba(30, 58, 138, 0.15);
+  color: #0F172A;
+}
+
+/* ─── Cards ─── */
+.ant-card {
+  border: 1px solid #F1F5F9;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ant-card-hoverable {
+  cursor: pointer;
+}
+
+.ant-card-hoverable:hover {
+  border-color: rgba(30, 58, 138, 0.2) !important;
+  box-shadow: 0 4px 20px rgba(30, 58, 138, 0.06), 0 1px 3px rgba(30, 58, 138, 0.03);
+  transform: translateY(-2px);
+}
+
+.ant-card-head {
+  border-bottom: 1px solid #F1F5F9;
+  min-height: 56px;
+  padding: 0 20px;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.ant-card-body {
+  padding: 20px;
+}
+
+.ant-card-actions {
+  border-top: 1px solid #F1F5F9;
+  background: transparent;
+}
+
+.ant-card-actions > li {
+  margin: 8px 0;
+}
+
+/* ─── Tables ─── */
+.ant-table-wrapper .ant-table-thead > tr > th {
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 14px 16px;
+  color: #64748B;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr > td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr:last-child > td {
+  border-bottom: none;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr:hover > td {
+  background: rgba(30, 58, 138, 0.02) !important;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr.ant-table-row-selected > td {
+  background: rgba(30, 58, 138, 0.04) !important;
+}
+
+/* ─── Buttons ─── */
+.ant-btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ant-btn-primary {
+  box-shadow: 0 1px 3px rgba(30, 58, 138, 0.12);
+}
+
+.ant-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(30, 58, 138, 0.2);
+}
+
+.ant-btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(30, 58, 138, 0.1);
+}
+
+.ant-btn-default:hover {
+  border-color: #1E3A8A;
+  color: #1E3A8A;
+  background: #F8FAFC;
+}
+
+.ant-btn-text:hover {
+  background: rgba(30, 58, 138, 0.04);
+}
+
+/* ─── Inputs ─── */
+.ant-input,
+.ant-input-number,
+.ant-picker,
+.ant-select-selector {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.ant-input:hover,
+.ant-input-number:hover,
+.ant-picker:hover {
+  border-color: #1E40AF !important;
+}
+
+.ant-input-focused,
+.ant-input:focus,
+.ant-input-number-focused,
+.ant-picker-focused {
+  box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.08) !important;
+  border-color: #1E3A8A !important;
+}
+
+/* ─── Tags ─── */
+.ant-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border: none;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1.6;
+  border-radius: 6px;
+}
+
+/* ─── Tabs ─── */
+.ant-tabs-nav {
+  margin-bottom: 0 !important;
+}
+
+.ant-tabs-nav::before {
+  border-bottom: 1px solid #E2E8F0 !important;
+}
+
+.ant-tabs-tab {
+  padding: 12px 20px !important;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  margin: 0 !important;
+}
+
+.ant-tabs-tab:hover {
+  color: #1E3A8A;
+}
+
+.ant-tabs-ink-bar {
+  height: 2.5px;
+  border-radius: 2px;
+}
+
+.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  font-weight: 600;
+}
+
+/* ─── Modal ─── */
+.ant-modal-content {
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.ant-modal-header {
+  padding: 24px 24px 0;
+  border-radius: 16px 16px 0 0;
+}
+
+.ant-modal-body {
+  padding: 20px 24px;
+}
+
+.ant-modal-footer {
+  padding: 12px 24px 20px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.ant-modal-title {
+  font-weight: 600;
+  font-size: 18px;
+}
+
+/* ─── Menu ─── */
+.ant-menu-item {
+  border-radius: 10px;
+  margin: 2px 8px !important;
+  font-weight: 500;
+}
+
+.ant-menu-item-selected {
+  font-weight: 600;
+}
+
+.ant-menu-item-selected::after {
+  border-inline-end: 0 !important;
+}
+
+.ant-menu-inline .ant-menu-item {
+  width: calc(100% - 16px);
+}
+
+/* ─── Layout ─── */
+.ant-layout-sider {
+  border-right: 1px solid #E2E8F0 !important;
+  box-shadow: 1px 0 3px rgba(0, 0, 0, 0.02);
+}
+
+.ant-layout-header {
+  border-bottom: 1px solid #E2E8F0 !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* ─── Descriptions ─── */
+.ant-descriptions-view {
+  border-radius: 12px !important;
+  overflow: hidden;
+  border: 1px solid #E2E8F0 !important;
+}
+
+.ant-descriptions-row > th {
+  background: #F8FAFC !important;
+  padding: 12px 16px !important;
+  font-weight: 500 !important;
+}
+
+.ant-descriptions-row > td {
+  padding: 12px 16px !important;
+}
+
+/* ─── Form ─── */
+.ant-form-item-label {
+  padding-bottom: 4px !important;
+}
+
+.ant-form-item-label > label {
+  font-weight: 600;
+  font-size: 13px;
+  color: #0F172A;
+}
+
+.ant-form-item-label > label.ant-form-item-required:not(.ant-form-item-required-mark-optional)::before {
+  color: #EF4444;
+}
+
+.ant-form-item-explain-error {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* ─── Select ─── */
+.ant-select-dropdown {
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  padding: 4px;
+}
+
+.ant-select-item {
+  border-radius: 8px;
+  padding: 8px 12px !important;
+}
+
+/* ─── Statistic ─── */
+.ant-statistic {
+  text-align: center;
+}
+
+.ant-statistic-title {
+  color: #64748B !important;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.ant-statistic-content {
+  font-weight: 700;
+  color: #0F172A;
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* ─── Divider ─── */
+.ant-divider {
+  border-block-start: 1px solid #E2E8F0 !important;
+}
+
+/* ─── List ─── */
+.ant-list-item {
+  padding: 16px 0 !important;
+  border-block-end: 1px solid #F1F5F9 !important;
+}
+
+/* ─── Steps ─── */
+.ant-steps-item-title {
+  font-weight: 500;
+}
+
+.ant-steps-item-icon {
+  border-width: 2px;
+}
+
+/* ─── Empty ─── */
+.ant-empty-normal {
+  color: #94A3B8;
+}
+
+.ant-empty-image {
+  opacity: 0.6;
+}
+
+/* ─── Notification ─── */
+.ant-notification-notice {
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* ─── Table empty ─── */
+.ant-table-wrapper .ant-table-placeholder {
+  border-bottom: none;
+}
+
+/* ─── Tooltip ─── */
+.ant-tooltip-inner {
+  font-weight: 500;
+}
+
+/* ─── Spin ─── */
+.ant-spin-nested-loading > div > .ant-spin {
+  max-height: none;
+}
+
+/* ─── Page transitions ─── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* ─── Gold accent glow for highlights ─── */
+.gold-glow {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(251, 191, 36, 0.03) 100%);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+.gold-text {
+  color: #FBBF24;
+}
+
+/* ─── Navy accent ─── */
+.navy-badge {
+  background: linear-gradient(135deg, #1E3A8A, #1E40AF);
+  color: white;
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ─── Status dots ─── */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.active { background: #22C55E; }
+.status-dot.pending { background: #FBBF24; }
+.status-dot.inactive { background: #CBD5E1; }
+.status-dot.error { background: #EF4444; }
+
+/* ─── Gradient headings ─── */
+.gradient-heading {
+  background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Glass card ─── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(226, 232, 240, 0.5) !important;
+}
