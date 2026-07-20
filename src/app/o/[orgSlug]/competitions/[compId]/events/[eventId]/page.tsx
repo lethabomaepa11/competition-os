@@ -1011,7 +1011,7 @@ export default function EventDetailPage() {
       ) : (
         <div>
           <Row gutter={[16, 16]}>
-            <Col span={6}>
+            <Col xs={24} sm={12} md={12} lg={6}>
               <Card>
                 <Statistic
                   title="Participants"
@@ -1020,7 +1020,7 @@ export default function EventDetailPage() {
                 />
               </Card>
             </Col>
-            <Col span={6}>
+            <Col xs={24} sm={12} md={12} lg={6}>
               <Card>
                 <Statistic
                   title="Matches"
@@ -1029,7 +1029,7 @@ export default function EventDetailPage() {
                 />
               </Card>
             </Col>
-            <Col span={6}>
+            <Col xs={24} sm={12} md={12} lg={6}>
               <Card>
                 <Statistic
                   title="Completed"
@@ -1041,7 +1041,7 @@ export default function EventDetailPage() {
                 />
               </Card>
             </Col>
-            <Col span={6}>
+            <Col xs={24} sm={12} md={12} lg={6}>
               <Card>
                 <Statistic
                   title="Stages"
@@ -1825,7 +1825,10 @@ export default function EventDetailPage() {
         </div>
       )}
 
-      <Tabs items={tabItems} />
+      <Tabs
+        items={tabItems}
+        tabBarStyle={{ overflowX: "auto", whiteSpace: "nowrap" }}
+      />
 
       <Modal
         title="Register Participant"

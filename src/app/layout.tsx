@@ -7,16 +7,19 @@ export const metadata: Metadata = {
   title: "CompetitionOS",
   description: "Configurable competition management platform",
   icons: [{ rel: "icon", url: "/logo.svg" }],
+  viewport: "width=device-width, initial-scale=1",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" className="h-full">
       <body className="min-h-full">
         <AntdRegistry>
-          <Providers>
-            {children}
-          </Providers>
+          <Providers>{children}</Providers>
         </AntdRegistry>
       </body>
     </html>

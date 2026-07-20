@@ -320,6 +320,8 @@ export default function CompetitionDetailPage() {
           justifyContent: "space-between",
           alignItems: "flex-start",
           marginBottom: 16,
+          flexWrap: "wrap",
+          gap: 12,
         }}
       >
         <div>
@@ -330,7 +332,7 @@ export default function CompetitionDetailPage() {
             <Text type="secondary">{competition.description}</Text>
           )}
         </div>
-        <Space>
+        <Space wrap>
           <Button
             icon={<GlobalOutlined />}
             onClick={() => window.open(`/c/${competition.id}`, "_blank")}
