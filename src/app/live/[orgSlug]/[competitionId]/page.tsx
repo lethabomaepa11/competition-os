@@ -498,10 +498,53 @@ function StatisticLike({
   icon: React.ReactNode;
 }) {
   return (
-    <div style={{ textAlign: "center" }}>
-      <div style={{ fontSize: 24, color: "#1677ff" }}>{icon}</div>
-      <div style={{ fontSize: 24, fontWeight: 600 }}>{value}</div>
-      <div style={{ fontSize: 13, color: "#888" }}>{label}</div>
+    <div
+      className="stat-card animate-fade-in-up"
+      style={{
+        textAlign: "center",
+        cursor: "default",
+        padding: "16px 8px",
+        borderRadius: 16,
+        background:
+          "linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%)",
+        border: "1px solid #f1f5f9",
+        transition: "all 0.35s cubic-bezier(0.22,1,0.36,1)",
+      }}
+    >
+      <div
+        className="stat-icon"
+        style={{
+          fontSize: 32,
+          color: "#1677ff",
+          filter: "drop-shadow(0 6px 12px rgba(30,58,138,0.15))",
+        }}
+      >
+        {icon}
+      </div>
+      <div
+        className="animate-count-pulse"
+        style={{
+          fontSize: 32,
+          fontWeight: 800,
+          color: "#0f172a",
+          letterSpacing: "-0.02em",
+          marginTop: 6,
+        }}
+      >
+        {value}
+      </div>
+      <div
+        style={{
+          fontSize: 12,
+          color: "#64748b",
+          fontWeight: 600,
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+          marginTop: 4,
+        }}
+      >
+        {label}
+      </div>
     </div>
   );
 }

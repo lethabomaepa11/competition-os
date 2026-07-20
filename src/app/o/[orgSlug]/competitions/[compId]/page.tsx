@@ -402,7 +402,7 @@ export default function CompetitionDetailPage() {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} md={6}>
-          <Card size="small">
+          <Card size="small" className="animate-fade-in-up delay-1">
             <Statistic
               title="Setup"
               value={setupProgress}
@@ -412,7 +412,7 @@ export default function CompetitionDetailPage() {
           </Card>
         </Col>
         <Col xs={24} md={6}>
-          <Card size="small">
+          <Card size="small" className="animate-fade-in-up delay-2">
             <Statistic
               title="Events"
               value={events.length}
@@ -421,7 +421,7 @@ export default function CompetitionDetailPage() {
           </Card>
         </Col>
         <Col xs={24} md={6}>
-          <Card size="small">
+          <Card size="small" className="animate-fade-in-up delay-3">
             <Statistic
               title="Active"
               value={activeEvents}
@@ -430,7 +430,7 @@ export default function CompetitionDetailPage() {
           </Card>
         </Col>
         <Col xs={24} md={6}>
-          <Card size="small">
+          <Card size="small" className="animate-fade-in-up delay-4">
             <Statistic
               title="Completed"
               value={completedEvents}

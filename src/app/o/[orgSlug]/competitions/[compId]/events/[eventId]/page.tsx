@@ -1012,7 +1012,7 @@ export default function EventDetailPage() {
         <div>
           <Row gutter={[16, 16]}>
             <Col xs={24} sm={12} md={12} lg={6}>
-              <Card>
+              <Card className="animate-fade-in-up delay-1">
                 <Statistic
                   title="Participants"
                   value={participants.length}
@@ -1021,7 +1021,7 @@ export default function EventDetailPage() {
               </Card>
             </Col>
             <Col xs={24} sm={12} md={12} lg={6}>
-              <Card>
+              <Card className="animate-fade-in-up delay-2">
                 <Statistic
                   title="Matches"
                   value={matches.length}
@@ -1030,7 +1030,7 @@ export default function EventDetailPage() {
               </Card>
             </Col>
             <Col xs={24} sm={12} md={12} lg={6}>
-              <Card>
+              <Card className="animate-fade-in-up delay-3">
                 <Statistic
                   title="Completed"
                   value={
@@ -1042,7 +1042,7 @@ export default function EventDetailPage() {
               </Card>
             </Col>
             <Col xs={24} sm={12} md={12} lg={6}>
-              <Card>
+              <Card className="animate-fade-in-up delay-4">
                 <Statistic
                   title="Stages"
                   value={stages.length}
