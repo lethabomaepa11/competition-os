@@ -497,50 +497,86 @@ function StatisticLike({
   value: number;
   icon: React.ReactNode;
 }) {
+  const gradients: Record<
+    string,
+    { iconBg: string; textBg: string; shadow: string }
+  > = {
+    Participants: {
+      iconBg: "linear-gradient(135deg, #3b82f6, #1e3a8a)",
+      textBg: "linear-gradient(135deg, #1e3a8a, #3b82f6)",
+      shadow: "rgba(59, 130, 246, 0.35)",
+    },
+    Matches: {
+      iconBg: "linear-gradient(135deg, #f59e0b, #d97706)",
+      textBg: "linear-gradient(135deg, #d97706, #f59e0b)",
+      shadow: "rgba(245, 158, 11, 0.35)",
+    },
+    Completed: {
+      iconBg: "linear-gradient(135deg, #22c55e, #16a34a)",
+      textBg: "linear-gradient(135deg, #16a34a, #22c55e)",
+      shadow: "rgba(34, 197, 94, 0.35)",
+    },
+    Live: {
+      iconBg: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+      textBg: "linear-gradient(135deg, #7c3aed, #8b5cf6)",
+      shadow: "rgba(139, 92, 246, 0.35)",
+    },
+  };
+  const g = gradients[label] ?? gradients.Participants;
+
   return (
     <div
       className="stat-card animate-fade-in-up"
       style={{
         textAlign: "center",
         cursor: "default",
-        padding: "16px 8px",
-        borderRadius: 16,
-        background:
-          "linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%)",
-        border: "1px solid #f1f5f9",
-        transition: "all 0.35s cubic-bezier(0.22,1,0.36,1)",
+        padding: "20px 8px",
+        borderRadius: 20,
+        background: "linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)",
+        border: "1px solid #e2e8f0",
+        boxShadow:
+          "0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01)",
+        transition: "all 0.4s cubic-bezier(0.22,1,0.36,1)",
       }}
     >
       <div
         className="stat-icon"
         style={{
-          fontSize: 32,
-          color: "#1677ff",
-          filter: "drop-shadow(0 6px 12px rgba(30,58,138,0.15))",
+          width: 52,
+          height: 52,
+          borderRadius: 16,
+          background: g.iconBg,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: `0 10px 25px ${g.shadow}`,
+          marginBottom: 12,
         }}
       >
-        {icon}
+        <div style={{ color: "#fff", fontSize: 26 }}>{icon}</div>
       </div>
       <div
         className="animate-count-pulse"
         style={{
-          fontSize: 32,
+          fontSize: 36,
           fontWeight: 800,
-          color: "#0f172a",
+          background: g.textBg,
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
           letterSpacing: "-0.02em",
-          marginTop: 6,
+          marginTop: 4,
         }}
       >
         {value}
       </div>
       <div
         style={{
-          fontSize: 12,
+          fontSize: 11,
           color: "#64748b",
-          fontWeight: 600,
+          fontWeight: 700,
           textTransform: "uppercase",
-          letterSpacing: "0.08em",
-          marginTop: 4,
+          letterSpacing: "0.1em",
+          marginTop: 6,
         }}
       >
         {label}
