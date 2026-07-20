@@ -2,6 +2,7 @@
 -- Without these, storage.objects denies all operations by default
 
 -- Allow public read access to cover images
+drop policy if exists "cover_images_public_select" on storage.objects;
 create policy "cover_images_public_select"
   on storage.objects for select
   to public
