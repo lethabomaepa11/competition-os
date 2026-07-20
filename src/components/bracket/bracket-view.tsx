@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
-import { Tag, Empty, Typography } from "antd";
+import { useMemo, useRef, useCallback } from "react";
+import { Tag, Empty, Typography, Button, message } from "antd";
 import { Bracket } from "bracketkit";
 import type { BracketRound } from "bracketkit";
 import type { Match } from "@/domain/match";
 import type { Participant } from "@/domain/participant";
 import type { Round } from "@/domain/event";
 import { MatchStatus } from "@/domain/types";
+import { toPng } from "html-to-image";
+import jsPDF from "jspdf";
 
 const { Text } = Typography;
 
@@ -89,32 +91,87 @@ export function BracketView({ matches, participants, rounds }: Props) {
       );
   }, [matches, participantMap, roundNameMap, roundOrderMap]);
 
+  const bracketRef = useRef<HTMLDivElement>(null);
+
+  const exportBracket = useCallback(async (format: "png" | "pdf") => {
+    if (!bracketRef.current) return;
+    try {
+      const dataUrl = await toPng(bracketRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: "#ffffff",
+      });
+      if (format === "png") {
+        const link = document.createElement("a");
+        link.download = "bracket.png";
+        link.href = dataUrl;
+        link.click();
+      } else {
+        const pdf = new jsPDF({ orientation: "landscape", unit: "px" });
+        const imgProps = pdf.getImageProperties(dataUrl);
+        pdf.addImage(dataUrl, "PNG", 0, 0, imgProps.width, imgProps.height);
+        pdf.save("bracket.pdf");
+      }
+      message.success(`Bracket exported as ${format.toUpperCase()}`);
+    } catch {
+      message.error("Failed to export bracket");
+    }
+  }, []);
+
   if (matches.length === 0 || !rounds || rounds.length === 0) {
     return <Empty description="No bracket data available yet." />;
   }
 
   return (
-    <div style={{ overflow: "auto", padding: "16px 0" }}>
-      <Bracket
-        key={renderKey}
-        rounds={bracketRounds}
-        matchWidth={220}
-        connectorWidth={48}
-        matchGap={12}
-        renderRoundHeader={(round) => (
-          <div
-            style={{
-              textAlign: "center",
-              fontWeight: 600,
-              fontSize: 14,
-              marginBottom: 12,
-            }}
-          >
-            {round.name}
-          </div>
-        )}
-        renderMatch={(match) => <MatchCard match={match} />}
-      />
+    <div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: 12,
+          gap: 8,
+        }}
+      >
+        <Button size="small" onClick={() => exportBracket("png")}>
+          Export PNG
+        </Button>
+        <Button size="small" onClick={() => exportBracket("pdf")}>
+          Export PDF
+        </Button>
+      </div>
+      <div
+        ref={bracketRef}
+        style={{
+          overflow: "auto",
+          padding: "16px 0",
+          background: "#fff",
+          borderRadius: 12,
+        }}
+      >
+        <Bracket
+          key={renderKey}
+          rounds={bracketRounds}
+          matchWidth={220}
+          connectorWidth={48}
+          matchGap={12}
+          renderRoundHeader={(round) => (
+            <div
+              style={{
+                textAlign: "center",
+                fontWeight: 700,
+                fontSize: 13,
+                marginBottom: 12,
+                color: "#1e3a8a",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
+              {round.name}
+            </div>
+          )}
+          renderMatch={(match) => <MatchCard match={match} />}
+        />
+      </div>
     </div>
   );
 }
@@ -127,15 +184,20 @@ function MatchCard({ match }: { match: BracketMatchData }) {
   const isWalkover = match.status === MatchStatus.Walkover;
   const isCompleted = match.status === MatchStatus.Completed;
 
+  const p1Color = isP1Winner ? "#1e3a8a" : "#64748b";
+  const p2Color = isP2Winner ? "#1e3a8a" : "#64748b";
+
   return (
     <div
       style={{
-        border: `1px solid ${isCompleted ? "#52c41a" : "#d9d9d9"}`,
-        borderRadius: 8,
-        padding: "8px 12px",
-        background: "#fff",
-        opacity: isWalkover ? 0.6 : 1,
-        minWidth: 180,
+        border: `1px solid ${isCompleted ? "#22c55e" : isWalkover ? "#f59e0b" : "#e2e8f0"}`,
+        borderRadius: 12,
+        padding: "10px 12px",
+        background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+        opacity: isWalkover ? 0.7 : 1,
+        minWidth: 190,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+        transition: "all 0.2s ease",
       }}
     >
       {isEmpty ? (
@@ -149,18 +211,35 @@ function MatchCard({ match }: { match: BracketMatchData }) {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: 4,
+              marginBottom: 6,
+              padding: "4px 6px",
+              borderRadius: 6,
+              background: isP1Winner ? "rgba(30,58,138,0.04)" : "transparent",
             }}
           >
             <Text
               strong={!!isP1Winner}
               delete={isP2Winner && !!match.winner}
-              style={{ fontSize: 14 }}
+              style={{
+                fontSize: 13,
+                color: p1Color,
+                fontWeight: isP1Winner ? 700 : 500,
+              }}
             >
               {match.p1Name}
             </Text>
             {match.p1Score !== undefined && (
-              <Tag style={{ margin: 0 }}>{match.p1Score}</Tag>
+              <Tag
+                color={isP1Winner ? "blue" : "default"}
+                style={{
+                  margin: 0,
+                  fontWeight: 600,
+                  minWidth: 28,
+                  textAlign: "center",
+                }}
+              >
+                {match.p1Score}
+              </Tag>
             )}
           </div>
           <div
@@ -168,27 +247,58 @@ function MatchCard({ match }: { match: BracketMatchData }) {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              padding: "4px 6px",
+              borderRadius: 6,
+              background: isP2Winner ? "rgba(30,58,138,0.04)" : "transparent",
             }}
           >
             <Text
               strong={!!isP2Winner}
               delete={isP1Winner && !!match.winner}
-              style={{ fontSize: 14 }}
+              style={{
+                fontSize: 13,
+                color: p2Color,
+                fontWeight: isP2Winner ? 700 : 500,
+              }}
             >
               {match.p2Name}
             </Text>
             {match.p2Score !== undefined && (
-              <Tag style={{ margin: 0 }}>{match.p2Score}</Tag>
+              <Tag
+                color={isP2Winner ? "blue" : "default"}
+                style={{
+                  margin: 0,
+                  fontWeight: 600,
+                  minWidth: 28,
+                  textAlign: "center",
+                }}
+              >
+                {match.p2Score}
+              </Tag>
             )}
           </div>
         </>
       )}
       {isCompleted && match.winner && !isEmpty && (
-        <Tag color="green" style={{ marginTop: 4, fontSize: 11 }}>
-          Winner: {match.winner}
-        </Tag>
+        <div style={{ marginTop: 6, textAlign: "center" }}>
+          <Tag
+            color="green"
+            style={{ fontSize: 11, fontWeight: 600, borderRadius: 6 }}
+          >
+            Winner: {match.winner}
+          </Tag>
+        </div>
       )}
-      {isWalkover && <Tag style={{ marginTop: 4 }}>Walkover</Tag>}
+      {isWalkover && (
+        <div style={{ marginTop: 6, textAlign: "center" }}>
+          <Tag
+            color="orange"
+            style={{ fontSize: 11, fontWeight: 600, borderRadius: 6 }}
+          >
+            Walkover
+          </Tag>
+        </div>
+      )}
     </div>
   );
 }
