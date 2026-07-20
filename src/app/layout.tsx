@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
+import Script from "next/script";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -12,8 +13,17 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "CompetitionOS",
   description: "Configurable competition management platform",
-  icons: [{ rel: "icon", url: "/logo.jpg" }],
+  manifest: "/manifest.json",
+  icons: [
+    { rel: "icon", url: "/logo.jpg" },
+    { rel: "apple-touch-icon", url: "/logo.jpg" },
+  ],
   viewport: "width=device-width, initial-scale=1",
+  other: {
+    "theme-color": "#E8A623",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-title": "CompOS",
+  },
 };
 
 export default function RootLayout({
@@ -27,6 +37,19 @@ export default function RootLayout({
         <AntdRegistry>
           <Providers>{children}</Providers>
         </AntdRegistry>
+        <Script
+          id="register-sw"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ("serviceWorker" in navigator) {
+                window.addEventListener("load", () => {
+                  navigator.serviceWorker.register("/sw.js");
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
