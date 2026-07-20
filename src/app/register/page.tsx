@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Form, Input, Button, Typography, message, Divider, Layout } from "antd";
 import { ArrowRightOutlined } from "@ant-design/icons";
+import { BackButton } from "@/components/common/back-button";
 
 
 const { Content } = Layout;
@@ -33,13 +34,14 @@ export default function RegisterPage() {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#F8FAFC" }}>
+    <Layout style={{ minHeight: "100vh" }}>
+      <BackButton fallback="/" />
       <Content style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-        <Card style={{ width: 400, maxWidth: "100%", borderRadius: 16, boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)" }}>
+        <Card style={{ width: 400, maxWidth: "100%" }}>
           <div style={{ textAlign: "center", marginBottom: 28 }}>
-            <img src="/logo.svg" alt="CompetitionOS" style={{ height: 48, marginBottom: 8 }} />
+            <img src="/logo.jpg" alt="CompetitionOS" style={{ height: 64, marginBottom: 12 }} />
             <Title level={3} style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Create your account</Title>
-            <Text style={{ color: "#64748B", fontSize: 14, marginTop: 4, display: "block" }}>No credit card required</Text>
+            <Text style={{ fontSize: 14, marginTop: 4, display: "block" }}>No credit card required</Text>
           </div>
 
           <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
@@ -60,7 +62,7 @@ export default function RegisterPage() {
           </Form>
 
           <Divider style={{ margin: "16px 0" }}>
-            <Text style={{ color: "#94A3B8", fontSize: 12 }}>Already registered?</Text>
+            <Text style={{ fontSize: 12 }}>Already registered?</Text>
           </Divider>
 
           <Button type="default" block size="large" onClick={() => router.push("/login")}>

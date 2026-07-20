@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, Typography, Button, Spin, message, Layout, Result, Tag } from "antd";
+import { Card, Typography, Button, Spin, message, Layout, Result, Tag, Space } from "antd";
+import { CheckCircleOutlined, CloseCircleOutlined, UserAddOutlined } from "@ant-design/icons";
 import { AppProvider, useApp } from "@/lib/app-context";
 import { ParticipantInviteService } from "@/domain/services/participant-invite.service";
 import { RegistrationService } from "@/domain/services/registration.service";
@@ -99,7 +100,7 @@ function AcceptParticipantInviteInner() {
 
   if (error) {
     return (
-      <Content style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: "#F8FAFC" }}>
+      <Content style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
         <Result status="error" title="Invalid Invite" subTitle={error} extra={<Button onClick={() => router.push("/")}>Go Home</Button>} />
       </Content>
     );
@@ -107,31 +108,64 @@ function AcceptParticipantInviteInner() {
 
   if (accepted) {
     return (
-      <Content style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: "#F8FAFC" }}>
+      <Content style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
         <Result status="success" title="You're In!" subTitle="You've been registered for the event" extra={<Button type="primary" onClick={() => router.push("/app")}>Go to Dashboard</Button>} />
       </Content>
     );
   }
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#F8FAFC" }}>
+    <Layout style={{ minHeight: "100vh" }}>
+      <div style={{
+        background: "linear-gradient(135deg, #0A0B0F 0%, #13141A 50%, #0A0B0F 100%)",
+        padding: "80px 24px",
+        textAlign: "center",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: 400,
+          height: 400,
+          background: "radial-gradient(circle, rgba(232,166,35,0.08) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }} />
+        <Space style={{ marginBottom: 16 }}>
+          <UserAddOutlined style={{ fontSize: 32 }} />
+        </Space>
+        <Title level={2} style={{ margin: 0, fontSize: 28 }}>Event Invitation</Title>
+        <Text style={{ display: "block", marginTop: 8, fontSize: 15 }}>
+          You've been invited to compete as <strong>{invite?.displayName}</strong>
+        </Text>
+      </div>
+
       <Content style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-        <Card style={{ width: 400, borderRadius: 16, textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.04)" }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🎮</div>
-          <Title level={3} style={{ margin: 0, fontSize: 20 }}>Event Invitation</Title>
-          <Text style={{ color: "#64748B", display: "block", marginTop: 8 }}>
-            You've been invited to compete as <strong>{invite?.displayName}</strong>
-          </Text>
-          <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 12 }}>
+        <Card style={{
+          width: 420,
+          textAlign: "center",
+          marginTop: -40,
+          position: "relative",
+          zIndex: 1,
+        }}>
+          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 12 }}>
             {!currentMember && (
-              <Text style={{ fontSize: 13, color: "#94A3B8" }}>
+              <Text style={{ fontSize: 13 }}>
                 You'll be automatically signed up with {invite?.email}
               </Text>
             )}
-            <Button type="primary" size="large" block onClick={handleAccept}>
+            <Button
+              type="primary"
+              size="large"
+              block
+              icon={<CheckCircleOutlined />}
+              onClick={handleAccept}
+            >
               Accept & Register
             </Button>
-            <Button block onClick={() => router.push("/")}>
+            <Button block icon={<CloseCircleOutlined />} onClick={() => router.push("/")}>
               Decline
             </Button>
           </div>

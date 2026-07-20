@@ -1016,11 +1016,6 @@ export default function EventDetailPage() {
                 className="animate-fade-in-up delay-1 stat-card"
                 style={{
                   borderRadius: 20,
-                  border: "1px solid #e2e8f0",
-                  background:
-                    "linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)",
-                  boxShadow:
-                    "0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01)",
                   transition: "all 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
                 }}
               >
@@ -1030,7 +1025,7 @@ export default function EventDetailPage() {
                     style={{
                       fontSize: 40,
                       marginBottom: 12,
-                      background: "linear-gradient(135deg, #3b82f6, #1e3a8a)",
+                      background: "linear-gradient(135deg, #E8A623, #2ABFAA)",
                       borderRadius: 14,
                       padding: 14,
                       display: "inline-flex",
@@ -1045,7 +1040,7 @@ export default function EventDetailPage() {
                     valueStyle={{
                       fontSize: 36,
                       fontWeight: 800,
-                      background: "linear-gradient(135deg, #1e3a8a, #3b82f6)",
+                      background: "linear-gradient(135deg, #E8A623, #2ABFAA)",
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
                       letterSpacing: "-0.02em",
@@ -1059,11 +1054,6 @@ export default function EventDetailPage() {
                 className="animate-fade-in-up delay-2 stat-card"
                 style={{
                   borderRadius: 20,
-                  border: "1px solid #e2e8f0",
-                  background:
-                    "linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)",
-                  boxShadow:
-                    "0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01)",
                   transition: "all 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
                 }}
               >
@@ -1073,7 +1063,7 @@ export default function EventDetailPage() {
                     style={{
                       fontSize: 40,
                       marginBottom: 12,
-                      background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                      background: "linear-gradient(135deg, #E8A623, #E8A623)",
                       borderRadius: 14,
                       padding: 14,
                       display: "inline-flex",
@@ -1102,11 +1092,6 @@ export default function EventDetailPage() {
                 className="animate-fade-in-up delay-3 stat-card"
                 style={{
                   borderRadius: 20,
-                  border: "1px solid #e2e8f0",
-                  background:
-                    "linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)",
-                  boxShadow:
-                    "0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01)",
                   transition: "all 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
                 }}
               >
@@ -1116,7 +1101,7 @@ export default function EventDetailPage() {
                     style={{
                       fontSize: 40,
                       marginBottom: 12,
-                      background: "linear-gradient(135deg, #22c55e, #16a34a)",
+                      background: "linear-gradient(135deg, #2ABFAA, #2ABFAA)",
                       borderRadius: 14,
                       padding: 14,
                       display: "inline-flex",
@@ -1148,11 +1133,6 @@ export default function EventDetailPage() {
                 className="animate-fade-in-up delay-4 stat-card"
                 style={{
                   borderRadius: 20,
-                  border: "1px solid #e2e8f0",
-                  background:
-                    "linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)",
-                  boxShadow:
-                    "0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01)",
                   transition: "all 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
                 }}
               >
@@ -1342,8 +1322,8 @@ export default function EventDetailPage() {
                               }}
                             >
                               <Text style={{ fontSize: 13 }}>
-                                {rank === 0 && "🥇"} {rank === 1 && "🥈"}{" "}
-                                {rank === 2 && "🥉"} {entry.displayName}
+                                {rank === 0 && <TrophyOutlined style={{ color: "#E8A623" }} />} {rank === 1 && <TrophyOutlined />}{" "}
+                                {rank === 2 && <TrophyOutlined />} {entry.displayName}
                               </Text>
                               <Text style={{ fontSize: 13 }}>
                                 {entry.points} pts
@@ -1392,7 +1372,7 @@ export default function EventDetailPage() {
         onMatchUpdate={handleMatchUpdate}
         isAdmin={isAdmin}
       />
-      {event && !isGroupStage && (
+      {event && (
         <AiInsights
           matches={groupMatches}
           participants={participants}
@@ -1647,7 +1627,7 @@ export default function EventDetailPage() {
               }}
             >
               {phasePlan.phases.map((p, i) => (
-                <Card key={i} size="small" style={{ background: "#fafafa" }}>
+                <Card key={i} size="small">
                   <div
                     style={{
                       display: "flex",

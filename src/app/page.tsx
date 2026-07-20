@@ -28,7 +28,7 @@ function LandingInner() {
         padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src="/logo.svg" alt="CompetitionOS" style={{ height: 32 }} />
+          <img src="/logo.jpg" alt="CompetitionOS" style={{ height: 48 }} />
           <span style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 18 }}>CompetitionOS</span>
         </div>
         <Space>

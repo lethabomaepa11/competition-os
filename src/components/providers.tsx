@@ -1,11 +1,11 @@
 "use client";
 
 import { ConfigProvider } from "antd";
-import { themeConfig } from "@/lib/theme";
+import { antdTheme } from "@/lib/theme";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ConfigProvider theme={themeConfig}>
+    <ConfigProvider theme={antdTheme}>
       {children}
     </ConfigProvider>
   );

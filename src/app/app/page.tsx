@@ -50,32 +50,27 @@ function DashboardInner() {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#F8FAFC" }}>
+    <Layout style={{ minHeight: "100vh" }}>
       <Header style={{
-        background: "rgba(255, 255, 255, 0.85)", backdropFilter: "blur(12px)",
-        borderBottom: "1px solid #E2E8F0",
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "0 32px", position: "sticky", top: 0, zIndex: 10,
       }}>
         <Space>
-          <img src="/logo.svg" alt="CompetitionOS" style={{ height: 28 }} />
-          <Title level={4} style={{ margin: 0, color: "#0F172A", fontWeight: 700 }}>CompetitionOS</Title>
+          <img src="/logo.jpg" alt="CompetitionOS" style={{ height: 40 }} />
+          <Title level={4} style={{ margin: 0, fontWeight: 700 }}>CompetitionOS</Title>
         </Space>
         <Space>
-          <div style={{
-            width: 32, height: 32, borderRadius: "50%",
-            background: "linear-gradient(135deg, #1E3A8A, #1E40AF)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#FFFFFF", fontSize: 13, fontWeight: 600,
-          }}>
+          <Avatar
+            size={32}
+            style={{ fontSize: 13, fontWeight: 600 }}
+          >
             {currentMember.displayName.charAt(0).toUpperCase()}
-          </div>
-          <Text style={{ color: "#475569", fontWeight: 500 }}>{currentMember.displayName}</Text>
+          </Avatar>
+          <Text style={{ fontWeight: 500 }}>{currentMember.displayName}</Text>
           <Button
             type="text"
             icon={<LogoutOutlined />}
             onClick={() => { logout(); router.push("/login"); }}
-            style={{ color: "#94A3B8" }}
           />
         </Space>
       </Header>
@@ -83,8 +78,8 @@ function DashboardInner() {
       <Content style={{ padding: "48px 32px", maxWidth: 1000, margin: "0 auto", width: "100%" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 36 }}>
           <div>
-            <Text style={{ color: "#1E3A8A", fontWeight: 600, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.06em" }}>Dashboard</Text>
-            <Title level={2} style={{ margin: "4px 0 0", fontSize: 28, fontWeight: 700, color: "#0F172A" }}>
+            <Text type="secondary" style={{ fontWeight: 600, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.06em" }}>Dashboard</Text>
+            <Title level={2} style={{ margin: "4px 0 0", fontSize: 28, fontWeight: 700 }}>
               Your Organizations
             </Title>
           </div>
@@ -96,17 +91,12 @@ function DashboardInner() {
         </div>
 
         {organizations.length === 0 ? (
-          <Card style={{
-            borderRadius: 16, border: "1px dashed #CBD5E1",
-            background: "#FFFFFF",
-            textAlign: "center", padding: 40,
-          }}>
+          <Card style={{ textAlign: "center", padding: 40 }}>
             <Empty
-              image={<div style={{ fontSize: 48, marginBottom: 16 }}>🏢</div>}
               description={
                 <div>
-                  <Text style={{ color: "#64748B", fontSize: 15, display: "block", marginBottom: 4 }}>Create your first organization</Text>
-                  <Text style={{ color: "#94A3B8", fontSize: 13 }}>Organizations group your competitions, members, and settings</Text>
+                  <Text style={{ fontSize: 15, display: "block", marginBottom: 4 }}>Create your first organization</Text>
+                  <Text type="secondary" style={{ fontSize: 13 }}>Organizations group your competitions, members, and settings</Text>
                 </div>
               }
             >
@@ -122,7 +112,6 @@ function DashboardInner() {
                 <Card
                   hoverable
                   className="card-hover"
-                  style={{ borderRadius: 14, border: "1px solid #E2E8F0", background: "#FFFFFF" }}
                   onClick={() => router.push(`/o/${org.slug}`)}
                 >
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -130,14 +119,14 @@ function DashboardInner() {
                       <Avatar
                         size={48}
                         icon={<TeamOutlined />}
-                        style={{ background: "linear-gradient(135deg, #1E3A8A 0%, #1E40AF 100%)", color: "#FFFFFF", fontSize: 20 }}
+                        style={{ fontSize: 20 }}
                       />
                       <div>
-                        <Title level={4} style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#0F172A" }}>{org.name}</Title>
-                        <Text style={{ color: "#64748B", fontSize: 13 }}>{org.slug}</Text>
+                        <Title level={4} style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{org.name}</Title>
+                        <Text type="secondary" style={{ fontSize: 13 }}>{org.slug}</Text>
                       </div>
                     </div>
-                    <Button type="text" icon={<RightOutlined />} style={{ color: "#CBD5E1" }} />
+                    <Button type="text" icon={<RightOutlined />} />
                   </div>
                 </Card>
               </Col>
@@ -145,17 +134,12 @@ function DashboardInner() {
             <Col xs={24} sm={12}>
               <Card
                 hoverable
-                style={{
-                  borderRadius: 14, border: "1px dashed #CBD5E1",
-                  background: "transparent",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  height: "100%", minHeight: 88, cursor: "pointer",
-                }}
+                styles={{ body: { display: "flex", alignItems: "center", justifyContent: "center", minHeight: 88, cursor: "pointer" } }}
                 onClick={() => setModalOpen(true)}
               >
                 <Space>
-                  <PlusOutlined style={{ color: "#94A3B8", fontSize: 18 }} />
-                  <Text style={{ color: "#64748B", fontWeight: 500, cursor: "pointer" }}>Create Organization</Text>
+                  <PlusOutlined style={{ fontSize: 18 }} />
+                  <Text style={{ fontWeight: 500, cursor: "pointer" }}>Create Organization</Text>
                 </Space>
               </Card>
             </Col>
@@ -185,8 +169,8 @@ function DashboardInner() {
           </Form.Item>
           {slug && (
             <div style={{ marginTop: -16, marginBottom: 20, paddingLeft: 2 }}>
-              <Text style={{ color: "#64748B", fontSize: 13 }}>
-                URL: <span style={{ color: "#1E3A8A", fontWeight: 500 }}>competitionos.io/o/{slug}</span>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                URL: <Text strong style={{ color: "inherit" }}>competitionos.io/o/{slug}</Text>
               </Text>
             </div>
           )}

@@ -126,11 +126,7 @@ export function StandingsTable({ standings, event }: Props) {
         render: (_: unknown, r: StandingsEntry) => {
           const gd = (r.stats.goalsFor ?? 0) - (r.stats.goalsAgainst ?? 0);
           return (
-            <span
-              style={{
-                color: gd > 0 ? "#52c41a" : gd < 0 ? "#ff4d4f" : undefined,
-              }}
-            >
+            <span>
               {gd > 0 ? "+" : ""}
               {gd}
             </span>
@@ -146,10 +142,7 @@ export function StandingsTable({ standings, event }: Props) {
   });
 
   return (
-    <div
-      ref={tableRef}
-      style={{ background: "#fff", padding: 16, borderRadius: 12 }}
-    >
+    <div ref={tableRef}>
       <div
         style={{
           display: "flex",

@@ -2,8 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, Typography, Button, Spin, message, Layout, Result, Tag, Row, Col, Space, Divider, Input, Form } from "antd";
-import { TrophyOutlined, TeamOutlined, LoginOutlined, UserAddOutlined, RightOutlined } from "@ant-design/icons";
+import { Card, Typography, Button, Spin, message, Layout, Result, Tag, Row, Col, Space, Divider, Input, Form, Collapse, Avatar } from "antd";
+import {
+  TrophyOutlined,
+  TeamOutlined,
+  LoginOutlined,
+  UserAddOutlined,
+  RightOutlined,
+  CalendarOutlined,
+  InfoCircleOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 import { AppProvider, useApp } from "@/lib/app-context";
 import { CompetitionInviteService } from "@/domain/services/competition-invite.service";
 import { CompetitionService } from "@/domain/services/competition.service";
@@ -12,6 +21,7 @@ import { RegistrationService } from "@/domain/services/registration.service";
 import { MemberService } from "@/domain/services/organization.service";
 import type { Competition } from "@/domain/competition";
 import type { Event } from "@/domain/event";
+import type { Participant } from "@/domain/participant";
 import { EventStatus } from "@/domain/types";
 import { sendMailEvent } from "@/lib/mail/client";
 import TipTapRenderer from "@/components/editor/tiptap-renderer";
@@ -27,6 +37,7 @@ function AcceptCompetitionInviteInner() {
   const [error, setError] = useState("");
   const [competition, setCompetition] = useState<Competition | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
+  const [eventsWithParticipants, setEventsWithParticipants] = useState<Map<string, Participant[]>>(new Map());
   const [registeredEvents, setRegisteredEvents] = useState<Set<string>>(new Set());
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
@@ -49,7 +60,16 @@ function AcceptCompetitionInviteInner() {
         } else {
           setCompetition(comp);
           const evtSvc = new EventService();
-          setEvents(await evtSvc.list(comp.id));
+          const evts = await evtSvc.list(comp.id);
+          setEvents(evts);
+
+          const regSvc = new RegistrationService();
+          const participantMap = new Map<string, Participant[]>();
+          for (const evt of evts) {
+            const participants = await regSvc.getParticipants(evt.id);
+            participantMap.set(evt.id, participants);
+          }
+          setEventsWithParticipants(participantMap);
         }
       }
       setLoading(false);
@@ -85,6 +105,15 @@ function AcceptCompetitionInviteInner() {
         setAuthLoading(false);
         return;
       }
+      sendMailEvent({
+        kind: "account_created",
+        to: [{ email: values.email, name: values.displayName }],
+        params: {
+          password,
+          actionLabel: "Sign in",
+        },
+        actionUrl: `${window.location.origin}/login`,
+      });
       const logRes = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -125,6 +154,9 @@ function AcceptCompetitionInviteInner() {
       sessionStorage.removeItem("invite_display_name");
       message.success("Joined event!");
       setRegisteredEvents((prev) => new Set(prev).add(eventId));
+
+      const participants = await regSvc.getParticipants(eventId);
+      setEventsWithParticipants((prev) => new Map(prev).set(eventId, participants));
     } catch {
       message.error("Failed to join");
     } finally {
@@ -136,62 +168,106 @@ function AcceptCompetitionInviteInner() {
 
   if (error) {
     return (
-      <Content style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: "#F8FAFC" }}>
+      <Content style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
         <Result status="error" title="Invalid Invite" subTitle={error} extra={<Button onClick={() => router.push("/")}>Go Home</Button>} />
       </Content>
     );
   }
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#F8FAFC" }}>
-      <Content style={{ maxWidth: 800, margin: "0 auto", padding: "48px 24px" }}>
-
-        {/* Hero section */}
+    <Layout style={{ minHeight: "100vh" }}>
+      <div style={{
+        position: "relative",
+        minHeight: competition?.coverImage ? 420 : 280,
+        display: "flex",
+        alignItems: "flex-end",
+        overflow: "hidden",
+        background: competition?.coverImage ? "none" : "linear-gradient(135deg, #0A0B0F 0%, #13141A 50%, #0A0B0F 100%)",
+      }}>
         {competition?.coverImage && (
-          <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", marginBottom: 24, aspectRatio: "21/9" }}>
-            <img src={competition.coverImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-            {competition && (
-              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "32px 24px 20px", background: "linear-gradient(transparent, rgba(0,0,0,0.6))" }}>
-                <Title level={1} style={{ color: "#fff", margin: 0, fontSize: 28 }}>{competition.name}</Title>
-                {competition.game && <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 14 }}>{competition.game.name}</Text>}
-              </div>
-            )}
-          </div>
+          <>
+            <img
+              src={competition.coverImage}
+              alt=""
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }}
+            />
+            <div style={{
+              position: "absolute",
+              inset: 0,
+              background: "linear-gradient(transparent 40%, rgba(10,11,15,0.95))",
+            }} />
+          </>
+        )}
+        {!competition?.coverImage && (
+          <div style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 500,
+            height: 500,
+            background: "radial-gradient(circle, rgba(232,166,35,0.06) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }} />
         )}
 
-        {(!competition?.coverImage) && (
-          <Card style={{ borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", marginBottom: 24 }}>
-            <div style={{ textAlign: "center", marginBottom: 24 }}>
-              <div style={{ fontSize: 48, marginBottom: 8 }}>🏆</div>
-              <Title level={2} style={{ margin: 0, fontSize: 24 }}>{competition?.name}</Title>
-              {competition?.description && (
-                <Text style={{ color: "#64748B", display: "block", marginTop: 4 }}>{competition.description}</Text>
-              )}
-            </div>
-          </Card>
-        )}
+        <div style={{
+          position: "relative",
+          zIndex: 1,
+          padding: competition?.coverImage ? "120px 24px 48px" : "64px 24px 40px",
+          maxWidth: 800,
+          margin: "0 auto",
+          width: "100%",
+        }}>
+          <Space style={{ marginBottom: 12 }}>
+            <Tag color="gold" style={{ fontSize: 12 }}>{competition?.game?.name ?? "Competition"}</Tag>
+            <Tag style={{ fontSize: 12 }}>{events.length} {events.length === 1 ? "Event" : "Events"}</Tag>
+          </Space>
+          <Title level={1} style={{ margin: 0, fontSize: 32 }}>
+            {competition?.name}
+          </Title>
+          {competition?.game && (
+            <Text style={{ fontSize: 14, display: "block", marginTop: 4 }}>
+              {competition.game.name}
+            </Text>
+          )}
+          {competition?.description && (
+            <Text style={{ display: "block", marginTop: 8, fontSize: 15, maxWidth: 600 }}>
+              {competition.description}
+            </Text>
+          )}
+        </div>
+      </div>
 
-        {/* Content section */}
-        {(competition?.content) && (
-          <Card style={{ borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", marginBottom: 24, padding: "8px 0" }}>
+      <Content style={{ maxWidth: 800, margin: "0 auto", padding: "0 24px 48px" }}>
+        {competition?.content && (
+          <Card style={{
+            marginBottom: 24,
+            marginTop: -24,
+            position: "relative",
+            zIndex: 2,
+          }}>
             <TipTapRenderer content={competition.content} />
           </Card>
         )}
 
-        {/* Info bar (if cover is shown, render description under hero) */}
-        {competition?.coverImage && competition?.description && (
-          <Card style={{ borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", marginBottom: 24 }}>
-            <Text style={{ color: "#475569", fontSize: 15, lineHeight: 1.6 }}>{competition.description}</Text>
-          </Card>
-        )}
-
-        {/* Auth / Events section — same as before */}
-        <Card style={{ borderRadius: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.04)", marginBottom: 24 }}>
+        <Card style={{
+          marginBottom: 24,
+          marginTop: !competition?.content ? -24 : 0,
+          position: !competition?.content ? "relative" : "static",
+          zIndex: !competition?.content ? 2 : "auto",
+        }}>
           {!currentMember ? (
             <div>
-              <div style={{ textAlign: "center", marginBottom: 20 }}>
+              <div style={{ textAlign: "center", marginBottom: 24 }}>
                 <Title level={4}>You're invited!</Title>
-                <Text style={{ color: "#64748B", display: "block" }}>
+                <Text style={{ display: "block" }}>
                   Enter your name to create an account and join.
                 </Text>
               </div>
@@ -216,45 +292,90 @@ function AcceptCompetitionInviteInner() {
             </div>
           ) : (
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                 <Title level={4} style={{ margin: 0 }}>Events</Title>
-                <Text style={{ color: "#64748B", fontSize: 13 }}>{events.length} available</Text>
+                <Text type="secondary" style={{ fontSize: 13 }}>{events.length} available</Text>
               </div>
+
               {events.length === 0 ? (
                 <Text type="secondary">No events in this competition yet.</Text>
               ) : (
-                <Row gutter={[12, 12]}>
+                <Row gutter={[16, 16]}>
                   {events.map((evt) => {
                     const joined = registeredEvents.has(evt.id);
+                    const participants = eventsWithParticipants.get(evt.id) ?? [];
                     return (
-                      <Col span={24} key={evt.id}>
-                        <Card
-                          size="small"
-                          style={{ borderRadius: 12, border: joined ? "1px solid #22C55E" : "1px solid #E2E8F0" }}
-                        >
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <div>
-                              <Text strong>{evt.name}</Text>
-                              <div style={{ marginTop: 4 }}>
-                                <Tag style={{ fontSize: 11 }}>{evt.format}</Tag>
-                                <Tag color={evt.status === EventStatus.InProgress ? "green" : evt.status === EventStatus.Completed ? "purple" : "default"} style={{ fontSize: 11 }}>
-                                  {evt.status}
-                                </Tag>
-                              </div>
-                            </div>
-                            {joined ? (
-                              <Tag color="green" icon={<TeamOutlined />}>Joined</Tag>
-                            ) : (
-                              <Button
-                                type="primary"
-                                size="small"
-                                loading={joiningId === evt.id}
-                                onClick={() => handleJoinEvent(evt.id)}
-                              >
-                                Join
-                              </Button>
-                            )}
-                          </div>
+                      <Col xs={24} key={evt.id}>
+                        <Card size="small">
+                          <Row gutter={[16, 16]} align="middle">
+                            <Col xs={24} md={14}>
+                              <Space direction="vertical" size={2}>
+                                <Text strong style={{ fontSize: 15 }}>{evt.name}</Text>
+                                <Space size={8}>
+                                  <Tag style={{ fontSize: 11 }}>{evt.format}</Tag>
+                                  <Tag
+                                    color={evt.status === EventStatus.InProgress ? "green" : evt.status === EventStatus.Completed ? "purple" : "default"}
+                                    style={{ fontSize: 11 }}
+                                  >
+                                    {evt.status}
+                                  </Tag>
+                                </Space>
+                              </Space>
+                            </Col>
+                            <Col xs={12} md={5}>
+                              <Space>
+                                <TeamOutlined style={{ fontSize: 12 }} />
+                                <Text style={{ fontSize: 12 }}>
+                                  {participants.length}{evt.maxParticipants ? ` / ${evt.maxParticipants}` : ""} registered
+                                </Text>
+                              </Space>
+                            </Col>
+                            <Col xs={12} md={5} style={{ textAlign: "right" }}>
+                              {joined ? (
+                                <Tag color="green" icon={<TeamOutlined />}>Joined</Tag>
+                              ) : (
+                                <Button
+                                  type="primary"
+                                  size="small"
+                                  loading={joiningId === evt.id}
+                                  onClick={() => handleJoinEvent(evt.id)}
+                                >
+                                  Join
+                                </Button>
+                              )}
+                            </Col>
+                          </Row>
+
+                          {participants.length > 0 && (
+                            <Collapse
+                              ghost
+                              size="small"
+                              style={{ marginTop: 8 }}
+                              items={[{
+                                key: "participants",
+                                label: (
+                                  <Space size={4}>
+                                    <UserOutlined style={{ fontSize: 11 }} />
+                                    <Text style={{ fontSize: 12 }}>
+                                      {participants.length} {participants.length === 1 ? "Participant" : "Participants"}
+                                    </Text>
+                                  </Space>
+                                ),
+                                children: (
+                                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                                    {participants.map((p) => (
+                                      <Space key={p.id} size={4}>
+                                        <Avatar size={22} style={{ fontSize: 10, fontWeight: 600 }}>
+                                          {p.displayName.charAt(0).toUpperCase()}
+                                        </Avatar>
+                                        <Text style={{ fontSize: 12 }}>{p.displayName}</Text>
+                                      </Space>
+                                    ))}
+                                  </div>
+                                ),
+                              }]}
+                            />
+                          )}
                         </Card>
                       </Col>
                     );

@@ -144,8 +144,6 @@ export function BracketView({ matches, participants, rounds }: Props) {
         style={{
           overflow: "auto",
           padding: "16px 0",
-          background: "#fff",
-          borderRadius: 12,
         }}
       >
         <Bracket
@@ -161,7 +159,6 @@ export function BracketView({ matches, participants, rounds }: Props) {
                 fontWeight: 700,
                 fontSize: 13,
                 marginBottom: 12,
-                color: "#1e3a8a",
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
               }}
@@ -184,19 +181,17 @@ function MatchCard({ match }: { match: BracketMatchData }) {
   const isWalkover = match.status === MatchStatus.Walkover;
   const isCompleted = match.status === MatchStatus.Completed;
 
-  const p1Color = isP1Winner ? "#1e3a8a" : "#64748b";
-  const p2Color = isP2Winner ? "#1e3a8a" : "#64748b";
+  const p1Color = isP1Winner ? undefined : undefined;
+  const p2Color = isP2Winner ? undefined : undefined;
 
   return (
     <div
       style={{
-        border: `1px solid ${isCompleted ? "#22c55e" : isWalkover ? "#f59e0b" : "#e2e8f0"}`,
+        border: `1px solid ${isCompleted ? "#2ABFAA" : isWalkover ? "#E8A623" : undefined}`,
         borderRadius: 12,
         padding: "10px 12px",
-        background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
         opacity: isWalkover ? 0.7 : 1,
         minWidth: 190,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
         transition: "all 0.2s ease",
       }}
     >
@@ -214,7 +209,7 @@ function MatchCard({ match }: { match: BracketMatchData }) {
               marginBottom: 6,
               padding: "4px 6px",
               borderRadius: 6,
-              background: isP1Winner ? "rgba(30,58,138,0.04)" : "transparent",
+              background: isP1Winner ? "rgba(232,166,35,0.08)" : "transparent",
             }}
           >
             <Text
@@ -222,7 +217,6 @@ function MatchCard({ match }: { match: BracketMatchData }) {
               delete={isP2Winner && !!match.winner}
               style={{
                 fontSize: 13,
-                color: p1Color,
                 fontWeight: isP1Winner ? 700 : 500,
               }}
             >
@@ -249,7 +243,7 @@ function MatchCard({ match }: { match: BracketMatchData }) {
               alignItems: "center",
               padding: "4px 6px",
               borderRadius: 6,
-              background: isP2Winner ? "rgba(30,58,138,0.04)" : "transparent",
+              background: isP2Winner ? "rgba(232,166,35,0.08)" : "transparent",
             }}
           >
             <Text
@@ -257,7 +251,6 @@ function MatchCard({ match }: { match: BracketMatchData }) {
               delete={isP1Winner && !!match.winner}
               style={{
                 fontSize: 13,
-                color: p2Color,
                 fontWeight: isP2Winner ? 700 : 500,
               }}
             >

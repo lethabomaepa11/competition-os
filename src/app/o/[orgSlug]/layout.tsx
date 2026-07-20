@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
-import { Layout, Menu, Typography, Button, Avatar, Space, Spin, Dropdown } from "antd";
+import { Layout, Menu, Typography, Button, Avatar, Space, Spin, Dropdown, Drawer, Grid } from "antd";
 import {
   DashboardOutlined,
   TrophyOutlined,
@@ -11,15 +11,15 @@ import {
   SettingOutlined,
   AuditOutlined,
   LogoutOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
+  MenuOutlined,
+  UserOutlined,
+  ArrowLeftOutlined,
 } from "@ant-design/icons";
 import { AppProvider, useApp } from "@/lib/app-context";
-import { OrganizationService } from "@/domain/services/organization.service";
-import type { Organization } from "@/domain/organization";
 
-const { Sider, Header, Content } = Layout;
+const { Header, Content } = Layout;
 const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
 function OrgLayoutInner({ children }: { children: React.ReactNode }) {
   const params = useParams();
@@ -27,7 +27,11 @@ function OrgLayoutInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { currentMember, organizations, ready, logout, selectOrg } = useApp();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const screens = useBreakpoint();
   const orgSlug = params.orgSlug as string;
+
+  const isMobile = !screens.md;
 
   const org = organizations.find((o) => o.slug === orgSlug);
 
@@ -60,38 +64,114 @@ function OrgLayoutInner({ children }: { children: React.ReactNode }) {
     { key: `${basePath}/audit`, icon: <AuditOutlined />, label: "Audit Log" },
   ];
 
-  const selectedKey = menuItems.find((item) =>
-    pathname === item.key || pathname.startsWith(item.key + "/")
-  )?.key || basePath;
+  const selectedKey = menuItems.find((item) => {
+    if (item.key === basePath) return pathname === basePath;
+    return pathname === item.key || pathname.startsWith(item.key + "/");
+  })?.key || basePath;
+
+  const handleMenuClick = (key: string) => {
+    router.push(key);
+    if (isMobile) {
+      setMobileDrawerOpen(false);
+    }
+  };
+
+  const sidebarContent = (
+    <>
+      <div style={{
+        height: 64,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        padding: "0 16px",
+      }}>
+        <img src="/logo.jpg" alt="CompetitionOS" style={{ height: 36 }} />
+        {!isMobile && <Title level={4} style={{ margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{org.name}</Title>}
+      </div>
+      <Menu
+        mode="inline"
+        selectedKeys={[selectedKey]}
+        items={menuItems}
+        onClick={({ key }) => handleMenuClick(key)}
+        style={{ borderInlineEnd: "none" }}
+        inlineCollapsed={!isMobile && collapsed}
+      />
+    </>
+  );
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        theme="light"
-        style={{ borderRight: "1px solid #f0f0f0" }}
-      >
-        <div style={{ height: 64, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, borderBottom: "1px solid #f0f0f0" }}>
-          <img src="/logo.svg" alt="CompetitionOS" style={{ height: 24 }} />
-          {!collapsed && <Title level={4} style={{ margin: 0 }}>{org.name}</Title>}
-        </div>
-        <Menu
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          items={menuItems}
-          onClick={({ key }) => router.push(key)}
-          style={{ borderInlineEnd: "none" }}
-        />
-      </Sider>
+      {/* Desktop sidebar */}
+      {!isMobile && (
+        <Layout.Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          theme="light"
+          width={240}
+          className="org-layout-sider"
+        >
+          {sidebarContent}
+        </Layout.Sider>
+      )}
+
+      {/* Mobile drawer */}
+      {isMobile && (
+        <>
+          <Drawer
+            title={
+              <Space>
+                <img src="/logo.jpg" alt="CompetitionOS" style={{ height: 32 }} />
+                <Text strong>{org.name}</Text>
+              </Space>
+            }
+            placement="left"
+            onClose={() => setMobileDrawerOpen(false)}
+            open={mobileDrawerOpen}
+            width={260}
+            styles={{ body: { padding: 0 } }}
+          >
+            <Menu
+              mode="inline"
+              selectedKeys={[selectedKey]}
+              items={menuItems}
+              onClick={({ key }) => handleMenuClick(key)}
+              style={{ borderInlineEnd: "none" }}
+            />
+          </Drawer>
+        </>
+      )}
+
       <Layout>
-        <Header style={{ background: "#fff", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #f0f0f0" }}>
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-          />
+        <Header className="org-layout-header" style={{
+          padding: "0 16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}>
+          <Space>
+            <Button
+              type="text"
+              icon={<ArrowLeftOutlined />}
+              onClick={() => {
+                if (window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push("/app");
+                }
+              }}
+            >
+              Back
+            </Button>
+            {isMobile && (
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                onClick={() => setMobileDrawerOpen(true)}
+              />
+            )}
+          </Space>
           <Dropdown
             menu={{
               items: [
@@ -101,12 +181,15 @@ function OrgLayoutInner({ children }: { children: React.ReactNode }) {
                   onClick: () => router.push(`/o/${o.slug}`),
                 })),
                 { type: "divider" },
+                { key: "profile", icon: <UserOutlined />, label: "Profile", onClick: () => router.push("/profile") },
                 { key: "logout", icon: <LogoutOutlined />, label: "Logout", onClick: () => { logout(); router.push("/login"); } },
               ],
             }}
           >
             <Space style={{ cursor: "pointer" }}>
-              <Avatar icon={<TeamOutlined />} />
+              <Avatar style={{ fontSize: 14, fontWeight: 600 }}>
+                {currentMember.displayName.charAt(0).toUpperCase()}
+              </Avatar>
               <Text>{currentMember.displayName}</Text>
             </Space>
           </Dropdown>

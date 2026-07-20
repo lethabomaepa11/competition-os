@@ -4,6 +4,7 @@ export type MailRecipient = {
 };
 
 export type MailEventKind =
+  | "account_created"
   | "organization_invite"
   | "competition_invite_created"
   | "participant_invite"
@@ -41,6 +42,7 @@ type RenderedMail = {
 };
 
 const subjects: Record<MailEventKind, string> = {
+  account_created: "Your CompetitionOS account is ready",
   organization_invite: "You have been invited to {{organizationName}}",
   competition_invite_created: "Competition invite link created for {{competitionName}}",
   participant_invite: "You have been invited to compete in {{eventName}}",
@@ -66,6 +68,7 @@ const subjects: Record<MailEventKind, string> = {
 };
 
 const descriptions: Record<MailEventKind, string> = {
+  account_created: "Your account has been created. Your temporary password is: {{password}}. Sign in and change your password right away.",
   organization_invite: "You have been invited to join {{organizationName}} as {{role}}.",
   competition_invite_created: "A shareable competition invite link was created for {{competitionName}}.",
   participant_invite: "{{inviterName}} invited you to participate in {{eventName}}.",

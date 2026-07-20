@@ -238,8 +238,8 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
               {
                 title: "#", key: "rank", width: 30,
                 render: (_: unknown, __: unknown, i: number) => {
-                  const medals = ["🥇", "🥈", "🥉"];
-                  return <Text>{medals[i] || `#${i + 1}`}</Text>;
+                  const colors = ["#F59E0B", "#94A3B8", "#CD7F32"];
+                  return <TrophyOutlined style={{ color: colors[i] || "#64748B" }} />;
                 },
               },
               { title: "Better", dataIndex: "name", key: "name", render: (v: string) => <Text style={{ fontSize: 12 }}>{v}</Text> },
