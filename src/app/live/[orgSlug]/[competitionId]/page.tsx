@@ -162,16 +162,8 @@ function LiveContent() {
       })
       .subscribe();
 
-    const poll = setInterval(async () => {
-      try {
-        const freshMatches = await matchSvc.list(activeEventId);
-        setMatches(freshMatches);
-      } catch { /* silent */ }
-    }, 10000);
-
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(poll);
     };
   }, [activeEventId]);
 
