@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { Modal, Typography, Tag, Spin, Space } from "antd";
-import { TrophyOutlined, CommentOutlined } from "@ant-design/icons";
+import { TrophyOutlined, CommentOutlined, MinusCircleOutlined } from "@ant-design/icons";
 import type { Match, MatchComment, MatchScore } from "@/domain/match";
 import type { Participant } from "@/domain/participant";
 import { GetWhere } from "@/lib/store";
 import LiveTimer from "./live-timer";
 import CommentaryFeed from "./commentary-feed";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
-function getCommentaryKey(matchId: string, scores: MatchScore[]): string {
-  return `${matchId}-${scores.map(s => `${s.participantId}:${s.value}`).join(",")}`;
+function getCommentaryKey(scores: MatchScore[]): string {
+  return scores.map(s => `${s.participantId}:${s.value}`).join(",");
 }
 
 export default function MatchDetailModal({
@@ -31,10 +31,13 @@ export default function MatchDetailModal({
   const [lastCommentKey, setLastCommentKey] = useState("");
 
   const isLive = match.status === "in_progress";
-  const matchScores: MatchScore[] = (match as any).scores ?? [];
+  const isDraw = !isLive && match.result != null && !match.result.winnerId;
+  const matchScores: MatchScore[] = (match as any).scores?.length
+    ? (match as any).scores
+    : match.result?.scores ?? [];
   const posOrder = new Map(match.participants.map(mp => [mp.participantId, mp.position]));
   const orderedScores = [...matchScores].sort((a, b) => (posOrder.get(a.participantId) ?? 0) - (posOrder.get(b.participantId) ?? 0));
-  const commentKey = getCommentaryKey(match.id, matchScores);
+  const commentKey = getCommentaryKey(matchScores);
 
   useEffect(() => {
     if (!open) return;
@@ -89,7 +92,7 @@ export default function MatchDetailModal({
     <Modal
       title={
         <Space>
-          {isLive && orderedScores.length === 2 ? (
+          {orderedScores.length === 2 ? (
             <Text strong style={{ fontSize: 15 }}>
               {participants.find(p => p.id === orderedScores[0].participantId)?.displayName ?? "?"} {orderedScores[0].value}
               {" — "}
@@ -99,6 +102,7 @@ export default function MatchDetailModal({
             <span>Match Details</span>
           )}
           {isLive && <Tag color="red" style={{ animation: "pulse 2s infinite" }}>LIVE</Tag>}
+          {isDraw && <Tag color="gold">Draw</Tag>}
         </Space>
       }
       open={open}
@@ -107,7 +111,7 @@ export default function MatchDetailModal({
       width={520}
       destroyOnClose
     >
-      {matchScores.length <= 2 && orderedScores.length > 0 ? (
+      {orderedScores.length > 0 && orderedScores.length <= 2 && !isDraw ? (
         <div style={{
           display: "flex",
           alignItems: "center",
@@ -115,9 +119,9 @@ export default function MatchDetailModal({
           gap: 24,
           padding: "20px 0",
         }}>
-          {orderedScores.map((s, i) => {
+          {orderedScores.map((s) => {
             const p = participants.find(pp => pp.id === s.participantId);
-            const isWinner = i === 0 && !isLive;
+            const isWinner = !isLive && match.result?.winnerId === s.participantId;
             return (
               <div key={s.participantId} style={{ textAlign: "center", flex: 1 }}>
                 <div style={{
@@ -147,18 +151,19 @@ export default function MatchDetailModal({
             </div>
           )}
         </div>
-      ) : (
+      ) : orderedScores.length > 0 ? (
         <div>
           {orderedScores.map((s, i) => {
             const p = participants.find(pp => pp.id === s.participantId);
+            const isWinner = !isLive && match.result?.winnerId === s.participantId;
             return (
               <div key={s.participantId} style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center",
                 padding: "8px 0", borderBottom: "1px solid #f0f0f0",
               }}>
                 <Space>
-                  <Tag color={i === 0 ? "gold" : i === 1 ? "default" : i === 2 ? "orange" : "default"}>
-                    #{i + 1}
+                  <Tag color={isWinner ? "gold" : i === 1 ? "default" : i === 2 ? "orange" : "default"}>
+                    {isWinner ? "W" : `#${i + 1}`}
                   </Tag>
                   <Text strong>{p?.displayName ?? "?"}</Text>
                 </Space>
@@ -167,7 +172,20 @@ export default function MatchDetailModal({
             );
           })}
         </div>
-      )}
+      ) : isDraw ? (
+        <div style={{ textAlign: "center", padding: "32px 0" }}>
+          <MinusCircleOutlined style={{ fontSize: 48, color: "#f59e0b" }} />
+          <Text style={{ display: "block", marginTop: 12, fontSize: 18, fontWeight: 600 }}>Draw</Text>
+          {match.result?.scores && match.result.scores.length > 0 && (
+            <Text style={{ display: "block", fontSize: 15, color: "#64748b" }}>
+              {match.result.scores.map(s => {
+                const p = participants.find(pp => pp.id === s.participantId);
+                return `${p?.displayName ?? "?"}: ${s.value}`;
+              }).join(" | ")}
+            </Text>
+          )}
+        </div>
+      ) : null}
 
       <div style={{ marginBottom: 16, padding: "12px 0", borderTop: "1px solid #f0f0f0" }}>
         <Space direction="vertical" size={4}>
