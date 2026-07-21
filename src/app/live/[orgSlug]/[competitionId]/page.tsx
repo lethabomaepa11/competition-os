@@ -134,18 +134,31 @@ function LiveContent() {
     const supabase = createClient();
     const channel = supabase
       .channel("live-matches")
-      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, async (payload) => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, (payload) => {
         if (!payload.new) return;
-        const updatedMatch = payload.new as any;
-        if (updatedMatch.event_id !== activeEventId) return;
-        if (!updatedMatch.id) return;
+        const row = payload.new as any;
+        if (row.event_id !== activeEventId) return;
+        if (!row.id) return;
 
-        const svc = new MatchService();
-        const fullMatch = await svc.get(updatedMatch.id as string);
-        if (!fullMatch) return;
+        const dbScores = row.scores as any[] | null;
+        const scores = dbScores
+          ? dbScores.map((s: any) => ({
+              participantId: s.participant_id,
+              label: s.label,
+              value: s.value,
+            }))
+          : undefined;
 
-        setMatches(prev => prev.map(m => m.id === fullMatch.id ? fullMatch : m));
-        setDetailMatch(prev => prev?.id === fullMatch.id ? fullMatch : prev);
+        setMatches(prev => prev.map(m =>
+          m.id === row.id
+            ? { ...m, status: row.status, startedAt: row.started_at, scores }
+            : m
+        ));
+        setDetailMatch(prev =>
+          prev?.id === row.id
+            ? { ...prev, status: row.status, startedAt: row.started_at, scores } as Match
+            : prev
+        );
       })
       .subscribe();
 
