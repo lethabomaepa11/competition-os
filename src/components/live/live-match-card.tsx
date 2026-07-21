@@ -18,7 +18,8 @@ export default function LiveMatchCard({
   onClick: () => void;
 }) {
   const scores: MatchScore[] = (match as any).scores ?? [];
-  const sortedScores = [...scores].sort((a, b) => b.value - a.value);
+  const positionOrder = new Map(match.participants.map(mp => [mp.participantId, mp.position]));
+  const orderedScores = [...scores].sort((a, b) => (positionOrder.get(a.participantId) ?? 0) - (positionOrder.get(b.participantId) ?? 0));
 
   return (
     <Card
@@ -49,7 +50,7 @@ export default function LiveMatchCard({
       </div>
 
       <div style={{ marginTop: 12 }}>
-        {sortedScores.length === 0 ? (
+        {orderedScores.length === 0 ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
             {match.participants.map((mp) => {
               const p = participants.find(pp => pp.id === mp.participantId);
@@ -73,9 +74,9 @@ export default function LiveMatchCard({
               );
             })}
           </div>
-        ) : sortedScores.length <= 2 ? (
+        ) : orderedScores.length <= 2 ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
-            {sortedScores.map((s, i) => {
+            {orderedScores.map((s, i) => {
               const p = participants.find(pp => pp.id === s.participantId);
               const isLeading = i === 0;
               return (
@@ -102,7 +103,7 @@ export default function LiveMatchCard({
           </div>
         ) : (
           <div>
-            {sortedScores.map((s, i) => {
+            {orderedScores.map((s, i) => {
               const p = participants.find(pp => pp.id === s.participantId);
               return (
                 <div key={s.participantId} style={{

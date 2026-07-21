@@ -31,6 +31,8 @@ export default function MatchDetailModal({
 
   const isLive = match.status === "in_progress";
   const matchScores: MatchScore[] = (match as any).scores ?? [];
+  const posOrder = new Map(match.participants.map(mp => [mp.participantId, mp.position]));
+  const orderedScores = [...matchScores].sort((a, b) => (posOrder.get(a.participantId) ?? 0) - (posOrder.get(b.participantId) ?? 0));
   const commentKey = getCommentaryKey(match.id, matchScores);
 
   useEffect(() => {
@@ -82,18 +84,24 @@ export default function MatchDetailModal({
           }]);
         }
       } catch { /* silent */ }
-    }, 8000);
+    }, 3000);
 
     return () => clearTimeout(timeout);
   }, [commentKey, isLive, open]);
-
-  const sortedScores = [...matchScores].sort((a, b) => b.value - a.value);
 
   return (
     <Modal
       title={
         <Space>
-          <span>Match Details</span>
+          {isLive && orderedScores.length === 2 ? (
+            <Text strong style={{ fontSize: 15 }}>
+              {participants.find(p => p.id === orderedScores[0].participantId)?.displayName ?? "?"} {orderedScores[0].value}
+              {" — "}
+              {orderedScores[1].value} {participants.find(p => p.id === orderedScores[1].participantId)?.displayName ?? "?"}
+            </Text>
+          ) : (
+            <span>Match Details</span>
+          )}
           {isLive && <Tag color="red" style={{ animation: "pulse 2s infinite" }}>LIVE</Tag>}
         </Space>
       }
@@ -103,7 +111,7 @@ export default function MatchDetailModal({
       width={520}
       destroyOnClose
     >
-      {matchScores.length <= 2 && sortedScores.length > 0 ? (
+      {matchScores.length <= 2 && orderedScores.length > 0 ? (
         <div style={{
           display: "flex",
           alignItems: "center",
@@ -111,7 +119,7 @@ export default function MatchDetailModal({
           gap: 24,
           padding: "20px 0",
         }}>
-          {sortedScores.map((s, i) => {
+          {orderedScores.map((s, i) => {
             const p = participants.find(pp => pp.id === s.participantId);
             const isWinner = i === 0 && !isLive;
             return (
@@ -145,7 +153,7 @@ export default function MatchDetailModal({
         </div>
       ) : (
         <div>
-          {sortedScores.map((s, i) => {
+          {orderedScores.map((s, i) => {
             const p = participants.find(pp => pp.id === s.participantId);
             return (
               <div key={s.participantId} style={{
