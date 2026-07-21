@@ -79,6 +79,7 @@ const TABLE_MAP: Record<string, string> = {
   championship_points: "championship_points",
   blueprints: "blueprints",
   awarded_points: "awarded_points",
+  match_comments: "match_comments",
 };
 
 export async function POST(
