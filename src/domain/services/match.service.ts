@@ -147,6 +147,10 @@ export class MatchService {
     await this.auditSvc.recordScoreEvent(match.eventId, matchId, participantId, score, actionType);
   }
 
+  async updateScores(matchId: ID, scores: MatchScore[]): Promise<Match | undefined> {
+    return update<Match>(MATCH_KEY, matchId, { scores } as unknown as Partial<Match>);
+  }
+
   async submitResult(matchId: ID, winnerId?: ID, scores?: MatchScore[], actorId?: ID): Promise<Match | undefined> {
     const before = await this.get(matchId);
     const finalizedAt = new Date().toISOString();

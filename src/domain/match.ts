@@ -23,6 +23,13 @@ export interface MatchResult {
   finalizedAt?: string;
 }
 
+export interface MatchComment {
+  id: string;
+  matchId: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface Match extends Timestamps {
   id: ID;
   roundId: ID;
