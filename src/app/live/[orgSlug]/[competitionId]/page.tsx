@@ -20,7 +20,6 @@ import TipTapRenderer from "@/components/editor/tiptap-renderer";
 import LiveMatchCard from "@/components/live/live-match-card";
 import MatchDetailModal from "@/components/live/match-detail-modal";
 import { createClient } from "@/lib/supabase/client";
-import type { MatchScore } from "@/domain/match";
 import {
   TrophyOutlined,
   ScheduleOutlined,

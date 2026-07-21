@@ -82,7 +82,7 @@ export default function MatchDetailModal({
           }]);
         }
       } catch { /* silent */ }
-    }, 800);
+    }, 8000);
 
     return () => clearTimeout(timeout);
   }, [commentKey, isLive, open]);
