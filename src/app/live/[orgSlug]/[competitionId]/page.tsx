@@ -202,6 +202,9 @@ function LiveContent() {
     (m) =>
       m.status === MatchStatus.InProgress || m.status === MatchStatus.Scheduled,
   );
+  const inProgressMatches = matches.filter(
+    (m) => m.status === MatchStatus.InProgress,
+  );
   const completedMatches = matches.filter(
     (m) =>
       m.status === MatchStatus.Completed || m.status === MatchStatus.Walkover,
@@ -562,11 +565,11 @@ function LiveContent() {
         )}
 
         {/* Live match promotion */}
-        {activeEvent && liveMatches.length > 0 && (
+        {activeEvent && inProgressMatches.length > 0 && (
           <LiveMatchCard
-            match={liveMatches[0]}
+            match={inProgressMatches[0]}
             participants={participants}
-            onClick={() => setDetailMatch(liveMatches[0])}
+            onClick={() => setDetailMatch(inProgressMatches[0])}
           />
         )}
 
