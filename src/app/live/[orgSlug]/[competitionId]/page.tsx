@@ -431,7 +431,7 @@ function LiveContent() {
       {/* Hero section */}
       <div style={{
         position: "relative",
-        minHeight: activeEvent?.coverImage ? 420 : 280,
+        minHeight: activeEvent?.coverImage || competition?.coverImage ? 420 : 280,
         display: "flex",
         alignItems: "flex-end",
         overflow: "hidden",
