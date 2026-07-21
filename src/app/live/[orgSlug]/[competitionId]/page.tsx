@@ -146,7 +146,6 @@ function LiveContent() {
 
         setMatches(prev => prev.map(m => m.id === fullMatch.id ? fullMatch : m));
         setDetailMatch(prev => prev?.id === fullMatch.id ? fullMatch : prev);
-        setRefreshKey(k => k + 1);
       })
       .subscribe();
 
