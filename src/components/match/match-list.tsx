@@ -96,6 +96,13 @@ export function MatchListView({
         newVal,
         actionType,
       );
+
+      const liveScoreArray: MatchScore[] = scoreModal.participants.map((p) => ({
+        participantId: p.participantId,
+        label: participants.find((pt) => pt.id === p.participantId)?.displayName ?? "Unknown",
+        value: newScores[p.participantId] ?? 0,
+      }));
+      await matchSvc.updateScores(scoreModal.id, liveScoreArray);
     }
 
     const participantIds =
