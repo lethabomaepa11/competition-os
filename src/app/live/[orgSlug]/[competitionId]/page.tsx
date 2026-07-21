@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
 import {
   Card,
@@ -17,6 +17,10 @@ import {
   Button,
 } from "antd";
 import TipTapRenderer from "@/components/editor/tiptap-renderer";
+import LiveMatchCard from "@/components/live/live-match-card";
+import MatchDetailModal from "@/components/live/match-detail-modal";
+import { createClient } from "@/lib/supabase/client";
+import type { MatchScore } from "@/domain/match";
 import {
   TrophyOutlined,
   ScheduleOutlined,
@@ -61,6 +65,8 @@ function LiveContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [detailMatch, setDetailMatch] = useState<Match | null>(null);
+  const commentKeyRef = useRef(0);
 
   const compSvc = new CompetitionService();
   const evtSvc = new EventService();
@@ -124,6 +130,29 @@ function LiveContent() {
     refresh();
   }, [compId, refreshKey]);
 
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel("live-matches")
+      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, async (payload) => {
+        if (!payload.new) return;
+        const updatedMatch = payload.new as any;
+        if (updatedMatch.event_id !== activeEventId) return;
+        if (!updatedMatch.id) return;
+
+        const svc = new MatchService();
+        const fullMatch = await svc.get(updatedMatch.id as string);
+        if (!fullMatch) return;
+
+        setMatches(prev => prev.map(m => m.id === fullMatch.id ? fullMatch : m));
+        setDetailMatch(prev => prev?.id === fullMatch.id ? fullMatch : prev);
+        setRefreshKey(k => k + 1);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [activeEventId]);
+
   const handleSelectEvent = async (eventId: string) => {
     setActiveEventId(eventId);
     await loadEventData(eventId);
@@ -185,8 +214,8 @@ function LiveContent() {
       label: "Overview",
       children: (
         <div>
-          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-            <Col span={6}>
+          <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+            <Col xs={12} md={6}>
               <Card size="small">
                 <StatisticLike
                   label="Participants"
@@ -195,7 +224,7 @@ function LiveContent() {
                 />
               </Card>
             </Col>
-            <Col span={6}>
+            <Col xs={12} md={6}>
               <Card size="small">
                 <StatisticLike
                   label="Matches"
@@ -204,7 +233,7 @@ function LiveContent() {
                 />
               </Card>
             </Col>
-            <Col span={6}>
+            <Col xs={12} md={6}>
               <Card size="small">
                 <StatisticLike
                   label="Completed"
@@ -213,7 +242,7 @@ function LiveContent() {
                 />
               </Card>
             </Col>
-            <Col span={6}>
+            <Col xs={12} md={6}>
               <Card size="small">
                 <StatisticLike
                   label="Live"
@@ -236,6 +265,7 @@ function LiveContent() {
               <Table
                 dataSource={liveMatches}
                 rowKey="id"
+                scroll={{ x: true }}
                 pagination={false}
                 size="small"
                 columns={[
@@ -292,6 +322,7 @@ function LiveContent() {
               <Table
                 dataSource={completedMatches.slice(-10).reverse()}
                 rowKey="id"
+                scroll={{ x: true }}
                 pagination={false}
                 size="small"
                 columns={[
@@ -529,6 +560,25 @@ function LiveContent() {
           }}>
             <TipTapRenderer content={competition.content} />
           </Card>
+        )}
+
+        {/* Live match promotion */}
+        {activeEvent && liveMatches.length > 0 && (
+          <LiveMatchCard
+            match={liveMatches[0]}
+            participants={participants}
+            onClick={() => setDetailMatch(liveMatches[0])}
+          />
+        )}
+
+        {/* Match detail modal */}
+        {detailMatch && (
+          <MatchDetailModal
+            match={detailMatch}
+            participants={participants}
+            open={!!detailMatch}
+            onClose={() => setDetailMatch(null)}
+          />
         )}
 
         {/* Refresh button + Tabs */}
