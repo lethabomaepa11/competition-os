@@ -130,6 +130,7 @@ function LiveContent() {
   }, [compId, refreshKey]);
 
   useEffect(() => {
+    if (!activeEventId) return;
     const supabase = createClient();
     const channel = supabase
       .channel("live-matches")
@@ -149,7 +150,17 @@ function LiveContent() {
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    const poll = setInterval(async () => {
+      try {
+        const freshMatches = await matchSvc.list(activeEventId);
+        setMatches(freshMatches);
+      } catch { /* silent */ }
+    }, 10000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(poll);
+    };
   }, [activeEventId]);
 
   const handleSelectEvent = async (eventId: string) => {
