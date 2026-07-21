@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import {
   Card,
@@ -17,9 +17,6 @@ import {
   Button,
 } from "antd";
 import TipTapRenderer from "@/components/editor/tiptap-renderer";
-import LiveMatchCard from "@/components/live/live-match-card";
-import MatchDetailModal from "@/components/live/match-detail-modal";
-import { createClient } from "@/lib/supabase/client";
 import {
   TrophyOutlined,
   ScheduleOutlined,
@@ -64,8 +61,6 @@ function LiveContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [detailMatch, setDetailMatch] = useState<Match | null>(null);
-  const commentKeyRef = useRef(0);
 
   const compSvc = new CompetitionService();
   const evtSvc = new EventService();
@@ -129,44 +124,6 @@ function LiveContent() {
     refresh();
   }, [compId, refreshKey]);
 
-  useEffect(() => {
-    if (!activeEventId) return;
-    const supabase = createClient();
-    const channel = supabase
-      .channel("live-matches")
-      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, (payload) => {
-        if (!payload.new) return;
-        const row = payload.new as any;
-        if (row.event_id !== activeEventId) return;
-        if (!row.id) return;
-
-        const dbScores = row.scores as any[] | null;
-        const scores = dbScores
-          ? dbScores.map((s: any) => ({
-              participantId: s.participant_id,
-              label: s.label,
-              value: s.value,
-            }))
-          : undefined;
-
-        setMatches(prev => prev.map(m =>
-          m.id === row.id
-            ? { ...m, status: row.status, startedAt: row.started_at, scores }
-            : m
-        ));
-        setDetailMatch(prev =>
-          prev?.id === row.id
-            ? { ...prev, status: row.status, startedAt: row.started_at, scores } as Match
-            : prev
-        );
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [activeEventId]);
-
   const handleSelectEvent = async (eventId: string) => {
     setActiveEventId(eventId);
     await loadEventData(eventId);
@@ -217,9 +174,6 @@ function LiveContent() {
     (m) =>
       m.status === MatchStatus.InProgress || m.status === MatchStatus.Scheduled,
   );
-  const inProgressMatches = matches.filter(
-    (m) => m.status === MatchStatus.InProgress,
-  );
   const completedMatches = matches.filter(
     (m) =>
       m.status === MatchStatus.Completed || m.status === MatchStatus.Walkover,
@@ -231,8 +185,8 @@ function LiveContent() {
       label: "Overview",
       children: (
         <div>
-          <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
-            <Col xs={12} md={6}>
+          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+            <Col span={6}>
               <Card size="small">
                 <StatisticLike
                   label="Participants"
@@ -241,7 +195,7 @@ function LiveContent() {
                 />
               </Card>
             </Col>
-            <Col xs={12} md={6}>
+            <Col span={6}>
               <Card size="small">
                 <StatisticLike
                   label="Matches"
@@ -250,7 +204,7 @@ function LiveContent() {
                 />
               </Card>
             </Col>
-            <Col xs={12} md={6}>
+            <Col span={6}>
               <Card size="small">
                 <StatisticLike
                   label="Completed"
@@ -259,7 +213,7 @@ function LiveContent() {
                 />
               </Card>
             </Col>
-            <Col xs={12} md={6}>
+            <Col span={6}>
               <Card size="small">
                 <StatisticLike
                   label="Live"
@@ -282,7 +236,6 @@ function LiveContent() {
               <Table
                 dataSource={liveMatches}
                 rowKey="id"
-                scroll={{ x: true }}
                 pagination={false}
                 size="small"
                 columns={[
@@ -339,7 +292,6 @@ function LiveContent() {
               <Table
                 dataSource={completedMatches.slice(-10).reverse()}
                 rowKey="id"
-                scroll={{ x: true }}
                 pagination={false}
                 size="small"
                 columns={[
@@ -577,25 +529,6 @@ function LiveContent() {
           }}>
             <TipTapRenderer content={competition.content} />
           </Card>
-        )}
-
-        {/* Live match promotion */}
-        {activeEvent && inProgressMatches.length > 0 && (
-          <LiveMatchCard
-            match={inProgressMatches[0]}
-            participants={participants}
-            onClick={() => setDetailMatch(inProgressMatches[0])}
-          />
-        )}
-
-        {/* Match detail modal */}
-        {detailMatch && (
-          <MatchDetailModal
-            match={detailMatch}
-            participants={participants}
-            open={!!detailMatch}
-            onClose={() => setDetailMatch(null)}
-          />
         )}
 
         {/* Refresh button + Tabs */}
