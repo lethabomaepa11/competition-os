@@ -2,7 +2,7 @@ import { type ID } from "../types";
 import { type Bet, type BetterProfile, STARTING_BET_POINTS, MIN_BET, MAX_BET } from "../bet";
 import { type Match } from "../match";
 import { generateId } from "../../lib/id";
-import { GetAll, create, update as storeUpdate, query } from "../../lib/store";
+import { GetAll, GetWhere, create, update as storeUpdate } from "../../lib/store";
 
 const BET_KEY = "bets";
 const PROFILE_KEY = "better_profiles";
@@ -41,8 +41,8 @@ export class BetService {
   }
 
   async getProfile(betterId: ID): Promise<BetterProfile | undefined> {
-    const profiles = await this.getProfiles();
-    return profiles.find(p => p.id === betterId);
+    const profiles = await GetWhere<BetterProfile>(PROFILE_KEY, { id: betterId });
+    return profiles[0];
   }
 
   async placeBet(betterId: ID, betterName: string, matchId: ID, eventId: ID, participantId: ID, points: number): Promise<Bet | string> {
@@ -120,11 +120,11 @@ export class BetService {
   }
 
   async getMatchBets(matchId: ID): Promise<Bet[]> {
-    return query<Bet>(BET_KEY, b => b.matchId === matchId);
+    return GetWhere<Bet>(BET_KEY, { matchId });
   }
 
   async getEventBets(eventId: ID): Promise<Bet[]> {
-    return query<Bet>(BET_KEY, b => b.eventId === eventId);
+    return GetWhere<Bet>(BET_KEY, { eventId });
   }
 
   async getLeaderboard(limit: number = 10): Promise<BetterProfile[]> {

@@ -1,6 +1,5 @@
 import { type ID, FormatType } from "../types";
 import { getNumberRule } from "../rules";
-import { query } from "../../lib/store";
 import { EventService } from "./event.service";
 import { RegistrationService } from "./registration.service";
 import { StandingsService } from "./standings.service";

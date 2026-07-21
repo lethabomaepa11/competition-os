@@ -1,17 +1,17 @@
 import { type Invite } from "../invite";
 import { type ID } from "../types";
-import { GetAll, Get, create, update, Delete, query } from "../../lib/store";
+import { GetAll, GetWhere, Get, create, update, Delete } from "../../lib/store";
 import { generateId } from "../../lib/id";
 
 const INVITE_KEY = "invites";
 
 export class InviteService {
   async listByOrg(orgId: ID): Promise<Invite[]> {
-    return query<Invite>(INVITE_KEY, (i) => i.organizationId === orgId);
+    return GetWhere<Invite>(INVITE_KEY, { organizationId: orgId });
   }
 
   async getByToken(token: string): Promise<Invite | undefined> {
-    const invites = await query<Invite>(INVITE_KEY, (i) => i.token === token);
+    const invites = await GetWhere<Invite>(INVITE_KEY, { token });
     return invites[0];
   }
 

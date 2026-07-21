@@ -3,7 +3,7 @@ import { type ScoreAuditEntry, type MatchTiming, type ParticipantScoreSummary, t
 import { type Match, type MatchResult } from "../match";
 import { type Participant } from "../participant";
 import { generateId } from "../../lib/id";
-import { GetAll, create, query } from "../../lib/store";
+import { GetWhere, create } from "../../lib/store";
 import { MatchStatus } from "../types";
 
 const AUDIT_KEY = "score_audit_entries";
@@ -50,7 +50,7 @@ export class ScoreAuditService {
   }
 
   async recordMatchFinalize(matchId: ID, eventId: ID, result: MatchResult): Promise<void> {
-    const timings = (await GetAll<MatchTiming>(TIMING_KEY)).filter(t => t.matchId === matchId);
+    const timings = await GetWhere<MatchTiming>(TIMING_KEY, { matchId });
 
     const timing = timings[timings.length - 1];
     if (timing) {
@@ -63,22 +63,22 @@ export class ScoreAuditService {
   }
 
   async getMatchEvents(matchId: ID): Promise<ScoreAuditEntry[]> {
-    const events = await query<ScoreAuditEntry>(AUDIT_KEY, e => e.matchId === matchId);
+    const events = await GetWhere<ScoreAuditEntry>(AUDIT_KEY, { matchId });
     return events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }
 
   async getMatchTiming(matchId: ID): Promise<MatchTiming | undefined> {
-    const timings = (await GetAll<MatchTiming>(TIMING_KEY)).filter(t => t.matchId === matchId);
+    const timings = await GetWhere<MatchTiming>(TIMING_KEY, { matchId });
     return timings[timings.length - 1];
   }
 
   async getEventScoreEvents(eventId: ID): Promise<ScoreAuditEntry[]> {
-    const events = await query<ScoreAuditEntry>(AUDIT_KEY, e => e.eventId === eventId);
+    const events = await GetWhere<ScoreAuditEntry>(AUDIT_KEY, { eventId });
     return events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }
 
   async getParticipantScoreEvents(eventId: ID, participantId: ID): Promise<ScoreAuditEntry[]> {
-    const events = await query<ScoreAuditEntry>(AUDIT_KEY, e => e.eventId === eventId && e.participantId === participantId);
+    const events = await GetWhere<ScoreAuditEntry>(AUDIT_KEY, { eventId, participantId });
     return events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }
 

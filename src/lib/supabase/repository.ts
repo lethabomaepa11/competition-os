@@ -49,7 +49,32 @@ export async function Delete(entity: string, id: string): Promise<boolean> {
   return json.data as boolean;
 }
 
-export async function query<T extends { id: string }>(entity: string, predicate: (item: T) => boolean): Promise<T[]> {
+export async function GetWhere<T extends { id: string }>(entity: string, criteria: Record<string, unknown>): Promise<T[]> {
+  const res = await fetch(`/api/${entity}/crud/GetWhere`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ criteria }),
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return (json.data ?? []) as T[];
+}
+
+export async function GetWhereIn<T extends { id: string }>(entity: string, field: string, values: string[]): Promise<T[]> {
+  const res = await fetch(`/api/${entity}/crud/GetWhereIn`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ field, values }),
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return (json.data ?? []) as T[];
+}
+
+export async function query<T extends { id: string }>(entity: string, predicate: ((item: T) => boolean) | Record<string, unknown>): Promise<T[]> {
+  if (typeof predicate !== "function") {
+    return GetWhere<T>(entity, predicate as Record<string, unknown>);
+  }
   const items = await GetAll<T>(entity);
   return items.filter(predicate);
 }

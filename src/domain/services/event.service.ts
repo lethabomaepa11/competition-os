@@ -4,7 +4,7 @@ import { type RuleOverride } from "../types";
 import { type Match } from "../match";
 import { type Participant } from "../participant";
 import { type ID, EventStatus, FormatType, RegistrationPolicy, ParticipantType, MatchStatus } from "../types";
-import { GetAll, Get, create, update, Delete, query } from "../../lib/store";
+import { GetWhere, GetWhereIn, Get, create, update, Delete } from "../../lib/store";
 import { MatchService } from "./match.service";
 import { generateId } from "../../lib/id";
 import { writeAudit } from "../audit";
@@ -18,7 +18,7 @@ const RULESET_KEY = "rulesets";
 
 export class EventService {
   async list(competitionId: ID): Promise<Event[]> {
-    return query<Event>(EVT_KEY, (e) => e.competitionId === competitionId);
+    return GetWhere<Event>(EVT_KEY, { competitionId });
   }
 
   async get(id: ID): Promise<Event | undefined> {
@@ -76,31 +76,36 @@ export class EventService {
   }
 
   async getStages(eventId: ID): Promise<Stage[]> {
-    const stages = await query<Stage>(STAGE_KEY, (s) => s.eventId === eventId);
+    const stages = await GetWhere<Stage>(STAGE_KEY, { eventId });
     return stages.sort((a, b) => a.orderIndex - b.orderIndex);
   }
 
   async getRounds(stageId: ID): Promise<Round[]> {
-    const rounds = await query<Round>(ROUND_KEY, (r) => r.stageId === stageId);
+    const rounds = await GetWhere<Round>(ROUND_KEY, { stageId });
     return rounds.sort((a, b) => a.roundNumber - b.roundNumber);
   }
 
   async getMatches(eventId: ID): Promise<Match[]> {
-    return query<Match>("matches", (m) => {
-      const m2 = m as unknown as Record<string, unknown>;
-      return typeof m2.eventId === "string" && m2.eventId === eventId;
-    });
+    return GetWhere<Match>("matches", { eventId });
   }
 
   async clearEventFixtures(eventId: ID): Promise<void> {
     const stages = await this.getStages(eventId);
+    const allRoundIds: string[] = [];
+    for (const stage of stages) {
+      const rounds = await this.getRounds(stage.id);
+      allRoundIds.push(...rounds.map(r => r.id));
+    }
+    const allMatches = await GetWhereIn<Match>("matches", "roundId", allRoundIds);
+    const byRoundId = new Map<string, Match[]>();
+    for (const m of allMatches) {
+      const list = byRoundId.get(m.roundId);
+      if (list) list.push(m); else byRoundId.set(m.roundId, [m]);
+    }
     for (const stage of stages) {
       const rounds = await this.getRounds(stage.id);
       for (const round of rounds) {
-        const stageMatches = await query<Match>("matches", (m) => {
-          const m2 = m as unknown as Record<string, unknown>;
-          return typeof m2.roundId === "string" && m2.roundId === round.id;
-        });
+        const stageMatches = byRoundId.get(round.id) ?? [];
         for (const m of stageMatches) await Delete("matches", m.id);
         await Delete(ROUND_KEY, round.id);
       }
@@ -114,12 +119,12 @@ export class EventService {
   }
 
   async getRuleSet(eventId: ID): Promise<RuleSet | undefined> {
-    const rulesets = await query<RuleSet>(RULESET_KEY, (rs) => rs.eventId === eventId);
+    const rulesets = await GetWhere<RuleSet>(RULESET_KEY, { eventId });
     return rulesets[0];
   }
 
   async saveRuleSet(eventId: ID, rules: RuleOverride[]): Promise<RuleSet> {
-    const existing = await query<RuleSet>(RULESET_KEY, (rs) => rs.eventId === eventId);
+    const existing = await GetWhere<RuleSet>(RULESET_KEY, { eventId });
     if (existing.length > 0) {
       const updated = await update<RuleSet>(RULESET_KEY, existing[0].id, { rules });
       return updated!;
@@ -146,7 +151,7 @@ export class EventService {
     if (!stage) throw new Error("Stage not found");
 
     const allMatches = await this.getMatches(eventId);
-    const allParticipants = await query<Participant>("participants", (p) => p.eventId === eventId && p.status === "active");
+    const allParticipants = await GetWhere<Participant>("participants", { eventId, status: "active" });
     const ruleSet = await this.getRuleSet(eventId);
     const rules = ruleSet?.rules ?? [];
 

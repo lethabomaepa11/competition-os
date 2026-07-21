@@ -1,13 +1,13 @@
 import { type Participant } from "../participant";
 import { type ID } from "../types";
-import { GetAll, Get, create, update, Delete, query } from "../../lib/store";
+import { GetWhere, Get, create, update, Delete } from "../../lib/store";
 import { generateId } from "../../lib/id";
 
 const PART_KEY = "participants";
 
 export class RegistrationService {
   async getParticipants(eventId: ID): Promise<Participant[]> {
-    return query<Participant>(PART_KEY, (p) => p.eventId === eventId);
+    return GetWhere<Participant>(PART_KEY, { eventId });
   }
 
   async get(id: ID): Promise<Participant | undefined> {
@@ -39,12 +39,12 @@ export class RegistrationService {
   }
 
   async isRegistered(eventId: ID, memberId: ID): Promise<boolean> {
-    const results = await query<Participant>(PART_KEY, (p) => p.eventId === eventId && p.memberId === memberId);
+    const results = await GetWhere<Participant>(PART_KEY, { eventId, memberId });
     return results.length > 0;
   }
 
   async count(eventId: ID): Promise<number> {
-    const results = await query<Participant>(PART_KEY, (p) => p.eventId === eventId && p.status === "active");
+    const results = await GetWhere<Participant>(PART_KEY, { eventId, status: "active" });
     return results.length;
   }
 }

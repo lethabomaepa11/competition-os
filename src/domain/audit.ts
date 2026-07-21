@@ -1,6 +1,6 @@
 import { type ID, type AuditEntry } from "./types";
 import { generateId } from "../lib/id";
-import { GetAll, update as storeUpdate, create } from "../lib/store";
+import { GetWhere, update as storeUpdate, create } from "../lib/store";
 
 const AUDIT_KEY = "audit_entries";
 
@@ -33,8 +33,7 @@ export async function getAuditLog(
   organizationId: ID,
   options?: { resourceType?: string; resourceId?: ID; limit?: number },
 ): Promise<AuditEntry[]> {
-  let entries = await GetAll<AuditEntry>(AUDIT_KEY);
-  entries = entries.filter((e) => e.organizationId === organizationId);
+  let entries = await GetWhere<AuditEntry>(AUDIT_KEY, { organizationId });
   if (options?.resourceType) entries = entries.filter((e) => e.resourceType === options.resourceType);
   if (options?.resourceId) entries = entries.filter((e) => e.resourceId === options.resourceId);
   entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -43,8 +42,8 @@ export async function getAuditLog(
 }
 
 export async function undoAudit(auditId: ID): Promise<boolean> {
-  const entries = await GetAll<AuditEntry>(AUDIT_KEY);
-  const entry = entries.find((e) => e.id === auditId);
+  const { Get } = await import("../lib/store");
+  const entry = await Get<AuditEntry>(AUDIT_KEY, auditId);
   if (!entry) return false;
   await storeUpdate(entry.resourceType, entry.resourceId, entry.snapshot as Record<string, unknown>);
   return true;

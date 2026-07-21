@@ -8,7 +8,7 @@ import { type RuleSet } from "../rules";
 import { type ProgressionPlan, type PhaseConfig, type ProgressionLink } from "../progression";
 import { type StandingsEntry } from "../formats/interface";
 import { getFormat } from "../formats/registry";
-import { GetAll, Get, create, update, Delete, query } from "../../lib/store";
+import { GetWhere, Get, create, update, Delete } from "../../lib/store";
 import { MatchService } from "./match.service";
 import { generateId } from "../../lib/id";
 
@@ -16,27 +16,25 @@ const LINK_KEY = "progression_links";
 
 export class ProgressionService {
   async getProgressionPlan(eventId: ID): Promise<ProgressionPlan | null> {
-    const events = await GetAll<Event>("events");
-    const event = events.find(e => e.id === eventId);
+    const event = await Get<Event>("events", eventId);
     if (!event) return null;
     const plan = event.config?.progressionPlan as ProgressionPlan | undefined;
     return plan ?? null;
   }
 
   async saveProgressionPlan(eventId: ID, plan: ProgressionPlan): Promise<void> {
-    const events = await GetAll<Event>("events");
-    const idx = events.findIndex(e => e.id === eventId);
-    if (idx === -1) return;
+    const event = await Get<Event>("events", eventId);
+    if (!event) return;
     const updated = {
-      ...events[idx],
-      config: { ...events[idx].config, progressionPlan: plan },
+      ...event,
+      config: { ...event.config, progressionPlan: plan },
       updatedAt: new Date().toISOString(),
     };
     await update<Event>("events", eventId, updated as Partial<Event>);
   }
 
   async getProgressionLinks(eventId: ID): Promise<ProgressionLink[]> {
-    return query<ProgressionLink>(LINK_KEY, l => l.eventId === eventId);
+    return GetWhere<ProgressionLink>(LINK_KEY, { eventId });
   }
 
   async getNextPhaseConfig(eventId: ID, currentStageOrder: number): Promise<PhaseConfig | null> {
@@ -47,20 +45,17 @@ export class ProgressionService {
   }
 
   async canAdvance(eventId: ID, stageId: ID): Promise<boolean> {
-    const existingLinks = await query<ProgressionLink>(LINK_KEY, l => l.eventId === eventId && l.sourceStageId === stageId);
+    const existingLinks = await GetWhere<ProgressionLink>(LINK_KEY, { eventId, sourceStageId: stageId });
     if (existingLinks.length > 0) return false;
 
-    const stages = await query<Stage>("stages", s => s.eventId === eventId);
+    const stages = await GetWhere<Stage>("stages", { eventId });
     const stage = stages.find(s => s.id === stageId);
     if (!stage) return false;
 
-    const rounds = await query<Round>("rounds", r => r.stageId === stageId);
+    const rounds = await GetWhere<Round>("rounds", { stageId });
     const roundIds = new Set(rounds.map(r => r.id));
 
-    const matches = await query<Match>("matches", m => {
-      if (m.eventId !== eventId) return false;
-      return roundIds.has(m.roundId);
-    });
+    const matches = await GetWhere<Match>("matches", { eventId });
 
     if (matches.length === 0) return false;
 
@@ -72,11 +67,10 @@ export class ProgressionService {
   }
 
   async advance(eventId: ID, sourceStageId: ID): Promise<{ stage: Stage; rounds: Round[]; matches: Match[] }> {
-    const events = await GetAll<Event>("events");
-    const event = events.find(e => e.id === eventId);
+    const event = await Get<Event>("events", eventId);
     if (!event) throw new Error("Event not found");
 
-    const stages = await query<Stage>("stages", s => s.eventId === eventId);
+    const stages = await GetWhere<Stage>("stages", { eventId });
     const sortedStages = stages.sort((a, b) => a.orderIndex - b.orderIndex);
     const sourceStage = sortedStages.find(s => s.id === sourceStageId);
     if (!sourceStage) throw new Error("Source stage not found");
@@ -89,14 +83,13 @@ export class ProgressionService {
     if (currentPhaseIdx >= plan.phases.length) throw new Error("No next phase configured");
     const nextPhase = plan.phases[currentPhaseIdx];
 
-    const participants = await query<Participant>("participants", p => p.eventId === eventId && p.status === "active");
-    const allMatches = await query<Match>("matches", m => m.eventId === eventId);
-    const rulesets = await query<RuleSet>("rulesets", () => true);
-    const ruleSet = rulesets.find(rs => rs.eventId === eventId);
-    const rules = ruleSet?.rules ?? [];
+    const participants = await GetWhere<Participant>("participants", { eventId, status: "active" });
+    const allMatches = await GetWhere<Match>("matches", { eventId });
+    const rulesets = await GetWhere<RuleSet>("rulesets", { eventId });
+    const rules = rulesets[0]?.rules ?? [];
 
     const format = getFormat(event.format);
-    const sourceStageRounds = await query<Round>("rounds", r => r.stageId === sourceStageId);
+    const sourceStageRounds = await GetWhere<Round>("rounds", { stageId: sourceStageId });
     const sourceStageRoundIds = new Set(sourceStageRounds.map(r => r.id));
     const sourceStageMatches = allMatches.filter(m => sourceStageRoundIds.has(m.roundId));
 
@@ -156,12 +149,12 @@ export class ProgressionService {
   }
 
   async getStages(eventId: ID): Promise<Stage[]> {
-    const stages = await query<Stage>("stages", s => s.eventId === eventId);
+    const stages = await GetWhere<Stage>("stages", { eventId });
     return stages.sort((a, b) => a.orderIndex - b.orderIndex);
   }
 
   async getRounds(stageId: ID): Promise<Round[]> {
-    const rounds = await query<Round>("rounds", r => r.stageId === stageId);
+    const rounds = await GetWhere<Round>("rounds", { stageId });
     return rounds.sort((a, b) => a.roundNumber - b.roundNumber);
   }
 }

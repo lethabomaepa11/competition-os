@@ -5,18 +5,18 @@ const CI_KEY = "competition_invites";
 
 export class CompetitionInviteService {
   private async getRepo() {
-    const { GetAll, Get, create, update, query } = await import("../../lib/supabase/repository");
-    return { GetAll, Get, create, update, query };
+    const { GetAll, GetWhere, Get, create, update } = await import("../../lib/supabase/repository");
+    return { GetAll, GetWhere, Get, create, update };
   }
 
   async listByCompetition(compId: ID): Promise<CompetitionInvite[]> {
     const repo = await this.getRepo();
-    return repo.query<CompetitionInvite>(CI_KEY, (i) => i.competitionId === compId);
+    return repo.GetWhere<CompetitionInvite>(CI_KEY, { competitionId: compId });
   }
 
   async getByToken(token: string): Promise<CompetitionInvite | undefined> {
     const repo = await this.getRepo();
-    const all = await repo.query<CompetitionInvite>(CI_KEY, (i) => i.token === token);
+    const all = await repo.GetWhere<CompetitionInvite>(CI_KEY, { token });
     return all[0];
   }
 

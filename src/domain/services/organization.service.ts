@@ -1,6 +1,6 @@
 import { type Organization, type Member, type OrganizationMember } from "../organization";
 import { type ID, Role } from "../types";
-import { GetAll, Get, create, update, Delete, query } from "../../lib/store";
+import { GetAll, GetWhere, Get, create, update, Delete } from "../../lib/store";
 import { generateId } from "../../lib/id";
 
 const ORG_KEY = "organizations";
@@ -17,7 +17,7 @@ export class OrganizationService {
   }
 
   async getBySlug(slug: string): Promise<Organization | undefined> {
-    const orgs = await query<Organization>(ORG_KEY, (o) => o.slug === slug);
+    const orgs = await GetWhere<Organization>(ORG_KEY, { slug });
     return orgs[0];
   }
 
@@ -43,7 +43,7 @@ export class OrganizationService {
   }
 
   async getMembers(orgId: ID): Promise<(OrganizationMember & { member: Member | undefined })[]> {
-    const orgMembers = await query<OrganizationMember>(ORG_MEMBER_KEY, (m) => m.organizationId === orgId);
+    const orgMembers = await GetWhere<OrganizationMember>(ORG_MEMBER_KEY, { organizationId: orgId });
     const result: (OrganizationMember & { member: Member | undefined })[] = [];
     for (const om of orgMembers) {
       const member = await Get<Member>(MEMBER_KEY, om.memberId);
@@ -66,11 +66,9 @@ export class OrganizationService {
   }
 
   async removeMember(orgId: ID, memberId: ID): Promise<void> {
-    const members = await GetAll<OrganizationMember>(ORG_MEMBER_KEY);
+    const members = await GetWhere<OrganizationMember>(ORG_MEMBER_KEY, { organizationId: orgId, memberId });
     for (const m of members) {
-      if (m.organizationId === orgId && m.memberId === memberId) {
-        await Delete(ORG_MEMBER_KEY, m.id);
-      }
+      await Delete(ORG_MEMBER_KEY, m.id);
     }
   }
 }
@@ -85,7 +83,7 @@ export class MemberService {
   }
 
   async getByEmail(email: string): Promise<Member | undefined> {
-    const members = await query<Member>(MEMBER_KEY, (m) => m.email === email);
+    const members = await GetWhere<Member>(MEMBER_KEY, { email });
     return members[0];
   }
 

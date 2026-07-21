@@ -8,7 +8,7 @@ import { CompetitionService } from "@/domain/services/competition.service";
 import { EventService } from "@/domain/services/event.service";
 import type { Competition } from "@/domain/competition";
 import type { Event } from "@/domain/event";
-import { GetAll, create, Delete, Get } from "@/lib/store";
+import { GetAll, GetWhere, create, Delete, Get } from "@/lib/store";
 import { generateId } from "@/lib/id";
 
 const { Title } = Typography;
@@ -39,10 +39,10 @@ export default function BlueprintsPage() {
   const refresh = async () => {
     if (!currentOrg) return;
     const [all, comps] = await Promise.all([
-      GetAll<Blueprint>(BLUEPRINT_KEY),
+      GetWhere<Blueprint>(BLUEPRINT_KEY, { organizationId: currentOrg.id }),
       compSvc.list(currentOrg.id),
     ]);
-    setBlueprints(all.filter((b) => b.organizationId === currentOrg.id));
+    setBlueprints(all);
     setCompetitions(comps);
   };
 

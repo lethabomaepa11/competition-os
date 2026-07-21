@@ -1,6 +1,6 @@
-import { type Match, type MatchResult, type MatchScore, type MatchParticipant } from "../match";
+import { type Match, type MatchResult, type MatchScore } from "../match";
 import { type ID, MatchStatus } from "../types";
-import { GetAll, Get, create, update, Delete, query } from "../../lib/store";
+import { GetWhere, GetWhereIn, Get, create, update, Delete } from "../../lib/store";
 import { writeAudit } from "../audit";
 import { ScoreAuditService } from "./score-audit.service";
 import { BetService } from "./bet.service";
@@ -40,11 +40,9 @@ async function deleteMatchParticipants(matchId: string): Promise<void> {
   if (json.error) throw new Error(json.error);
 }
 
-async function getAllMatchParticipants(): Promise<{ matchId: string; participantId: string; position: number; result?: "win" | "loss" | "draw"; score?: number }[]> {
-  const res = await fetch("/api/match_participants/crud/GetAll", { method: "POST" });
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json.data ?? [];
+async function getAllMatchParticipants(matchIds: string[]): Promise<{ id: string; matchId: string; participantId: string; position: number; result?: "win" | "loss" | "draw"; score?: number }[]> {
+  if (matchIds.length === 0) return [];
+  return GetWhereIn("match_participants", "matchId", matchIds);
 }
 
 function expandResult(match: Record<string, unknown>): void {
@@ -69,7 +67,7 @@ export class MatchService {
   private betSvc = new BetService();
 
   async list(eventId: ID): Promise<Match[]> {
-    const matches = await query<Match>(MATCH_KEY, (m) => m.eventId === eventId);
+    const matches = await GetWhere<Match>(MATCH_KEY, { eventId });
     return this.populateParticipants(matches);
   }
 
@@ -81,7 +79,7 @@ export class MatchService {
   }
 
   async getByRound(roundId: ID): Promise<Match[]> {
-    const matches = await query<Match>(MATCH_KEY, (m) => m.roundId === roundId);
+    const matches = await GetWhere<Match>(MATCH_KEY, { roundId });
     return this.populateParticipants(matches);
   }
 
@@ -115,9 +113,15 @@ export class MatchService {
 
   private async populateParticipants(matches: Match[]): Promise<Match[]> {
     if (matches.length === 0) return matches;
-    const allMatchParticipants = await getAllMatchParticipants();
+    const matchIds = matches.map(m => m.id);
+    const allMatchParticipants = await getAllMatchParticipants(matchIds);
+    const byMatchId = new Map<string, typeof allMatchParticipants>();
+    for (const mp of allMatchParticipants) {
+      const list = byMatchId.get(mp.matchId);
+      if (list) list.push(mp); else byMatchId.set(mp.matchId, [mp]);
+    }
     for (const match of matches) {
-      const mps = allMatchParticipants.filter((mp) => mp.matchId === match.id);
+      const mps = byMatchId.get(match.id) ?? [];
       match.participantIds = mps.map((mp) => mp.participantId);
       match.participants = mps;
       expandResult(match as unknown as Record<string, unknown>);

@@ -5,6 +5,7 @@ import { Modal, Typography, Tag, Spin, Space } from "antd";
 import { TrophyOutlined, CommentOutlined } from "@ant-design/icons";
 import type { Match, MatchComment, MatchScore } from "@/domain/match";
 import type { Participant } from "@/domain/participant";
+import { GetWhere } from "@/lib/store";
 import LiveTimer from "./live-timer";
 import CommentaryFeed from "./commentary-feed";
 
@@ -40,16 +41,11 @@ export default function MatchDetailModal({
     (async () => {
       setCommentLoading(true);
       try {
-        const res = await fetch("/api/match_comments/crud/GetAll", { method: "POST" });
-        const json = await res.json();
-        if (json.data) {
-          const allComments = (json.data as MatchComment[]).filter(
-            (c) => c.matchId === match.id
-          ).sort(
-            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-          setComments(allComments);
-        }
+        const data = await GetWhere<MatchComment>("match_comments", { matchId: match.id });
+        const sorted = data.sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        setComments(sorted);
       } catch { /* silent */ }
       setCommentLoading(false);
     })();

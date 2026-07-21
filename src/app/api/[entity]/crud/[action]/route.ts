@@ -171,6 +171,37 @@ export async function POST(
         break;
       }
 
+      case "GetWhere": {
+        const { criteria } = body;
+        if (!criteria || typeof criteria !== "object") {
+          return NextResponse.json({ error: "Missing criteria" }, { status: 400 });
+        }
+        let getQuery = supabase.from(tb).select("*");
+        for (const [key, value] of Object.entries(criteria as Record<string, unknown>)) {
+          const col = camelToSnake(key);
+          if (value === null) {
+            getQuery = getQuery.is(col, null);
+          } else {
+            getQuery = getQuery.eq(col, value as string | number | boolean);
+          }
+        }
+        const { data, error } = await getQuery;
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        result = mapKeys(data ?? [], snakeToCamel);
+        break;
+      }
+
+      case "GetWhereIn": {
+        const { field, values } = body;
+        if (!field || !Array.isArray(values) || values.length === 0) {
+          return NextResponse.json({ error: "Missing field or values" }, { status: 400 });
+        }
+        const { data, error } = await supabase.from(tb).select("*").in(camelToSnake(field as string), values as string[]);
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        result = mapKeys(data ?? [], snakeToCamel);
+        break;
+      }
+
       case "DeleteByMatch": {
         const { matchId } = body;
         if (!matchId) return NextResponse.json({ error: "Missing matchId" }, { status: 400 });

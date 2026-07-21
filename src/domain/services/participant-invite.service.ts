@@ -5,18 +5,18 @@ const PI_KEY = "participant_invites";
 
 export class ParticipantInviteService {
   private async getRepo() {
-    const { GetAll, Get, create, update, query } = await import("../../lib/supabase/repository");
-    return { GetAll, Get, create, update, query };
+    const { GetAll, GetWhere, Get, create, update } = await import("../../lib/supabase/repository");
+    return { GetAll, GetWhere, Get, create, update };
   }
 
   async listByEvent(eventId: ID): Promise<ParticipantInvite[]> {
     const repo = await this.getRepo();
-    return repo.query<ParticipantInvite>(PI_KEY, (i) => i.eventId === eventId);
+    return repo.GetWhere<ParticipantInvite>(PI_KEY, { eventId });
   }
 
   async getByToken(token: string): Promise<ParticipantInvite | undefined> {
     const repo = await this.getRepo();
-    const all = await repo.query<ParticipantInvite>(PI_KEY, (i) => i.token === token);
+    const all = await repo.GetWhere<ParticipantInvite>(PI_KEY, { token });
     return all[0];
   }
 

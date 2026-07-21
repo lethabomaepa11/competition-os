@@ -1,6 +1,6 @@
 import { type Competition } from "../competition";
 import { type ID, CompetitionStatus, Visibility } from "../types";
-import { GetAll, Get, create, update, Delete, query } from "../../lib/store";
+import { GetAll, GetWhere, Get, create, update, Delete } from "../../lib/store";
 import { generateId } from "../../lib/id";
 import { writeAudit } from "../audit";
 
@@ -8,7 +8,7 @@ const COMP_KEY = "competitions";
 
 export class CompetitionService {
   async list(orgId: ID): Promise<Competition[]> {
-    return query<Competition>(COMP_KEY, (c) => c.organizationId === orgId);
+    return GetWhere<Competition>(COMP_KEY, { organizationId: orgId });
   }
 
   async get(id: ID): Promise<Competition | undefined> {
