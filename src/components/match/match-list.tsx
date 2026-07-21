@@ -207,7 +207,6 @@ export function MatchListView({
     }
     setSubmitting(true);
     try {
-      await matchSvc.startMatch(scoreModal.id);
       const scoreArray: MatchScore[] = noScores
         ? []
         : scoreModal.participants.map((p) => ({
@@ -455,7 +454,16 @@ export function MatchListView({
                     size="small"
                     type="primary"
                     icon={<CheckCircleOutlined />}
-                    onClick={() => {
+                    onClick={async () => {
+                      setSubmitting(true);
+                      try {
+                        await matchSvc.startMatch(record.id);
+                      } catch {
+                        message.error("Failed to start match");
+                        setSubmitting(false);
+                        return;
+                      }
+                      setSubmitting(false);
                       setScoreModal(record);
                       setWinnerId(null);
                       setScores({});

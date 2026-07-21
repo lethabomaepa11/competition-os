@@ -2,6 +2,8 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 
 export interface Database {
   public: {
+    Views: {};
+    Functions: {};
     Tables: {
       profiles: {
         Row: {
@@ -47,6 +49,7 @@ export interface Database {
           logo_url?: string | null;
           settings?: Json;
         };
+        Relationships: [];
       };
       organization_members: {
         Row: {
@@ -108,6 +111,7 @@ export interface Database {
           date_end?: string | null;
           status?: string;
         };
+        Relationships: [];
       };
       events: {
         Row: {
@@ -152,6 +156,7 @@ export interface Database {
           date_start?: string | null;
           date_end?: string | null;
         };
+        Relationships: [];
       };
       stages: {
         Row: {
@@ -300,6 +305,7 @@ export interface Database {
           seed?: number | null;
           status?: string;
         };
+        Relationships: [];
       };
       teams: {
         Row: {
