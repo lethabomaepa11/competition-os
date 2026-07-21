@@ -342,6 +342,10 @@ function LiveContent() {
                 scroll={{ x: true }}
                 pagination={false}
                 size="small"
+                onRow={(record) => ({
+                  onClick: () => setDetailMatch(record),
+                  style: { cursor: "pointer" },
+                })}
                 columns={[
                   {
                     title: "Match",
