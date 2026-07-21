@@ -58,7 +58,6 @@ function expandResult(match: Record<string, unknown>): void {
     match.result = { winnerId, scores: scores ?? [], isWalkover: isWalkover ?? false, notes, finalizedBy, finalizedAt };
   }
   delete match.winnerId;
-  delete match.scores;
   delete match.isWalkover;
   delete match.notes;
   delete match.finalizedBy;
