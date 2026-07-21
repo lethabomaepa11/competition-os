@@ -60,6 +60,9 @@ function DashboardInner() {
           <Title level={4} style={{ margin: 0, fontWeight: 700 }}>CompetitionOS</Title>
         </Space>
         <Space>
+          <Button type="text" style={{ color: "#fff" }} onClick={() => router.push("/app/events")}>
+            My Events
+          </Button>
           <Avatar
             size={32}
             style={{ fontSize: 13, fontWeight: 600 }}
