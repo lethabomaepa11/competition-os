@@ -49,7 +49,31 @@ export default function LiveMatchCard({
       </div>
 
       <div style={{ marginTop: 12 }}>
-        {sortedScores.length <= 2 ? (
+        {sortedScores.length === 0 ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
+            {match.participants.map((mp) => {
+              const p = participants.find(pp => pp.id === mp.participantId);
+              return (
+                <div key={mp.participantId} style={{ textAlign: "center", flex: 1 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: "50%",
+                    background: "#94a3b8",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    margin: "0 auto 4px", color: "#fff", fontWeight: 700, fontSize: 14,
+                  }}>
+                    {p?.displayName?.charAt(0) ?? "?"}
+                  </div>
+                  <Text strong style={{ fontSize: 13, display: "block" }}>{p?.displayName ?? "?"}</Text>
+                  <Text style={{
+                    fontSize: 28, fontWeight: 800, display: "block",
+                    color: "#64748b",
+                    fontVariantNumeric: "tabular-nums",
+                  }}>0</Text>
+                </div>
+              );
+            })}
+          </div>
+        ) : sortedScores.length <= 2 ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
             {sortedScores.map((s, i) => {
               const p = participants.find(pp => pp.id === s.participantId);
