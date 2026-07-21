@@ -200,7 +200,7 @@ function AcceptCompetitionInviteInner() {
             <div style={{
               position: "absolute",
               inset: 0,
-              background: "linear-gradient(transparent 40%, rgba(10,11,15,0.95))",
+              background: "linear-gradient(rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.85) 100%)",
             }} />
           </>
         )}
@@ -226,19 +226,19 @@ function AcceptCompetitionInviteInner() {
           width: "100%",
         }}>
           <Space style={{ marginBottom: 12 }}>
-            <Tag color="gold" style={{ fontSize: 12 }}>{competition?.game?.name ?? "Competition"}</Tag>
-            <Tag style={{ fontSize: 12 }}>{events.length} {events.length === 1 ? "Event" : "Events"}</Tag>
+            <Tag color="gold" style={{ fontSize: 12, color: "#fff", textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}>{competition?.game?.name ?? "Competition"}</Tag>
+            <Tag style={{ fontSize: 12, color: "#fff", textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}>{events.length} {events.length === 1 ? "Event" : "Events"}</Tag>
           </Space>
-          <Title level={1} style={{ margin: 0, fontSize: 32 }}>
+          <Title level={1} style={{ margin: 0, fontSize: 32, color: "#fff", textShadow: "0 2px 12px rgba(0,0,0,0.7)" }}>
             {competition?.name}
           </Title>
           {competition?.game && (
-            <Text style={{ fontSize: 14, display: "block", marginTop: 4 }}>
+            <Text style={{ fontSize: 14, display: "block", marginTop: 4, color: "#fff", textShadow: "0 2px 12px rgba(0,0,0,0.7)" }}>
               {competition.game.name}
             </Text>
           )}
           {competition?.description && (
-            <Text style={{ display: "block", marginTop: 8, fontSize: 15, maxWidth: 600 }}>
+            <Text style={{ display: "block", marginTop: 8, fontSize: 15, maxWidth: 600, color: "#fff", textShadow: "0 2px 12px rgba(0,0,0,0.7)" }}>
               {competition.description}
             </Text>
           )}
