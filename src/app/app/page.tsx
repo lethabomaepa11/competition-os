@@ -2,21 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Layout, Typography, Card, Row, Col, Button, Empty, Avatar, Space, Modal, Form, Input, message } from "antd";
-import { PlusOutlined, TeamOutlined, LogoutOutlined, RightOutlined } from "@ant-design/icons";
-import { AppProvider, useApp } from "@/lib/app-context";
+import { Typography, Card, Row, Col, Button, Empty, Avatar, Space, Modal, Form, Input, message } from "antd";
+import { PlusOutlined, TeamOutlined, RightOutlined } from "@ant-design/icons";
+import { useApp } from "@/lib/app-context";
 import { OrganizationService } from "@/domain/services/organization.service";
 
-const { Header, Content } = Layout;
 const { Title, Text } = Typography;
 
 function slugify(text: string): string {
   return text.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/[\s_]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") || "org";
 }
 
-function DashboardInner() {
+export default function AppDashboard() {
   const router = useRouter();
-  const { currentMember, organizations, createOrg, logout } = useApp();
+  const { currentMember, organizations, createOrg } = useApp();
   const [modalOpen, setModalOpen] = useState(false);
   const [slug, setSlug] = useState("");
   const [creating, setCreating] = useState(false);
@@ -50,35 +49,7 @@ function DashboardInner() {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Header style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 32px", position: "sticky", top: 0, zIndex: 10,
-      }}>
-        <Space>
-          <img src="/logo.jpg" alt="CompetitionOS" style={{ height: 40 }} />
-          <Title level={4} style={{ margin: 0, fontWeight: 700 }}>CompetitionOS</Title>
-        </Space>
-        <Space>
-          <Button type="text" style={{ color: "#fff" }} onClick={() => router.push("/app/events")}>
-            My Events
-          </Button>
-          <Avatar
-            size={32}
-            style={{ fontSize: 13, fontWeight: 600 }}
-          >
-            {currentMember.displayName.charAt(0).toUpperCase()}
-          </Avatar>
-          <Text style={{ fontWeight: 500 }}>{currentMember.displayName}</Text>
-          <Button
-            type="text"
-            icon={<LogoutOutlined />}
-            onClick={() => { logout(); router.push("/login"); }}
-          />
-        </Space>
-      </Header>
-
-      <Content style={{ padding: "48px 32px", maxWidth: 1000, margin: "0 auto", width: "100%" }}>
+    <>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 36 }}>
           <div>
             <Text type="secondary" style={{ fontWeight: 600, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.06em" }}>Dashboard</Text>
@@ -148,7 +119,6 @@ function DashboardInner() {
             </Col>
           </Row>
         )}
-      </Content>
 
       <Modal
         title="Create Organization"
@@ -184,14 +154,6 @@ function DashboardInner() {
           </Form.Item>
         </Form>
       </Modal>
-    </Layout>
-  );
-}
-
-export default function AppDashboard() {
-  return (
-    <AppProvider>
-      <DashboardInner />
-    </AppProvider>
+    </>
   );
 }

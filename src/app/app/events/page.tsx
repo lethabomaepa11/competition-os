@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Layout, Typography, Card, Row, Col, Spin, Empty, Tag, Space, Button, Avatar } from "antd";
-import { TrophyOutlined, LogoutOutlined, RightOutlined, TeamOutlined, PlusOutlined } from "@ant-design/icons";
-import { AppProvider, useApp } from "@/lib/app-context";
+import { Typography, Card, Row, Col, Spin, Empty, Tag, Space, Button, Avatar } from "antd";
+import { TrophyOutlined, RightOutlined, TeamOutlined, PlusOutlined } from "@ant-design/icons";
+import { useApp } from "@/lib/app-context";
 
-const { Header, Content } = Layout;
 const { Title, Text } = Typography;
 
 interface MyEvent {
@@ -31,9 +30,9 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "red",
 };
 
-function MyEventsInner() {
+export default function MyEventsPage() {
   const router = useRouter();
-  const { currentMember, logout } = useApp();
+  const { currentMember } = useApp();
   const [events, setEvents] = useState<MyEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -55,30 +54,7 @@ function MyEventsInner() {
   if (!currentMember) return null;
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Header style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 32px", position: "sticky", top: 0, zIndex: 10,
-      }}>
-        <Space>
-          <img src="/logo.jpg" alt="CompetitionOS" style={{ height: 40 }} />
-          <Title level={4} style={{ margin: 0, fontWeight: 700 }}>CompetitionOS</Title>
-        </Space>
-        <Space>
-          <Button type="text" style={{ color: "#fff" }} onClick={() => router.push("/app")}>
-            Dashboard
-          </Button>
-          <Avatar size={32} style={{ fontSize: 13, fontWeight: 600 }}>
-            {currentMember.displayName.charAt(0).toUpperCase()}
-          </Avatar>
-          <Text style={{ fontWeight: 500, color: "#fff" }}>{currentMember.displayName}</Text>
-          <Button type="text" icon={<LogoutOutlined />} style={{ color: "#fff" }}
-            onClick={() => { logout(); router.push("/login"); }}
-          />
-        </Space>
-      </Header>
-
-      <Content style={{ padding: "48px 32px", maxWidth: 1000, margin: "0 auto", width: "100%" }}>
+    <>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 36 }}>
           <div>
             <Text type="secondary" style={{ fontWeight: 600, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.06em" }}>
@@ -151,15 +127,6 @@ function MyEventsInner() {
             ))}
           </Row>
         )}
-      </Content>
-    </Layout>
-  );
-}
-
-export default function MyEventsPage() {
-  return (
-    <AppProvider>
-      <MyEventsInner />
-    </AppProvider>
+    </>
   );
 }

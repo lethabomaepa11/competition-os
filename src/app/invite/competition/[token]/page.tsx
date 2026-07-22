@@ -18,7 +18,7 @@ import { CompetitionInviteService } from "@/domain/services/competition-invite.s
 import { CompetitionService } from "@/domain/services/competition.service";
 import { EventService } from "@/domain/services/event.service";
 import { RegistrationService } from "@/domain/services/registration.service";
-import { MemberService } from "@/domain/services/organization.service";
+import { OrganizationService, MemberService } from "@/domain/services/organization.service";
 import type { Competition } from "@/domain/competition";
 import type { Event } from "@/domain/event";
 import type { Participant } from "@/domain/participant";
@@ -140,6 +140,7 @@ function AcceptCompetitionInviteInner() {
       const evt = events.find((e) => e.id === eventId);
       const displayName = sessionStorage.getItem("invite_display_name") ?? currentMember.displayName;
       await regSvc.register(eventId, currentMember.id, displayName);
+      const isFirstJoin = registeredEvents.size === 0;
       sendMailEvent({
         kind: "participant_registered",
         to: [{ email: currentMember.email, name: displayName }],
@@ -148,7 +149,7 @@ function AcceptCompetitionInviteInner() {
           eventName: evt?.name ?? "event",
           competitionName: competition?.name,
           participantName: displayName,
-          actionLabel: "Open dashboard",
+          actionLabel: "Go to live page",
         },
       });
       sessionStorage.removeItem("invite_display_name");
@@ -157,6 +158,14 @@ function AcceptCompetitionInviteInner() {
 
       const participants = await regSvc.getParticipants(eventId);
       setEventsWithParticipants((prev) => new Map(prev).set(eventId, participants));
+
+      if (isFirstJoin && competition) {
+        const orgSvc = new OrganizationService();
+        const org = await orgSvc.get(competition.organizationId);
+        if (org) {
+          router.push(`/live/${org.slug}/${competition.id}`);
+        }
+      }
     } catch {
       message.error("Failed to join");
     } finally {
