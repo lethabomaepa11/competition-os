@@ -134,32 +134,48 @@ function LiveContent() {
     const supabase = createClient();
     const channel = supabase
       .channel("live-matches")
-      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, (payload) => {
-        if (!payload.new) return;
-        const row = payload.new as any;
-        if (row.event_id !== activeEventId) return;
-        if (!row.id) return;
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "matches" },
+        (payload) => {
+          if (!payload.new) return;
+          const row = payload.new as any;
+          if (row.event_id !== activeEventId) return;
+          if (!row.id) return;
 
-        const dbScores = row.scores as any[] | null;
-        const scores = dbScores
-          ? dbScores.map((s: any) => ({
-              participantId: s.participant_id,
-              label: s.label,
-              value: s.value,
-            }))
-          : undefined;
+          const dbScores = row.scores as any[] | null;
+          const scores = dbScores
+            ? dbScores.map((s: any) => ({
+                participantId: s.participant_id,
+                label: s.label,
+                value: s.value,
+              }))
+            : undefined;
 
-        setMatches(prev => prev.map(m =>
-          m.id === row.id
-            ? { ...m, status: row.status, startedAt: row.started_at, scores }
-            : m
-        ));
-        setDetailMatch(prev =>
-          prev?.id === row.id
-            ? { ...prev, status: row.status, startedAt: row.started_at, scores } as Match
-            : prev
-        );
-      })
+          setMatches((prev) =>
+            prev.map((m) =>
+              m.id === row.id
+                ? {
+                    ...m,
+                    status: row.status,
+                    startedAt: row.started_at,
+                    scores,
+                  }
+                : m,
+            ),
+          );
+          setDetailMatch((prev) =>
+            prev?.id === row.id
+              ? ({
+                  ...prev,
+                  status: row.status,
+                  startedAt: row.started_at,
+                  scores,
+                } as Match)
+              : prev,
+          );
+        },
+      )
       .subscribe();
 
     return () => {
@@ -458,7 +474,8 @@ function LiveContent() {
             key: "betting",
             label: (
               <Space>
-                <span style={{ color: "#52c41a" }}>$</span> Betting
+                <span style={{ color: "#52c41a" }}>$</span> Predictions
+                (Tournament Oracle)
               </Space>
             ),
             children: activeEvent ? (
@@ -481,16 +498,20 @@ function LiveContent() {
   return (
     <div>
       {/* Hero section */}
-      <div style={{
-        position: "relative",
-        minHeight: activeEvent?.coverImage || competition?.coverImage ? 420 : 280,
-        display: "flex",
-        alignItems: "flex-end",
-        overflow: "hidden",
-        background: activeEvent?.coverImage || competition?.coverImage
-          ? "none"
-          : "linear-gradient(135deg, #0A0B0F 0%, #13141A 50%, #0A0B0F 100%)",
-      }}>
+      <div
+        style={{
+          position: "relative",
+          minHeight:
+            activeEvent?.coverImage || competition?.coverImage ? 420 : 280,
+          display: "flex",
+          alignItems: "flex-end",
+          overflow: "hidden",
+          background:
+            activeEvent?.coverImage || competition?.coverImage
+              ? "none"
+              : "linear-gradient(135deg, #0A0B0F 0%, #13141A 50%, #0A0B0F 100%)",
+        }}
+      >
         {(activeEvent?.coverImage || competition?.coverImage) && (
           <>
             <img
@@ -504,47 +525,88 @@ function LiveContent() {
                 objectFit: "cover",
               }}
             />
-            <div style={{
-              position: "absolute",
-              inset: 0,
-              background: "linear-gradient(rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.85) 100%)",
-            }} />
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.85) 100%)",
+              }}
+            />
           </>
         )}
         {!activeEvent?.coverImage && !competition?.coverImage && (
-          <div style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 500,
-            height: 500,
-            background: "radial-gradient(circle, rgba(232,166,35,0.06) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }} />
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: 500,
+              height: 500,
+              background:
+                "radial-gradient(circle, rgba(232,166,35,0.06) 0%, transparent 70%)",
+              pointerEvents: "none",
+            }}
+          />
         )}
 
-        <div style={{
-          position: "relative",
-          zIndex: 1,
-          padding: activeEvent?.coverImage || competition?.coverImage ? "120px 24px 48px" : "64px 24px 40px",
-          maxWidth: 1000,
-          margin: "0 auto",
-          width: "100%",
-        }}>
+        <div
+          style={{
+            position: "relative",
+            zIndex: 1,
+            padding:
+              activeEvent?.coverImage || competition?.coverImage
+                ? "120px 24px 48px"
+                : "64px 24px 40px",
+            maxWidth: 1000,
+            margin: "0 auto",
+            width: "100%",
+          }}
+        >
           <Space style={{ marginBottom: 12 }}>
-            <Tag color="gold" style={{ fontSize: 12, color: "#fff", textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}>
+            <Tag
+              color="gold"
+              style={{
+                fontSize: 12,
+                color: "#fff",
+                textShadow: "0 2px 6px rgba(0,0,0,0.6)",
+              }}
+            >
               {competition?.game?.name ?? "Competition"}
             </Tag>
-            <Tag style={{ fontSize: 12, color: "#fff", textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}>
+            <Tag
+              style={{
+                fontSize: 12,
+                color: "#fff",
+                textShadow: "0 2px 6px rgba(0,0,0,0.6)",
+              }}
+            >
               {events.length} {events.length === 1 ? "Event" : "Events"}
             </Tag>
           </Space>
-          <Title level={1} style={{ margin: 0, fontSize: 32, color: "#fff", textShadow: "0 2px 12px rgba(0,0,0,0.7)" }}>
+          <Title
+            level={1}
+            style={{
+              margin: 0,
+              fontSize: 32,
+              color: "#fff",
+              textShadow: "0 2px 12px rgba(0,0,0,0.7)",
+            }}
+          >
             {competition?.name}
           </Title>
           {competition?.description && (
-            <Text style={{ display: "block", marginTop: 8, fontSize: 15, maxWidth: 600, color: "#fff", textShadow: "0 2px 12px rgba(0,0,0,0.7)" }}>
+            <Text
+              style={{
+                display: "block",
+                marginTop: 8,
+                fontSize: 15,
+                maxWidth: 600,
+                color: "#fff",
+                textShadow: "0 2px 12px rgba(0,0,0,0.7)",
+              }}
+            >
               {competition.description}
             </Text>
           )}
@@ -573,12 +635,14 @@ function LiveContent() {
       <div style={{ maxWidth: 1000, margin: "0 auto", padding: "0 16px" }}>
         {/* TipTap content card */}
         {competition?.content && (
-          <Card style={{
-            marginBottom: 24,
-            marginTop: -24,
-            position: "relative",
-            zIndex: 2,
-          }}>
+          <Card
+            style={{
+              marginBottom: 24,
+              marginTop: -24,
+              position: "relative",
+              zIndex: 2,
+            }}
+          >
             <TipTapRenderer content={competition.content} />
           </Card>
         )}
@@ -603,8 +667,17 @@ function LiveContent() {
         )}
 
         {/* Refresh button + Tabs */}
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
-          <Button icon={<ReloadOutlined />} onClick={() => setRefreshKey((k) => k + 1)}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            marginBottom: 8,
+          }}
+        >
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={() => setRefreshKey((k) => k + 1)}
+          >
             Refresh
           </Button>
         </div>
