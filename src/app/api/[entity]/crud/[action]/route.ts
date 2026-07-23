@@ -38,7 +38,7 @@ function sanitizePayload(payload: Record<string, unknown>): Record<string, unkno
   for (const key of Object.keys(payload)) {
     const val = payload[key];
     if (typeof val === "string") {
-      if (val === "" || isGeneratedId(val)) {
+      if (val === "" || ((key === "id" || key.endsWith("_id")) && isGeneratedId(val))) {
         payload[key] = null;
       }
     }
