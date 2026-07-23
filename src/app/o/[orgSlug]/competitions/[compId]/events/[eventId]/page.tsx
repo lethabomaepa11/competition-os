@@ -865,9 +865,9 @@ export default function EventDetailPage() {
     if (!event) return matches;
     const isGS = event.format === FormatType.GroupStage;
     if (!isGS || selectedGroupIndex === null) return matches;
-    return matches.filter(
-      (m) => (m.config?.groupIndex as number) === selectedGroupIndex,
-    );
+    return matches
+      .filter((m) => (m.config?.groupIndex as number) === selectedGroupIndex)
+      .sort((a, b) => ((a.config?.groupRound as number) ?? 0) - ((b.config?.groupRound as number) ?? 0));
   }, [matches, event, selectedGroupIndex]);
 
   const stageCompletion = useMemo(() => {
