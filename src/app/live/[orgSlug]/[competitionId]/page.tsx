@@ -40,6 +40,7 @@ import { MatchStatus, FormatType } from "@/domain/types";
 import { StandingsService } from "@/domain/services/standings.service";
 import type { StandingsEntry } from "@/domain/formats/interface";
 import { StandingsTable } from "@/components/standings/standings-table";
+import { GroupStandingsView } from "@/components/standings/group-standings-view";
 import { BracketView } from "@/components/bracket/bracket-view";
 import { AiInsights } from "@/components/ai/ai-insights";
 import { AppProvider, useApp } from "@/lib/app-context";
@@ -212,6 +213,14 @@ function LiveContent() {
   }, [bracketStage, bracketRounds, matches]);
 
   const activeEvent = events.find((e) => e.id === activeEventId);
+
+  const groupConfig = stages[0]?.config?.groups as string[][] | undefined;
+  const isGroupStage = stages.length > 0 && stages[0].type === "group_stage" && !!groupConfig;
+
+  const groupNames = useMemo(() => {
+    if (!isGroupStage || !groupConfig) return [];
+    return groupConfig.map((_, i) => String.fromCharCode(65 + i));
+  }, [isGroupStage, groupConfig]);
 
   if (loading && !competition) {
     return (
@@ -447,7 +456,9 @@ function LiveContent() {
           {
             key: "standings",
             label: "Standings",
-            children: (
+            children: isGroupStage ? (
+              <GroupStandingsView standings={standings} event={activeEvent!} groupNames={groupNames} />
+            ) : (
               <StandingsTable standings={standings} event={activeEvent!} />
             ),
           },

@@ -14,9 +14,11 @@ const { Title } = Typography;
 interface Props {
   standings: StandingsEntry[];
   event: Event;
+  hideGroupColumn?: boolean;
+  hideHeader?: boolean;
 }
 
-export function StandingsTable({ standings, event }: Props) {
+export function StandingsTable({ standings, event, hideGroupColumn, hideHeader }: Props) {
   const tableRef = useRef<HTMLDivElement>(null);
 
   const exportStandings = useCallback(async (format: "png" | "pdf") => {
@@ -73,7 +75,7 @@ export function StandingsTable({ standings, event }: Props) {
           <span>{r}</span>
         ),
     },
-    ...(isGroupStage
+    ...(isGroupStage && !hideGroupColumn
       ? [
           {
             title: "Group",
@@ -143,50 +145,52 @@ export function StandingsTable({ standings, event }: Props) {
 
   return (
     <div ref={tableRef}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
-        <div>
-          {event.coverImage && (
-            <img
-              src={event.coverImage}
-              alt={event.name}
-              style={{
-                height: 32,
-                borderRadius: 6,
-                marginRight: 12,
-                verticalAlign: "middle",
-              }}
-            />
-          )}
-          <Title level={4} style={{ display: "inline", margin: 0 }}>
-            {event.name} — Standings
-          </Title>
+      {!hideHeader && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <div>
+            {event.coverImage && (
+              <img
+                src={event.coverImage}
+                alt={event.name}
+                style={{
+                  height: 32,
+                  borderRadius: 6,
+                  marginRight: 12,
+                  verticalAlign: "middle",
+                }}
+              />
+            )}
+            <Title level={4} style={{ display: "inline", margin: 0 }}>
+              {event.name} — Standings
+            </Title>
+          </div>
+          <Space>
+            <Button
+              size="small"
+              icon={<DownloadOutlined />}
+              onClick={() => exportStandings("png")}
+            >
+              PNG
+            </Button>
+            <Button
+              size="small"
+              icon={<FilePdfOutlined />}
+              onClick={() => exportStandings("pdf")}
+            >
+              PDF
+            </Button>
+          </Space>
         </div>
-        <Space>
-          <Button
-            size="small"
-            icon={<DownloadOutlined />}
-            onClick={() => exportStandings("png")}
-          >
-            PNG
-          </Button>
-          <Button
-            size="small"
-            icon={<FilePdfOutlined />}
-            onClick={() => exportStandings("pdf")}
-          >
-            PDF
-          </Button>
-        </Space>
-      </div>
+      )}
       <Table
         dataSource={standings}
         rowKey="participantId"

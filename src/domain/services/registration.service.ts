@@ -47,4 +47,19 @@ export class RegistrationService {
     const results = await GetWhere<Participant>(PART_KEY, { eventId, status: "active" });
     return results.length;
   }
+
+  async copyFromEvent(sourceEventId: ID, targetEventId: ID): Promise<Participant[]> {
+    const sourceParticipants = await this.getParticipants(sourceEventId);
+    const targetParticipants = await this.getParticipants(targetEventId);
+    const existingMemberIds = new Set(targetParticipants.map((p) => p.memberId));
+
+    const created: Participant[] = [];
+    for (const p of sourceParticipants) {
+      if (p.status !== "active") continue;
+      if (existingMemberIds.has(p.memberId)) continue;
+      const newParticipant = await this.register(targetEventId, p.memberId, p.displayName, p.seed);
+      created.push(newParticipant);
+    }
+    return created;
+  }
 }

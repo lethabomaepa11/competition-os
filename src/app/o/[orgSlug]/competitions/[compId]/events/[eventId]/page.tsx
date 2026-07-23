@@ -38,6 +38,7 @@ import {
   LinkOutlined,
   StopOutlined,
   CopyOutlined,
+  ImportOutlined,
   BugOutlined,
   ForwardOutlined,
   ReloadOutlined,
@@ -82,6 +83,7 @@ import type {
 import { autoQualifierCount } from "@/domain/progression";
 import { MatchListView } from "@/components/match/match-list";
 import { StandingsTable } from "@/components/standings/standings-table";
+import { GroupStandingsView } from "@/components/standings/group-standings-view";
 import { BracketView } from "@/components/bracket/bracket-view";
 import { compactRecipients, sendMailEvent } from "@/lib/mail/client";
 
@@ -250,6 +252,10 @@ export default function EventDetailPage() {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [seedModalOpen, setSeedModalOpen] = useState(false);
   const [seedCount, setSeedCount] = useState(8);
+  const [copyModalOpen, setCopyModalOpen] = useState(false);
+  const [otherEvents, setOtherEvents] = useState<Event[]>([]);
+  const [selectedSourceEventId, setSelectedSourceEventId] = useState<string | null>(null);
+  const [copying, setCopying] = useState(false);
   const [invites, setInvites] = useState<ParticipantInvite[]>([]);
   const [allRounds, setAllRounds] = useState<Round[]>([]);
   const [swissGenerating, setSwissGenerating] = useState(false);
@@ -336,6 +342,8 @@ export default function EventDetailPage() {
       if (currentMember && currentOrg) {
         setIsAdmin(await canEditMatches(currentMember.id, currentOrg.id));
       }
+      const allEvts = await evtSvc.list(e.competitionId);
+      setOtherEvents(allEvts.filter((ev) => ev.id !== e.id));
       if (nextSelectedId) {
         const canAdv =
           loadedStages.some((s) => s.id === nextSelectedId) &&
@@ -650,6 +658,22 @@ export default function EventDetailPage() {
     refresh();
   };
 
+  const handleCopyParticipants = async () => {
+    if (!event || !selectedSourceEventId) return;
+    setCopying(true);
+    try {
+      const created = await regSvc.copyFromEvent(selectedSourceEventId, event.id);
+      message.success(`${created.length} participants copied from source event`);
+      setCopyModalOpen(false);
+      setSelectedSourceEventId(null);
+      await regenerateFixturesIfNeeded();
+      refresh();
+    } catch (err) {
+      message.error("Failed to copy participants");
+    }
+    setCopying(false);
+  };
+
   const handleStartEvent = () => {
     setInitModalOpen(true);
   };
@@ -908,7 +932,7 @@ export default function EventDetailPage() {
     event.format === FormatType.DoubleElimination;
   const isSwiss = event.format === FormatType.Swiss;
   const isGroupStage = event.format === FormatType.GroupStage;
-  const showStandings = !isGroupStage;
+  const showStandings = true;
   const showBracket = isKnockout || bracketStage !== null;
 
   const completedRoundNumbers = new Set(
@@ -1403,28 +1427,7 @@ export default function EventDetailPage() {
   );
 
   const standingsTab = isGroupStage ? (
-    <div>
-      <div style={{ marginBottom: 16 }}>
-        <Space>
-          <Button
-            type={selectedGroupIndex === null ? "primary" : "default"}
-            onClick={() => setSelectedGroupIndex(null)}
-          >
-            All Groups
-          </Button>
-          {groupNames.map((name, idx) => (
-            <Button
-              key={idx}
-              type={selectedGroupIndex === idx ? "primary" : "default"}
-              onClick={() => setSelectedGroupIndex(idx)}
-            >
-              Group {name}
-            </Button>
-          ))}
-        </Space>
-      </div>
-      <StandingsTable standings={filteredStandings} event={event} />
-    </div>
+    <GroupStandingsView standings={standings} event={event} groupNames={groupNames} />
   ) : (
     <StandingsTable standings={standings} event={event} />
   );
@@ -1456,6 +1459,13 @@ export default function EventDetailPage() {
                 onClick={() => setSeedModalOpen(true)}
               >
                 Seed Test
+              </Button>
+              <Button
+                icon={<ImportOutlined />}
+                onClick={() => setCopyModalOpen(true)}
+                disabled={otherEvents.length === 0}
+              >
+                Copy From Event
               </Button>
               <Button onClick={refresh}>Refresh</Button>
             </Space>
@@ -2039,6 +2049,34 @@ export default function EventDetailPage() {
         >
           Seed {seedCount} Players
         </Button>
+      </Modal>
+
+      <Modal
+        title="Copy Participants From Event"
+        open={copyModalOpen}
+        onCancel={() => { setCopyModalOpen(false); setSelectedSourceEventId(null); }}
+        onOk={handleCopyParticipants}
+        confirmLoading={copying}
+        okText="Copy Participants"
+        okButtonProps={{ disabled: !selectedSourceEventId }}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Text>
+            Copy all active participants from another event into this one.
+            Participants already registered in this event will be skipped.
+          </Text>
+        </div>
+        <Select
+          placeholder="Select source event"
+          size="large"
+          style={{ width: "100%" }}
+          value={selectedSourceEventId}
+          onChange={setSelectedSourceEventId}
+          options={otherEvents.map((ev) => ({
+            value: ev.id,
+            label: `${ev.name} (${ev.format})`,
+          }))}
+        />
       </Modal>
 
       <Modal

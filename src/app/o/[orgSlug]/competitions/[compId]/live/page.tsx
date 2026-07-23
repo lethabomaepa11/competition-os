@@ -15,6 +15,7 @@ import { MatchStatus, FormatType } from "@/domain/types";
 import { StandingsService } from "@/domain/services/standings.service";
 import type { StandingsEntry } from "@/domain/formats/interface";
 import { StandingsTable } from "@/components/standings/standings-table";
+import { GroupStandingsView } from "@/components/standings/group-standings-view";
 import { BracketView } from "@/components/bracket/bracket-view";
 import { AiInsights } from "@/components/ai/ai-insights";
 import { useApp } from "@/lib/app-context";
@@ -115,6 +116,14 @@ export default function OrgLivePage() {
   }, [bracketStage, bracketRounds, matches]);
 
   const activeEvent = events.find(e => e.id === activeEventId);
+
+  const groupConfig = stages[0]?.config?.groups as string[][] | undefined;
+  const isGroupStage = stages.length > 0 && stages[0].type === "group_stage" && !!groupConfig;
+
+  const groupNames = useMemo(() => {
+    if (!isGroupStage || !groupConfig) return [];
+    return groupConfig.map((_, i) => String.fromCharCode(65 + i));
+  }, [isGroupStage, groupConfig]);
 
   const liveMatches = matches.filter(m => m.status === MatchStatus.InProgress || m.status === MatchStatus.Scheduled);
   const completedMatches = matches.filter(m => m.status === MatchStatus.Completed || m.status === MatchStatus.Walkover);
@@ -231,7 +240,9 @@ export default function OrgLivePage() {
     ...(standings.length > 0 ? [{
       key: "standings",
       label: "Standings",
-      children: <StandingsTable standings={standings} event={activeEvent!} />,
+      children: isGroupStage
+        ? <GroupStandingsView standings={standings} event={activeEvent!} groupNames={groupNames} />
+        : <StandingsTable standings={standings} event={activeEvent!} />,
     }] : []),
     ...(bracketMatches.length > 0 ? [{
       key: "bracket",
