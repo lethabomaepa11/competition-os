@@ -186,99 +186,70 @@ export default function OrgLivePage() {
             </Col>
           </Row>
 
-          {liveMatches.length > 0 && (
+          {liveMatches.length > 0 && (isGroupStage ? (
             <Card title={<Space><ReloadOutlined spin /> Live Matches</Space>} style={{ marginBottom: 16 }}>
               {Array.from(groupMatchesByRound(liveMatches).entries()).map(([gr, ms]) => (
-                <div key={gr} style={{ marginBottom: 12 }}>
+                <div key={gr} style={{ marginBottom: 12}}>
                   <Text strong style={{ display: "block", marginBottom: 8, fontSize: 13, color: "#8c8c8c" }}>
                     Matchday {gr}
                   </Text>
-                  <Table
-                    dataSource={ms}
-                    rowKey="id"
-                    pagination={false}
-                    size="small"
+                  <Table dataSource={ms} rowKey="id" pagination={false} size="small"
                     columns={[
-                      {
-                        title: "#", key: "matchIndex",
-                        width: 50,
-                        render: (_: unknown, record: Match) => record.config?.matchIndex ?? "-",
-                      },
-                      {
-                        title: "Group", key: "groupName",
-                        width: 80,
-                        render: (_: unknown, record: Match) => <Tag>{record.config?.groupName as string}</Tag>,
-                      },
-                      {
-                        title: "Match", key: "matchup",
-                        render: (_: unknown, record: Match) => (
-                          <Text>{record.participants.map(p => participants.find(pp => pp.id === p.participantId)?.displayName ?? "?").join(" vs ")}</Text>
-                        ),
-                      },
-                      {
-                        title: "Status", dataIndex: "status", key: "status",
-                        render: (s: MatchStatus) => <Tag color={s === MatchStatus.InProgress ? "processing" : "default"}>{s}</Tag>,
-                      },
-                      {
-                        title: "Predict", key: "predict",
-                        render: (_: unknown, record: Match) => record.participants.length === 2 ? (
-                          <Button size="small" onClick={() => setActiveTabKey("predictions")}>Predict</Button>
-                        ) : null,
-                      },
+                      { title: "#", key: "matchIndex", width: 50, render: (_: unknown, record: Match) => record.config?.matchIndex ?? "-" },
+                      { title: "Group", key: "groupName", width: 80, render: (_: unknown, record: Match) => <Tag>{record.config?.groupName as string}</Tag> },
+                      { title: "Match", key: "matchup", render: (_: unknown, record: Match) => <Text>{record.participants.map(p => participants.find(pp => pp.id === p.participantId)?.displayName ?? "?").join(" vs ")}</Text> },
+                      { title: "Status", dataIndex: "status", key: "status", render: (s: MatchStatus) => <Tag color={s === MatchStatus.InProgress ? "processing" : "default"}>{s}</Tag> },
+                      { title: "Predict", key: "predict", render: (_: unknown, record: Match) => record.participants.length === 2 ? (<Button size="small" onClick={() => setActiveTabKey("predictions")}>Predict</Button>) : null },
                     ]}
                   />
                 </div>
               ))}
             </Card>
-          )}
+          ) : (
+            <Card title={<Space><ReloadOutlined spin /> Live Matches</Space>} style={{ marginBottom: 16 }}>
+              <Table dataSource={liveMatches} rowKey="id" pagination={false} size="small"
+                columns={[
+                  { title: "Match", key: "matchup", render: (_: unknown, record: Match) => <Text>{record.participants.map(p => participants.find(pp => pp.id === p.participantId)?.displayName ?? "?").join(" vs ")}</Text> },
+                  { title: "Status", dataIndex: "status", key: "status", render: (s: MatchStatus) => <Tag color={s === MatchStatus.InProgress ? "processing" : "default"}>{s}</Tag> },
+                  { title: "Round", key: "round", render: (_: unknown, record: Match) => record.roundId ? roundMap.get(record.roundId) ?? "-" : "-" },
+                  { title: "Bracket", key: "bracket", render: (_: unknown, record: Match) => record.bracketGroup ? <Tag>{record.bracketGroup}</Tag> : null },
+                  { title: "Predict", key: "predict", render: (_: unknown, record: Match) => record.participants.length === 2 ? (<Button size="small" onClick={() => setActiveTabKey("predictions")}>Predict</Button>) : null },
+                ]}
+              />
+            </Card>
+          ))}
 
-          {completedMatches.length > 0 && (
+          {completedMatches.length > 0 && (isGroupStage ? (
             <Card title="Recent Results" size="small">
               {Array.from(groupMatchesByRound(completedMatches).entries()).map(([gr, ms]) => (
-                <div key={gr} style={{ marginBottom: 12 }}>
+                <div key={gr} style={{ marginBottom: 12}}>
                   <Text strong style={{ display: "block", marginBottom: 8, fontSize: 13, color: "#8c8c8c" }}>
                     Matchday {gr}
                   </Text>
-                  <Table
-                    dataSource={ms.slice().reverse()}
-                    rowKey="id"
-                    pagination={false}
-                    size="small"
+                  <Table dataSource={ms.slice().reverse()} rowKey="id" pagination={false} size="small"
                     columns={[
-                      {
-                        title: "#", key: "matchIndex",
-                        width: 50,
-                        render: (_: unknown, record: Match) => record.config?.matchIndex ?? "-",
-                      },
-                      {
-                        title: "Group", key: "groupName",
-                        width: 80,
-                        render: (_: unknown, record: Match) => <Tag>{record.config?.groupName as string}</Tag>,
-                      },
-                      {
-                        title: "Match", key: "matchup",
-                        render: (_: unknown, record: Match) => (
-                          <Text>{record.participants.map(p => participants.find(pp => pp.id === p.participantId)?.displayName ?? "?").join(" vs ")}</Text>
-                        ),
-                      },
-                      {
-                        title: "Winner", key: "winner",
-                        render: (_: unknown, record: Match) => record.result?.winnerId
-                          ? <Tag color="green">{participants.find(p => p.id === record.result!.winnerId)?.displayName ?? "?"}</Tag>
-                          : <Tag color="gold">Draw</Tag>,
-                      },
-                      {
-                        title: "Score", key: "score",
-                        render: (_: unknown, record: Match) => record.result?.scores && record.result.scores.length > 0
-                          ? record.result.scores.map(s => `${participants.find(p => p.id === s.participantId)?.displayName ?? "?"}: ${s.value}`).join(" | ")
-                          : "-",
-                      },
+                      { title: "#", key: "matchIndex", width: 50, render: (_: unknown, record: Match) => record.config?.matchIndex ?? "-" },
+                      { title: "Group", key: "groupName", width: 80, render: (_: unknown, record: Match) => <Tag>{record.config?.groupName as string}</Tag> },
+                      { title: "Match", key: "matchup", render: (_: unknown, record: Match) => <Text>{record.participants.map(p => participants.find(pp => pp.id === p.participantId)?.displayName ?? "?").join(" vs ")}</Text> },
+                      { title: "Winner", key: "winner", render: (_: unknown, record: Match) => record.result?.winnerId ? <Tag color="green">{participants.find(p => p.id === record.result!.winnerId)?.displayName ?? "?"}</Tag> : <Tag color="gold">Draw</Tag> },
+                      { title: "Score", key: "score", render: (_: unknown, record: Match) => record.result?.scores && record.result.scores.length > 0 ? record.result.scores.map(s => `${participants.find(p => p.id === s.participantId)?.displayName ?? "?"}: ${s.value}`).join(" | ") : "-" },
                     ]}
                   />
                 </div>
               ))}
             </Card>
-          )}
+          ) : (
+            <Card title="Recent Results" size="small">
+              <Table dataSource={completedMatches.slice(-10).reverse()} rowKey="id" pagination={false} size="small"
+                columns={[
+                  { title: "Match", key: "matchup", render: (_: unknown, record: Match) => <Text>{record.participants.map(p => participants.find(pp => pp.id === p.participantId)?.displayName ?? "?").join(" vs ")}</Text> },
+                  { title: "Winner", key: "winner", render: (_: unknown, record: Match) => record.result?.winnerId ? <Tag color="green">{participants.find(p => p.id === record.result!.winnerId)?.displayName ?? "?"}</Tag> : <Tag color="gold">Draw</Tag> },
+                  { title: "Score", key: "score", render: (_: unknown, record: Match) => record.result?.scores && record.result.scores.length > 0 ? record.result.scores.map(s => `${participants.find(p => p.id === s.participantId)?.displayName ?? "?"}: ${s.value}`).join(" | ") : "-" },
+                  { title: "Round", key: "round", render: (_: unknown, record: Match) => record.roundId ? roundMap.get(record.roundId) ?? "-" : "-" },
+                ]}
+              />
+            </Card>
+          ))}
 
           {liveMatches.length === 0 && completedMatches.length === 0 && (
             <Empty description="No match data yet. Check back when the event starts." />
