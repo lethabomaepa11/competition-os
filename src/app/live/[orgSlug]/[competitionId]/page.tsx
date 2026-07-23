@@ -354,6 +354,11 @@ function LiveContent() {
                     ),
                   },
                   {
+                    title: "#", key: "matchIndex",
+                    width: 60,
+                    render: (_: unknown, record: Match) => record.config?.matchIndex ?? "-",
+                  },
+                  {
                     title: "Round", key: "round",
                     render: (_: unknown, record: Match) => record.roundId ? roundMap.get(record.roundId) ?? "-" : "-",
                   },
@@ -434,6 +439,11 @@ function LiveContent() {
                             )
                             .join(" | ")
                         : "-",
+                  },
+                  {
+                    title: "#", key: "matchIndex",
+                    width: 60,
+                    render: (_: unknown, record: Match) => record.config?.matchIndex ?? "-",
                   },
                   {
                     title: "Round", key: "round",

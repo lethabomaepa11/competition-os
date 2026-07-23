@@ -77,6 +77,7 @@ export class GroupStageFormat implements FormatStrategy {
     }
 
     // Interleave: Round 1 for all groups, Round 2 for all groups, etc.
+    let matchIndex = 0;
     for (let gr = 1; gr <= maxRound; gr++) {
       for (const { gIdx, groupName, seeds, roundNumbers } of groupData) {
         if (!roundNumbers.includes(gr)) continue;
@@ -94,6 +95,7 @@ export class GroupStageFormat implements FormatStrategy {
 
         const roundSeeds = seeds.filter(s => s.round === gr);
         for (const seed of roundSeeds) {
+          matchIndex++;
           const match: Match = {
             id: generateId(),
             roundId: round.id,
@@ -105,6 +107,7 @@ export class GroupStageFormat implements FormatStrategy {
               groupIndex: gIdx,
               groupName,
               groupRound: gr,
+              matchIndex,
             },
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),

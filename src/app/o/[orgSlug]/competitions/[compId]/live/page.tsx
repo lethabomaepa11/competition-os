@@ -187,6 +187,11 @@ export default function OrgLivePage() {
                     render: (s: MatchStatus) => <Tag color={s === MatchStatus.InProgress ? "processing" : "default"}>{s}</Tag>,
                   },
                   {
+                    title: "#", key: "matchIndex",
+                    width: 60,
+                    render: (_: unknown, record: Match) => record.config?.matchIndex ?? "-",
+                  },
+                  {
                     title: "Round", key: "round",
                     render: (_: unknown, record: Match) => record.roundId ? roundMap.get(record.roundId) ?? "-" : "-",
                   },
@@ -230,6 +235,11 @@ export default function OrgLivePage() {
                     render: (_: unknown, record: Match) => record.result?.scores && record.result.scores.length > 0
                       ? record.result.scores.map(s => `${participants.find(p => p.id === s.participantId)?.displayName ?? "?"}: ${s.value}`).join(" | ")
                       : "-",
+                  },
+                  {
+                    title: "#", key: "matchIndex",
+                    width: 60,
+                    render: (_: unknown, record: Match) => record.config?.matchIndex ?? "-",
                   },
                   {
                     title: "Round", key: "round",
