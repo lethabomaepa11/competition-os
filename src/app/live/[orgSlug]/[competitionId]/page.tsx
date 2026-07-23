@@ -65,6 +65,7 @@ function LiveContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [activeTabKey, setActiveTabKey] = useState<string>("overview");
   const [detailMatch, setDetailMatch] = useState<Match | null>(null);
   const commentKeyRef = useRef(0);
 
@@ -197,6 +198,12 @@ function LiveContent() {
       ) ?? null,
     [stages],
   );
+
+  const roundMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of allRounds) map.set(r.id, r.name);
+    return map;
+  }, [allRounds]);
 
   const bracketRounds = useMemo(
     () =>
@@ -347,12 +354,22 @@ function LiveContent() {
                     ),
                   },
                   {
+                    title: "Round", key: "round",
+                    render: (_: unknown, record: Match) => record.roundId ? roundMap.get(record.roundId) ?? "-" : "-",
+                  },
+                  {
                     title: "Bracket",
                     key: "bracket",
                     render: (_: unknown, record: Match) =>
                       record.bracketGroup ? (
                         <Tag>{record.bracketGroup}</Tag>
                       ) : null,
+                  },
+                  {
+                    title: "Predict", key: "predict",
+                    render: (_: unknown, record: Match) => record.participants.length === 2 ? (
+                      <Button size="small" onClick={() => setActiveTabKey("predictions")}>Predict</Button>
+                    ) : null,
                   },
                 ]}
               />
@@ -418,6 +435,16 @@ function LiveContent() {
                             .join(" | ")
                         : "-",
                   },
+                  {
+                    title: "Round", key: "round",
+                    render: (_: unknown, record: Match) => record.roundId ? roundMap.get(record.roundId) ?? "-" : "-",
+                  },
+                  {
+                    title: "Predict", key: "predict",
+                    render: (_: unknown, record: Match) => record.participants.length === 2 ? (
+                      <Button size="small" onClick={() => setActiveTabKey("predictions")}>Predict</Button>
+                    ) : null,
+                  },
                 ]}
               />
             </Card>
@@ -479,10 +506,10 @@ function LiveContent() {
           },
         ]
       : []),
-    ...(currentMember && matches.length > 0
+    ...(currentMember
       ? [
           {
-            key: "betting",
+            key: "predictions",
             label: (
               <Space>
                 <span style={{ color: "#52c41a" }}>$</span> Predictions
@@ -693,7 +720,7 @@ function LiveContent() {
           </Button>
         </div>
 
-        {activeEvent && <Tabs items={tabItems} />}
+        {activeEvent && <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={tabItems as any} />}
 
         {events.length === 0 && <Empty description="No events found." />}
       </div>

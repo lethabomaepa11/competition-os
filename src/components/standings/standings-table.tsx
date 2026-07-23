@@ -99,6 +99,14 @@ export function StandingsTable({ standings, event, hideGroupColumn, hideHeader }
     { title: "W", dataIndex: "wins", key: "wins" },
     { title: "L", dataIndex: "losses", key: "losses" },
     { title: "D", dataIndex: "draws", key: "draws" },
+    ...((standings[0]?.stats?.homeWins !== undefined) ? [
+      { title: "HW", key: "homeWins", render: (_: unknown, r: StandingsEntry) => r.stats.homeWins ?? 0 },
+      { title: "HD", key: "homeDraws", render: (_: unknown, r: StandingsEntry) => r.stats.homeDraws ?? 0 },
+      { title: "HL", key: "homeLosses", render: (_: unknown, r: StandingsEntry) => r.stats.homeLosses ?? 0 },
+      { title: "AW", key: "awayWins", render: (_: unknown, r: StandingsEntry) => r.stats.awayWins ?? 0 },
+      { title: "AD", key: "awayDraws", render: (_: unknown, r: StandingsEntry) => r.stats.awayDraws ?? 0 },
+      { title: "AL", key: "awayLosses", render: (_: unknown, r: StandingsEntry) => r.stats.awayLosses ?? 0 },
+    ] : []),
   ];
 
   if (isSwiss) {

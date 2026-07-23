@@ -43,6 +43,7 @@ export const FormatRuleDefinitions: Record<FormatType, RuleDefinition[]> = {
     { key: "qualifiers_per_group", label: "Qualifiers Per Group", type: RuleValueType.Number, defaultValue: 2, validation: { min: 1, max: 16 } },
     { key: "win_points", label: "Win Points", type: RuleValueType.Number, defaultValue: 3, validation: { min: 0, max: 100 } },
     { key: "draw_points", label: "Draw Points", type: RuleValueType.Number, defaultValue: 1, validation: { min: 0, max: 100 } },
+    { key: "double_round_robin", label: "Home & Away Fixtures", type: RuleValueType.Boolean, defaultValue: false },
   ],
   [FormatType.Ladder]: [
     { key: "challenge_window", label: "Challenge Window (hours)", type: RuleValueType.Number, defaultValue: 48, validation: { min: 1, max: 720 } },

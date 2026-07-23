@@ -3,7 +3,7 @@ import { type Match, type MatchParticipant } from "../match";
 import { type Participant } from "../participant";
 import { type RuleOverride, MatchStatus, FormatType } from "../types";
 import { type FormatStrategy, type StageResult, type StandingsEntry } from "./interface";
-import { getNumberRule } from "../rules";
+import { getNumberRule, getBoolRule } from "../rules";
 import { generateId } from "../../lib/id";
 import { generateGroupStage } from "@kurovu146/bracket-engine";
 
@@ -13,13 +13,14 @@ export class GroupStageFormat implements FormatStrategy {
   readonly type = "group_stage";
 
   createStages(eventId: string, participants: Participant[], rules: RuleOverride[]): StageResult[] {
+    const doubleRR = getBoolRule(rules, "double_round_robin", FormatType.GroupStage);
     const numGroups = getNumberRule(rules, "group_count", FormatType.GroupStage) || 4;
     const qualifiersPerGroup = getNumberRule(rules, "qualifiers_per_group", FormatType.GroupStage) || 2;
     const winPts = getNumberRule(rules, "win_points", FormatType.GroupStage) || 3;
     const drawPts = getNumberRule(rules, "draw_points", FormatType.GroupStage) || 1;
 
     const participantIds = participants.map(p => p.id);
-    const result = generateGroupStage(participantIds, { numGroups, distribution: "snake" });
+    const result = generateGroupStage(participantIds, { numGroups, distribution: "snake", doubleRoundRobin: doubleRR });
 
     const stage: Stage = {
       id: generateId(),
@@ -52,8 +53,23 @@ export class GroupStageFormat implements FormatStrategy {
     const sortedGroupIndices = Array.from(groupMatchMap.keys()).sort();
 
     for (const gIdx of sortedGroupIndices) {
-      const seeds = groupMatchMap.get(gIdx)!;
+      let seeds = groupMatchMap.get(gIdx)!;
       const groupName = GROUP_LABELS[gIdx] || `Group ${gIdx + 1}`;
+
+      // When double round-robin, offset second pass round numbers
+      // so each pair's two fixtures are in distinct rounds
+      if (doubleRR) {
+        const n = result.groups[gIdx].length;
+        const singleRRMatchCount = n * (n - 1) / 2;
+        if (seeds.length > singleRRMatchCount) {
+          const roundsPerPass = n > 1 ? (n % 2 === 0 ? n - 1 : n) : 1;
+          seeds = [
+            ...seeds.slice(0, singleRRMatchCount),
+            ...seeds.slice(singleRRMatchCount).map(s => ({ ...s, round: s.round + roundsPerPass })),
+          ];
+        }
+      }
+
       const groupRoundNumbers = [...new Set(seeds.map(s => s.round))].sort();
 
       for (const gr of groupRoundNumbers) {
@@ -125,6 +141,7 @@ export class GroupStageFormat implements FormatStrategy {
     const qualifiersPerGroup = stage.config?.qualifiersPerGroup as number ?? 2;
     const groups = this.readGroups(stage);
 
+    const isDoubleRR = getBoolRule(rules, "double_round_robin", FormatType.GroupStage);
     const participantsByGroup = this.buildGroupParticipantMap(groups, participants);
     const matchesByGroup = this.buildGroupMatchMap(matches);
 
@@ -135,10 +152,18 @@ export class GroupStageFormat implements FormatStrategy {
       const groupLabel = groupLabels[gIdx] || `Group ${gIdx + 1}`;
       const groupMatches = matchesByGroup.get(gIdx) ?? [];
 
-      const stats = new Map<string, { pts: number; w: number; l: number; d: number; gf: number; ga: number }>();
+      const stats = new Map<string, {
+        pts: number; w: number; l: number; d: number; gf: number; ga: number;
+        hw: number; hd: number; hl: number; hgf: number; hga: number;
+        aw: number; ad: number; al: number; agf: number; aga: number;
+      }>();
 
       for (const pid of groupPids) {
-        stats.set(pid, { pts: 0, w: 0, l: 0, d: 0, gf: 0, ga: 0 });
+        stats.set(pid, {
+          pts: 0, w: 0, l: 0, d: 0, gf: 0, ga: 0,
+          hw: 0, hd: 0, hl: 0, hgf: 0, hga: 0,
+          aw: 0, ad: 0, al: 0, agf: 0, aga: 0,
+        });
       }
 
       for (const match of groupMatches) {
@@ -165,6 +190,22 @@ export class GroupStageFormat implements FormatStrategy {
         if (match.result.winnerId === p1) { s1.pts += winPts; s1.w++; s2.l++; }
         else if (match.result.winnerId === p2) { s2.pts += winPts; s2.w++; s1.l++; }
         else { s1.pts += drawPts; s2.pts += drawPts; s1.d++; s2.d++; }
+
+        if (isDoubleRR) {
+          const p1IsHome = match.participants.find(p => p.participantId === p1)?.position === 1;
+          if (match.result.winnerId === p1) {
+            if (p1IsHome) { s1.hw++; s2.al++; } else { s1.aw++; s2.hl++; }
+          } else if (match.result.winnerId === p2) {
+            if (p1IsHome) { s2.aw++; s1.hl++; } else { s2.hw++; s1.al++; }
+          } else {
+            if (p1IsHome) { s1.hd++; s2.ad++; } else { s1.ad++; s2.hd++; }
+          }
+          if (p1IsHome) {
+            s1.hgf += sc1; s1.hga += sc2; s2.agf += sc2; s2.aga += sc1;
+          } else {
+            s1.agf += sc1; s1.aga += sc2; s2.hgf += sc2; s2.hga += sc1;
+          }
+        }
       }
 
       const entries: StandingsEntry[] = groupPids.map(pid => {
@@ -178,7 +219,15 @@ export class GroupStageFormat implements FormatStrategy {
           wins: s.w,
           losses: s.l,
           draws: s.d,
-          stats: { goalsFor: s.gf, goalsAgainst: s.ga, goalDifference: s.gf - s.ga, groupIndex: gIdx },
+          stats: {
+            goalsFor: s.gf, goalsAgainst: s.ga, goalDifference: s.gf - s.ga, groupIndex: gIdx,
+            ...(isDoubleRR ? {
+              homeWins: s.hw, homeDraws: s.hd, homeLosses: s.hl,
+              homeGoalsFor: s.hgf, homeGoalsAgainst: s.hga,
+              awayWins: s.aw, awayDraws: s.ad, awayLosses: s.al,
+              awayGoalsFor: s.agf, awayGoalsAgainst: s.aga,
+            } : {}),
+          },
           qualified: false,
           groupName: groupLabel,
         };

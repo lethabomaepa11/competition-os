@@ -92,7 +92,7 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
 
   return (
     <Card
-      title={<Space><DollarOutlined style={{ color: "#52c41a" }} /> Betting (Fun)</Space>}
+      title={<Space><DollarOutlined style={{ color: "#52c41a" }} /> Predictions (Tournament Oracle)</Space>}
       size="small"
       style={{ marginTop: 16 }}
       extra={
@@ -104,6 +104,12 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
         </Space>
       }
     >
+      <div style={{ textAlign: "center", marginBottom: 12, background: "#fffbe6", padding: "6px 12px", borderRadius: 6 }}>
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          <ThunderboltOutlined style={{ marginRight: 4 }} />
+          Just for fun — no real money. Bragging rights only!
+        </Text>
+      </div>
       {/* Profile Stats */}
       <Row gutter={[8, 8]} style={{ marginBottom: 12 }}>
         <Col span={6}>
