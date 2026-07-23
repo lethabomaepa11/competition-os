@@ -52,12 +52,13 @@ export class GroupStageFormat implements FormatStrategy {
 
     const sortedGroupIndices = Array.from(groupMatchMap.keys()).sort();
 
+    // Collect per-group data with adjusted seeds
+    const groupData: { gIdx: number; groupName: string; seeds: typeof result.matches; roundNumbers: number[] }[] = [];
+    let maxRound = 0;
     for (const gIdx of sortedGroupIndices) {
       let seeds = groupMatchMap.get(gIdx)!;
       const groupName = GROUP_LABELS[gIdx] || `Group ${gIdx + 1}`;
 
-      // When double round-robin, offset second pass round numbers
-      // so each pair's two fixtures are in distinct rounds
       if (doubleRR) {
         const n = result.groups[gIdx].length;
         const singleRRMatchCount = n * (n - 1) / 2;
@@ -70,9 +71,15 @@ export class GroupStageFormat implements FormatStrategy {
         }
       }
 
-      const groupRoundNumbers = [...new Set(seeds.map(s => s.round))].sort();
+      const roundNumbers = [...new Set(seeds.map(s => s.round))].sort();
+      maxRound = Math.max(maxRound, ...roundNumbers);
+      groupData.push({ gIdx, groupName, seeds, roundNumbers });
+    }
 
-      for (const gr of groupRoundNumbers) {
+    // Interleave: Round 1 for all groups, Round 2 for all groups, etc.
+    for (let gr = 1; gr <= maxRound; gr++) {
+      for (const { gIdx, groupName, seeds, roundNumbers } of groupData) {
+        if (!roundNumbers.includes(gr)) continue;
         roundOrder++;
         const round: Round = {
           id: generateId(),
