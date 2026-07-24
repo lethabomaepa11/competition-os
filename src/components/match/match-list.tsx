@@ -81,7 +81,7 @@ export function MatchListView({
     })();
   }, [eventId]);
 
-  const handleScoreChange = async (participantId: string, value: number) => {
+  const handleScoreChange = (participantId: string, value: number) => {
     const prevVal = scores[participantId] ?? 0;
     const newVal = Math.max(0, value);
     const newScores = { ...scores, [participantId]: newVal };
@@ -90,7 +90,7 @@ export function MatchListView({
     if (scoreModal) {
       const actionType =
         newVal > prevVal ? "increment" : newVal < prevVal ? "decrement" : "set";
-      await matchSvc.recordScore(
+      matchSvc.recordScore(
         scoreModal.id,
         participantId,
         newVal,
@@ -102,7 +102,7 @@ export function MatchListView({
         label: participants.find((pt) => pt.id === p.participantId)?.displayName ?? "Unknown",
         value: newScores[p.participantId] ?? 0,
       }));
-      await matchSvc.updateScores(scoreModal.id, liveScoreArray);
+      matchSvc.updateScores(scoreModal.id, liveScoreArray);
     }
 
     const participantIds =

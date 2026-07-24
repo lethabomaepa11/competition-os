@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@/lib/supabase/types";
+import type { MatchScore } from "@/domain/match";
 
 function snakeToCamel(str: string): string {
   return str.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
@@ -16,6 +17,23 @@ function mapKeys(obj: unknown, convert: (k: string) => string): unknown {
     return result;
   }
   return obj;
+}
+
+function expandResult(match: Record<string, unknown>): void {
+  const winnerId = match.winnerId as string | undefined;
+  const scores = match.scores as MatchScore[] | undefined;
+  const isWalkover = match.isWalkover as boolean | undefined;
+  const notes = match.notes as string | undefined;
+  const finalizedBy = match.finalizedBy as string | undefined;
+  const finalizedAt = match.finalizedAt as string | undefined;
+  if (winnerId !== undefined || scores !== undefined) {
+    match.result = { winnerId, scores: scores ?? [], isWalkover: isWalkover ?? false, notes, finalizedBy, finalizedAt };
+  }
+  delete match.winnerId;
+  delete match.isWalkover;
+  delete match.notes;
+  delete match.finalizedBy;
+  delete match.finalizedAt;
 }
 
 export async function GET(
@@ -111,6 +129,7 @@ export async function GET(
       const mps = mpByMatchId.get(match.id as string) ?? [];
       match.participantIds = mps.map((mp) => mp.participantId);
       match.participants = mps;
+      expandResult(match);
     }
 
     const otherEventsMapped = (mapKeys(otherEvents ?? [], snakeToCamel) as Record<string, unknown>[]).filter(

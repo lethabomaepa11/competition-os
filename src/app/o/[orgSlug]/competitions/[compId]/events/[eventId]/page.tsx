@@ -331,13 +331,12 @@ export default function EventDetailPage() {
       }
       setOtherEvents(detail.otherEvents);
       if (nextSelectedId) {
+        const nextPhaseIdx = detail.stages.findIndex((s) => s.id === nextSelectedId);
+        const nextPhase = (plan?.phases && nextPhaseIdx >= 0 && nextPhaseIdx < plan.phases.length) ? plan.phases[nextPhaseIdx] : null;
         const canAdv =
           detail.stages.some((s) => s.id === nextSelectedId) &&
-          (await progSvc.canAdvance(detail.event.id, nextSelectedId)) &&
-          (await progSvc.getNextPhaseConfig(
-            detail.event.id,
-            detail.stages.findIndex((s) => s.id === nextSelectedId),
-          )) !== null;
+          nextPhase !== null &&
+          (await progSvc.canAdvance(detail.event.id, nextSelectedId));
         setCanAdvance(canAdv);
       }
     }

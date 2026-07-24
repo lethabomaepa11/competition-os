@@ -45,25 +45,10 @@ export class ProgressionService {
   }
 
   async canAdvance(eventId: ID, stageId: ID): Promise<boolean> {
-    const existingLinks = await GetWhere<ProgressionLink>(LINK_KEY, { eventId, sourceStageId: stageId });
-    if (existingLinks.length > 0) return false;
-
-    const stages = await GetWhere<Stage>("stages", { eventId });
-    const stage = stages.find(s => s.id === stageId);
-    if (!stage) return false;
-
-    const rounds = await GetWhere<Round>("rounds", { stageId });
-    const roundIds = new Set(rounds.map(r => r.id));
-
-    const matches = await GetWhere<Match>("matches", { eventId });
-
-    if (matches.length === 0) return false;
-
-    return matches.every(m =>
-      m.status === MatchStatus.Completed ||
-      m.status === MatchStatus.Walkover ||
-      m.status === MatchStatus.Cancelled
-    );
+    const res = await fetch(`/api/events/${eventId}/can-advance?stageId=${stageId}`);
+    const json = await res.json();
+    if (json.error) return false;
+    return json.data?.canAdvance ?? false;
   }
 
   async advance(eventId: ID, sourceStageId: ID): Promise<{ stage: Stage; rounds: Round[]; matches: Match[] }> {
