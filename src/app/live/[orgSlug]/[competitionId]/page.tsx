@@ -27,6 +27,7 @@ import {
   NodeIndexOutlined,
   ReloadOutlined,
   ThunderboltOutlined,
+  BarChartOutlined,
 } from "@ant-design/icons";
 import { CompetitionService } from "@/domain/services/competition.service";
 import { EventService } from "@/domain/services/event.service";
@@ -43,6 +44,7 @@ import { StandingsTable } from "@/components/standings/standings-table";
 import { GroupStandingsView } from "@/components/standings/group-standings-view";
 import { BracketView } from "@/components/bracket/bracket-view";
 import { AiInsights } from "@/components/ai/ai-insights";
+import { PlayerStats } from "@/components/stats/player-stats";
 import { AppProvider, useApp } from "@/lib/app-context";
 import { BetPanel } from "@/components/bet/bet-panel";
 
@@ -549,6 +551,21 @@ function LiveContent() {
               <GroupStandingsView standings={standings} event={activeEvent!} groupNames={groupNames} />
             ) : (
               <StandingsTable standings={standings} event={activeEvent!} />
+            ),
+          },
+        ]
+      : []),
+    ...(matches.length > 0
+      ? [
+          {
+            key: "stats",
+            label: (
+              <Space>
+                <BarChartOutlined /> Stats
+              </Space>
+            ),
+            children: (
+              <PlayerStats matches={matches} participants={participants} />
             ),
           },
         ]
