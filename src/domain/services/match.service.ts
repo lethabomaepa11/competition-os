@@ -210,6 +210,14 @@ export class MatchService {
     }
   }
 
+  async resetToScheduled(matchId: ID): Promise<Match | undefined> {
+    return update<Match>(MATCH_KEY, matchId, {
+      status: MatchStatus.Scheduled,
+      startedAt: null,
+      scores: [],
+    } as unknown as Partial<Match>);
+  }
+
   async undo(matchId: ID): Promise<Match | undefined> {
     const before = await this.get(matchId);
     const match = await update<Match>(MATCH_KEY, matchId, {

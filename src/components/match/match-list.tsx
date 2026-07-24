@@ -114,7 +114,10 @@ export function MatchListView({
       if (scoreA !== scoreB) {
         setWinnerId(scoreA > scoreB ? a : b);
         setIsDraw(false);
-      } else if (eventFormat === FormatType.League) {
+      } else if (
+        eventFormat !== FormatType.SingleElimination &&
+        eventFormat !== FormatType.DoubleElimination
+      ) {
         setIsDraw(true);
         setWinnerId(null);
       } else {
@@ -192,13 +195,33 @@ export function MatchListView({
 
   const handleSubmitResult = async () => {
     if (!scoreModal) return;
-    if (!isDraw && !winnerId) return;
+
+    const pIds = scoreModal.participants.map((p) => p.participantId);
+    let finalWinnerId = winnerId;
+    let finalIsDraw = isDraw;
+
+    if (!noScores && pIds.length === 2) {
+      const [a, b] = pIds;
+      const scoreA = scores[a] ?? 0;
+      const scoreB = scores[b] ?? 0;
+      if (scoreA === scoreB) {
+        finalIsDraw =
+          eventFormat !== FormatType.SingleElimination &&
+          eventFormat !== FormatType.DoubleElimination;
+        finalWinnerId = null;
+      } else {
+        finalWinnerId = scoreA > scoreB ? a : b;
+        finalIsDraw = false;
+      }
+    }
+
+    if (!finalIsDraw && !finalWinnerId) return;
     if (
       !noScores &&
       (eventFormat === FormatType.SingleElimination ||
         eventFormat === FormatType.DoubleElimination)
     ) {
-      if (!winnerId) {
+      if (!finalWinnerId) {
         message.error(
           "Scores cannot be equal in bracket format — a winner must be determined.",
         );
@@ -217,10 +240,10 @@ export function MatchListView({
           }));
       await matchSvc.submitResult(
         scoreModal.id,
-        winnerId ?? undefined,
+        finalWinnerId ?? undefined,
         scoreArray,
       );
-      message.success(isDraw ? "Draw recorded!" : "Result submitted!");
+      message.success(finalIsDraw ? "Draw recorded!" : "Result submitted!");
       setScoreModal(null);
     } catch {
       message.error("Failed to submit result");
@@ -449,7 +472,9 @@ export function MatchListView({
             key: "actions",
             render: (_: unknown, record: Match) => (
               <Space>
-                {isAdmin && record.status === MatchStatus.Scheduled && (
+                {isAdmin &&
+                  (record.status === MatchStatus.Scheduled ||
+                    record.status === MatchStatus.InProgress) && (
                   <Button
                     size="small"
                     type="primary"
@@ -457,7 +482,9 @@ export function MatchListView({
                     onClick={async () => {
                       setSubmitting(true);
                       try {
-                        await matchSvc.startMatch(record.id);
+                        if (record.status === MatchStatus.Scheduled) {
+                          await matchSvc.startMatch(record.id);
+                        }
                       } catch {
                         message.error("Failed to start match");
                         setSubmitting(false);
@@ -470,7 +497,7 @@ export function MatchListView({
                       setIsDraw(false);
                     }}
                   >
-                    Score
+                    {record.status === MatchStatus.InProgress ? "Resume" : "Score"}
                   </Button>
                 )}
                 {isAdmin &&
@@ -529,7 +556,12 @@ export function MatchListView({
       <Modal
         title="Enter Match Result"
         open={!!scoreModal}
-        onCancel={() => setScoreModal(null)}
+        onCancel={async () => {
+          if (scoreModal) {
+            await matchSvc.resetToScheduled(scoreModal.id);
+          }
+          setScoreModal(null);
+        }}
         onOk={() => {
           Modal.confirm({
             title: "Finalize this result?",
@@ -550,57 +582,62 @@ export function MatchListView({
             {noScores ? (
               <>
                 <div style={{ marginBottom: 16 }}>
-                  <Text strong>Select Winner:</Text>
+                  <Text strong style={{ fontSize: 16 }}>Select Winner:</Text>
                 </div>
-                {scoreModal.participants.map((p) => {
-                  const name =
-                    participantMap.get(p.participantId)?.displayName ??
-                    "Unknown";
-                  return (
-                    <div
-                      key={p.participantId}
-                      style={{
-                        marginBottom: 12,
-                        padding: 12,
-                        border:
-                          winnerId === p.participantId
-                            ? "2px solid #1677ff"
-                            : "1px solid #d9d9d9",
-                        borderRadius: 6,
-                        cursor: "pointer",
-                      }}
-                      onClick={() => {
-                        setWinnerId(p.participantId);
-                        setIsDraw(false);
-                      }}
-                    >
+                <div style={{
+                  display: "flex",
+                  gap: 12,
+                  flexDirection: scoreModal.participants.length === 2 ? "row" : "column",
+                }}>
+                  {scoreModal.participants.map((p) => {
+                    const name =
+                      participantMap.get(p.participantId)?.displayName ??
+                      "Unknown";
+                    const isSelected = winnerId === p.participantId;
+                    return (
                       <div
+                        key={p.participantId}
                         style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
+                          flex: scoreModal.participants.length === 2 ? 1 : undefined,
+                          padding: 20,
+                          border: isSelected
+                            ? "3px solid #1677ff"
+                            : "1px solid #d9d9d9",
+                          borderRadius: 12,
+                          cursor: "pointer",
+                          background: isSelected ? "#f0f5ff" : "#fafafa",
+                          textAlign: "center",
+                          transition: "all 0.2s",
+                        }}
+                        onClick={() => {
+                          setWinnerId(p.participantId);
+                          setIsDraw(false);
                         }}
                       >
-                        <Text strong={winnerId === p.participantId}>
+                        <Text strong={isSelected} style={{ fontSize: 16 }}>
                           {name}
                         </Text>
-                        {winnerId === p.participantId && (
-                          <Tag color="blue">Winner</Tag>
+                        {isSelected && (
+                          <Tag color="blue" style={{ marginLeft: 8, fontSize: 13, padding: "2px 8px" }}>
+                            WINNER
+                          </Tag>
                         )}
                       </div>
-                    </div>
-                  );
-                })}
-                {eventFormat === FormatType.League && (
+                    );
+                  })}
+                </div>
+                {eventFormat !== FormatType.SingleElimination &&
+                  eventFormat !== FormatType.DoubleElimination && (
                   <div
                     style={{
-                      marginTop: 12,
-                      paddingTop: 12,
+                      marginTop: 16,
+                      paddingTop: 16,
                       borderTop: "1px solid #f0f0f0",
                     }}
                   >
                     <Button
                       block
+                      size="large"
                       type={isDraw ? "primary" : "default"}
                       onClick={() => {
                         setIsDraw(!isDraw);
@@ -613,10 +650,11 @@ export function MatchListView({
                 )}
               </>
             ) : (
-              <>
-                <div style={{ marginBottom: 16 }}>
-                  <Text strong>Scores</Text>
-                </div>
+              <div style={{
+                display: "flex",
+                gap: 16,
+                flexDirection: scoreModal.participants.length === 2 ? "row" : "column",
+              }}>
                 {scoreModal.participants.map((p) => {
                   const name =
                     participantMap.get(p.participantId)?.displayName ??
@@ -626,41 +664,67 @@ export function MatchListView({
                   );
                   const isAutoWinner = winnerId === p.participantId;
                   const isAutoDraw = participantIds.length === 2 && isDraw;
+                  const borderColor = isAutoWinner ? "#1677ff" : isAutoDraw ? "#faad14" : "#e8e8e8";
                   return (
                     <div
                       key={p.participantId}
                       style={{
-                        marginBottom: 12,
-                        padding: 12,
-                        border: isAutoWinner
-                          ? "2px solid #1677ff"
-                          : isAutoDraw
-                            ? "2px solid #faad14"
-                            : "1px solid #d9d9d9",
-                        borderRadius: 6,
+                        flex: participantIds.length === 2 ? 1 : undefined,
+                        padding: "24px 16px",
+                        border: `${isAutoWinner || isAutoDraw ? 3 : 1}px solid ${borderColor}`,
+                        borderRadius: 12,
+                        background: isAutoWinner ? "#f0f5ff" : isAutoDraw ? "#fffbe6" : "#fafafa",
+                        textAlign: "center",
                       }}
                     >
                       <div
                         style={{
+                          marginBottom: 16,
                           display: "flex",
-                          justifyContent: "space-between",
+                          justifyContent: "center",
                           alignItems: "center",
-                          marginBottom: 8,
+                          gap: 8,
+                          flexWrap: "wrap",
                         }}
                       >
-                        <Text strong={!!isAutoWinner}>{name}</Text>
-                        {isAutoWinner && <Tag color="blue">Winner</Tag>}
-                        {isAutoDraw && <Tag color="gold">Draw</Tag>}
+                        <Text
+                          strong
+                          style={{ fontSize: 16 }}
+                        >
+                          {name}
+                        </Text>
+                        {isAutoWinner && (
+                          <Tag color="blue" style={{ fontSize: 13, padding: "2px 8px" }}>
+                            WINNER
+                          </Tag>
+                        )}
+                        {isAutoDraw && (
+                          <Tag color="gold" style={{ fontSize: 13, padding: "2px 8px" }}>
+                            DRAW
+                          </Tag>
+                        )}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 48,
+                          fontWeight: 700,
+                          lineHeight: 1.2,
+                          marginBottom: 20,
+                          color: isAutoWinner ? "#1677ff" : isAutoDraw ? "#faad14" : "#262626",
+                        }}
+                      >
+                        {scores[p.participantId] ?? 0}
                       </div>
                       <div
                         style={{
                           display: "flex",
-                          alignItems: "center",
-                          gap: 8,
+                          justifyContent: "center",
+                          gap: 16,
                         }}
                       >
                         <Button
-                          size="small"
+                          shape="circle"
+                          size="large"
                           icon={<MinusOutlined />}
                           onClick={() =>
                             handleScoreChange(
@@ -669,18 +733,10 @@ export function MatchListView({
                             )
                           }
                         />
-                        <Text
-                          style={{
-                            fontSize: 18,
-                            fontWeight: 600,
-                            minWidth: 24,
-                            textAlign: "center",
-                          }}
-                        >
-                          {scores[p.participantId] ?? 0}
-                        </Text>
                         <Button
-                          size="small"
+                          shape="circle"
+                          size="large"
+                          type="primary"
                           icon={<PlusOutlined />}
                           onClick={() =>
                             handleScoreChange(
@@ -693,7 +749,7 @@ export function MatchListView({
                     </div>
                   );
                 })}
-              </>
+              </div>
             )}
           </div>
         )}
