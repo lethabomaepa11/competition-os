@@ -1,8 +1,8 @@
 import { type Event, type Stage, type Round } from "../event";
 import { type RuleSet } from "../rules";
 import { type RuleOverride } from "../types";
-import { type Match } from "../match";
-import { type Participant } from "../participant";
+import { type Match, type MatchParticipant } from "../match";
+import { type Participant, type Team } from "../participant";
 import { type ID, EventStatus, FormatType, RegistrationPolicy, ParticipantType, MatchStatus } from "../types";
 import { GetWhere, GetWhereIn, Get, create, update, Delete } from "../../lib/store";
 import { MatchService } from "./match.service";
@@ -23,6 +23,22 @@ export class EventService {
 
   async get(id: ID): Promise<Event | undefined> {
     return Get<Event>(EVT_KEY, id);
+  }
+
+  async getDetail(eventId: ID): Promise<{
+    event: Event;
+    stages: Stage[];
+    rounds: Round[];
+    matches: Match[];
+    matchParticipants: MatchParticipant[];
+    participants: Participant[];
+    teams: Team[];
+    ruleSets: RuleSet[];
+  }> {
+    const res = await fetch(`/api/events/${eventId}/detail`);
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    return json.data;
   }
 
   async create(data: {
