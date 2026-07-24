@@ -1,8 +1,10 @@
 import { type Event, type Stage, type Round } from "../event";
 import { type RuleSet } from "../rules";
 import { type RuleOverride } from "../types";
-import { type Match, type MatchParticipant } from "../match";
+import { type Match } from "../match";
 import { type Participant, type Team } from "../participant";
+import { type ParticipantInvite } from "../participant-invite";
+import { type ProgressionLink } from "../progression";
 import { type ID, EventStatus, FormatType, RegistrationPolicy, ParticipantType, MatchStatus } from "../types";
 import { GetWhere, GetWhereIn, Get, create, update, Delete } from "../../lib/store";
 import { MatchService } from "./match.service";
@@ -30,10 +32,13 @@ export class EventService {
     stages: Stage[];
     rounds: Round[];
     matches: Match[];
-    matchParticipants: MatchParticipant[];
     participants: Participant[];
     teams: Team[];
     ruleSets: RuleSet[];
+    invites: ParticipantInvite[];
+    progressionLinks: ProgressionLink[];
+    awardedPoints: { id: string; eventId: string; participantId: string; points: number }[];
+    otherEvents: Event[];
   }> {
     const res = await fetch(`/api/events/${eventId}/detail`);
     const json = await res.json();

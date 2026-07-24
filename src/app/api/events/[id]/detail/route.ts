@@ -59,10 +59,22 @@ export async function GET(
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
-    const [{ data: participants }, { data: teams }, { data: ruleSets }] = await Promise.all([
+    const [
+      { data: participants },
+      { data: teams },
+      { data: ruleSets },
+      { data: invites },
+      { data: progressionLinks },
+      { data: awardedPoints },
+      { data: otherEvents },
+    ] = await Promise.all([
       supabase.from("participants").select("*").eq("event_id", id),
       supabase.from("teams").select("*"),
       supabase.from("rule_sets").select("*").eq("event_id", id),
+      supabase.from("participant_invites").select("*").eq("event_id", id),
+      supabase.from("progression_links").select("*").eq("event_id", id),
+      supabase.from("awarded_points").select("*").eq("event_id", id),
+      supabase.from("events").select("*").eq("competition_id", eventData.competition_id),
     ]);
 
     const converted = mapKeys(eventData, snakeToCamel) as Record<string, unknown>;
@@ -89,16 +101,35 @@ export async function GET(
       delete stage.rounds;
     }
 
+    const mpByMatchId = new Map<string, Record<string, unknown>[]>();
+    for (const mp of allMatchParticipants) {
+      const mid = mp.matchId as string;
+      const list = mpByMatchId.get(mid);
+      if (list) list.push(mp); else mpByMatchId.set(mid, [mp]);
+    }
+    for (const match of allMatches) {
+      const mps = mpByMatchId.get(match.id as string) ?? [];
+      match.participantIds = mps.map((mp) => mp.participantId);
+      match.participants = mps;
+    }
+
+    const otherEventsMapped = (mapKeys(otherEvents ?? [], snakeToCamel) as Record<string, unknown>[]).filter(
+      (ev) => ev.id !== id,
+    );
+
     return NextResponse.json({
       data: {
         event: converted,
         stages,
         rounds: allRounds,
         matches: allMatches,
-        matchParticipants: allMatchParticipants,
         participants: mapKeys(participants ?? [], snakeToCamel),
         teams: mapKeys(teams ?? [], snakeToCamel),
         ruleSets: mapKeys(ruleSets ?? [], snakeToCamel),
+        invites: mapKeys(invites ?? [], snakeToCamel),
+        progressionLinks: mapKeys(progressionLinks ?? [], snakeToCamel),
+        awardedPoints: mapKeys(awardedPoints ?? [], snakeToCamel),
+        otherEvents: otherEventsMapped,
       },
     });
   } catch (err) {

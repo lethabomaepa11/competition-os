@@ -56,7 +56,6 @@ import { RegistrationService } from "@/domain/services/registration.service";
 import { ParticipantInviteService } from "@/domain/services/participant-invite.service";
 import { MemberService } from "@/domain/services/organization.service";
 import type { ParticipantInvite } from "@/domain/participant-invite";
-import { MatchService } from "@/domain/services/match.service";
 import { StandingsService } from "@/domain/services/standings.service";
 import type { Event, Round } from "@/domain/event";
 import type { Stage } from "@/domain/event";
@@ -71,7 +70,6 @@ import {
 import { canEditMatches } from "@/lib/permissions";
 import { AiInsights } from "@/components/ai/ai-insights";
 import { FormatRuleDefinitions } from "@/domain/rules";
-import { getFormat } from "@/domain/formats/registry";
 import { create, query, Delete, update } from "@/lib/store";
 import type { StandingsEntry } from "@/domain/formats/interface";
 import { ProgressionService } from "@/domain/services/progression.service";
@@ -284,7 +282,6 @@ export default function EventDetailPage() {
 
   const evtSvc = new EventService();
   const regSvc = new RegistrationService();
-  const matchSvc = new MatchService();
   const standingSvc = new StandingsService();
   const inviteSvc = new ParticipantInviteService();
   const progSvc = new ProgressionService();
@@ -306,51 +303,40 @@ export default function EventDetailPage() {
     );
 
   const refresh = async () => {
-    const e = await evtSvc.get(eventId);
-    setEvent(e ?? null);
-    if (e) {
-      setParticipants(await regSvc.getParticipants(e.id));
-      setMatches(await matchSvc.list(e.id));
-      const loadedStages = await evtSvc.getStages(e.id);
-      setStages(loadedStages);
-      setInvites(await inviteSvc.listByEvent(e.id));
-      setAllRounds(
-        (
-          await Promise.all(loadedStages.map((s) => evtSvc.getRounds(s.id)))
-        ).flat(),
-      );
-      setPhasePlan(await progSvc.getProgressionPlan(e.id));
-      setProgressionLinks(await progSvc.getProgressionLinks(e.id));
-      const storedPoints = await query<{
-        id: string;
-        eventId: string;
-        participantId: string;
-        points: number;
-      }>("awarded_points", (p: { eventId: string }) => p.eventId === e.id);
+    const detail = await evtSvc.getDetail(eventId);
+    setEvent(detail.event);
+    if (detail.event) {
+      setParticipants(detail.participants);
+      setMatches(detail.matches);
+      setStages(detail.stages);
+      setInvites(detail.invites);
+      setAllRounds(detail.rounds);
+      const plan = detail.event.config?.progressionPlan as ProgressionPlan | null ?? null;
+      setPhasePlan(plan);
+      setProgressionLinks(detail.progressionLinks);
       const pointsMap: Record<string, number> = {};
-      for (const sp of storedPoints) pointsMap[sp.participantId] = sp.points;
+      for (const sp of detail.awardedPoints) pointsMap[sp.participantId] = sp.points;
       setAwardedPoints(pointsMap);
       const nextSelectedId =
-        loadedStages.length > 0 &&
+        detail.stages.length > 0 &&
         (selectedStageId === null ||
-          !loadedStages.some((s) => s.id === selectedStageId))
-          ? loadedStages[loadedStages.length - 1].id
+          !detail.stages.some((s) => s.id === selectedStageId))
+          ? detail.stages[detail.stages.length - 1].id
           : selectedStageId;
-      if (loadedStages.length > 0 && nextSelectedId !== selectedStageId) {
+      if (detail.stages.length > 0 && nextSelectedId !== selectedStageId) {
         setSelectedStageId(nextSelectedId);
       }
       if (currentMember && currentOrg) {
         setIsAdmin(await canEditMatches(currentMember.id, currentOrg.id));
       }
-      const allEvts = await evtSvc.list(e.competitionId);
-      setOtherEvents(allEvts.filter((ev) => ev.id !== e.id));
+      setOtherEvents(detail.otherEvents);
       if (nextSelectedId) {
         const canAdv =
-          loadedStages.some((s) => s.id === nextSelectedId) &&
-          (await progSvc.canAdvance(e.id, nextSelectedId)) &&
+          detail.stages.some((s) => s.id === nextSelectedId) &&
+          (await progSvc.canAdvance(detail.event.id, nextSelectedId)) &&
           (await progSvc.getNextPhaseConfig(
-            e.id,
-            loadedStages.findIndex((s) => s.id === nextSelectedId),
+            detail.event.id,
+            detail.stages.findIndex((s) => s.id === nextSelectedId),
           )) !== null;
         setCanAdvance(canAdv);
       }
@@ -375,91 +361,18 @@ export default function EventDetailPage() {
   }, [eventId]);
 
   const handleMatchUpdate = async () => {
-    const e = await evtSvc.get(eventId);
-    if (!e) return;
-    const loadedStages = await evtSvc.getStages(e.id);
-    const allRounds = (
-      await Promise.all(loadedStages.map((s) => evtSvc.getRounds(s.id)))
-    ).flat();
-    const allMatches = await matchSvc.list(e.id);
-
-    const stageTypeToFormat: Record<string, FormatType> = {
-      round_robin: FormatType.League,
-      single_elimination: FormatType.SingleElimination,
-      double_elimination: FormatType.DoubleElimination,
-      swiss: FormatType.Swiss,
-      group_stage: FormatType.GroupStage,
-    };
-
-    let propagated = allMatches.map((m) => ({
-      ...m,
-      participants: [...m.participants],
-      participantIds: [...m.participantIds],
-    }));
-    const seenTypes = new Set<string>();
-    for (const stage of loadedStages) {
-      if (seenTypes.has(stage.type)) continue;
-      seenTypes.add(stage.type);
-      const ft = stageTypeToFormat[stage.type];
-      if (!ft) continue;
-      const stageRoundIds = new Set(
-        allRounds.filter((r) => r.stageId === stage.id).map((r) => r.id),
-      );
-      let stageOnlyMatches = propagated.filter((m) =>
-        stageRoundIds.has(m.roundId),
-      );
-      // Sort by bracket engine order so nextMatchIndex points to the correct match
-      stageOnlyMatches = stageOnlyMatches.sort((a, b) => {
-        const aIdx = (a.config?.engineMatchIndex as number | undefined) ?? 0;
-        const bIdx = (b.config?.engineMatchIndex as number | undefined) ?? 0;
-        return aIdx - bIdx;
-      });
-      const propagatedStage = getFormat(ft).propagateResults(
-        stageOnlyMatches,
-        allRounds,
-      );
-      const propMap = new Map(propagatedStage.map((m) => [m.id, m]));
-      propagated = propagated.map((m) => propMap.get(m.id) ?? m);
-    }
-    const originalMap = new Map(allMatches.map((m) => [m.id, m]));
-    const changedIds = new Set<string>();
-    for (const m of propagated) {
-      const orig = originalMap.get(m.id);
-      if (!orig) continue;
-      // Only update if content actually changed
-      const participantsChanged =
-        JSON.stringify(m.participants) !== JSON.stringify(orig.participants) ||
-        JSON.stringify(m.participantIds) !==
-          JSON.stringify(orig.participantIds);
-      if (participantsChanged) {
-        changedIds.add(m.id);
-      }
-    }
-    for (const m of propagated) {
-      if (!changedIds.has(m.id)) continue;
-      const { participantIds, participants, result, ...cleanMatch } = m;
-      const dbPayload: Record<string, unknown> = { ...cleanMatch };
-      await update("matches", m.id, dbPayload);
-      await matchSvc.syncParticipants(m);
-    }
-    refresh();
-    if (
-      selectedStageId &&
-      (await progSvc.canAdvance(e.id, selectedStageId)) &&
-      (await progSvc.getNextPhaseConfig(
-        e.id,
-        stages.findIndex((s) => s.id === selectedStageId),
-      ))
-    ) {
+    const res = await fetch(`/api/events/${eventId}/propagate`, { method: "POST" });
+    const json = await res.json();
+    if (!json.error && json.data?.canAdvance && selectedStageId) {
       try {
-        const result = await progSvc.advance(e.id, selectedStageId);
+        const result = await progSvc.advance(eventId, selectedStageId);
         message.success(`Stage complete! Advanced to: ${result.stage.name}`);
-        refresh();
         setSelectedStageId(result.stage.id);
       } catch (err) {
         console.error("Auto-advance failed:", err);
       }
     }
+    refresh();
   };
 
   useEffect(() => {
