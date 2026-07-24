@@ -413,29 +413,10 @@ export default function EventDetailPage() {
     setInitLoading(true);
     try {
       const activeParticipants = await regSvc.getParticipants(event.id);
-      await evtSvc.initializeEvent(event.id, activeParticipants);
-      await evtSvc.start(event.id);
-      const recipients = await participantRecipients(activeParticipants);
-      if (recipients.length > 0) {
-        sendMailEvent({
-          kind: "event_started",
-          to: recipients,
-          actionUrl: `${window.location.origin}/o/${currentOrg?.slug}/competitions/${compId}/events/${event.id}`,
-          params: {
-            eventName: event.name,
-            actionLabel: "View event",
-          },
-        });
-        sendMailEvent({
-          kind: "bracket_generated",
-          to: recipients,
-          actionUrl: `${window.location.origin}/o/${currentOrg?.slug}/competitions/${compId}/events/${event.id}`,
-          params: {
-            eventName: event.name,
-            actionLabel: "View fixtures",
-          },
-        });
-      }
+      await evtSvc.initializeEvent(event.id, activeParticipants, {
+        orgSlug: params.orgSlug as string,
+        competitionId: compId,
+      });
       message.success("Event initialized!");
       setInitModalOpen(false);
       refresh();

@@ -219,43 +219,17 @@ export class EventService {
     return newMatches;
   }
 
-  async initializeEvent(eventId: ID, participants: Participant[]): Promise<{ stages: Stage[]; rounds: Round[]; matches: Match[] }> {
-    const event = await this.get(eventId);
-    if (!event) throw new Error("Event not found");
-
-    const ruleSet = await this.getRuleSet(eventId);
-    const rules = ruleSet?.rules ?? [];
-    const format = getFormat(event.format);
-
-    const stageResults = format.createStages(eventId, participants, rules);
-
-    const allStages: Stage[] = [];
-    const allRounds: Round[] = [];
-    const allMatches: Match[] = [];
-
-    for (const result of stageResults) {
-      const serverStage = await create(STAGE_KEY, result.stage) as Stage;
-      allStages.push(serverStage);
-
-      const roundIdMap = new Map<string, string>();
-      for (const round of result.rounds) {
-        round.stageId = serverStage.id;
-        const oldRoundId = round.id;
-        const serverRound = await create(ROUND_KEY, round) as Round;
-        roundIdMap.set(oldRoundId, serverRound.id);
-        allRounds.push(serverRound);
-      }
-
-      const matchSvc = new MatchService();
-      for (const match of result.matches) {
-        match.eventId = eventId;
-        const mapped = roundIdMap.get(match.roundId);
-        if (mapped) match.roundId = mapped;
-        const serverMatch = await matchSvc.createWithParticipants(match);
-        allMatches.push(serverMatch);
-      }
-    }
-
-    return { stages: allStages, rounds: allRounds, matches: allMatches };
+  async initializeEvent(eventId: ID, participants: Participant[], context?: { orgSlug: string; competitionId: ID }): Promise<{ stages: Stage[]; rounds: Round[]; matches: Match[] }> {
+    const res = await fetch(`/api/events/${eventId}/initialize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        participantIds: participants.map((p) => p.id),
+        ...context,
+      }),
+    });
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    return json.data;
   }
 }
