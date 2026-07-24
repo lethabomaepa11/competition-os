@@ -77,6 +77,8 @@ export async function GET(
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
+    const ed = eventData as Record<string, unknown>;
+
     const [
       { data: participants },
       { data: teams },
@@ -92,7 +94,7 @@ export async function GET(
       supabase.from("participant_invites").select("*").eq("event_id", id),
       supabase.from("progression_links").select("*").eq("event_id", id),
       supabase.from("awarded_points").select("*").eq("event_id", id),
-      supabase.from("events").select("*").eq("competition_id", eventData.competition_id),
+      supabase.from("events").select("*").eq("competition_id", ed.competition_id as string),
     ]);
 
     const converted = mapKeys(eventData, snakeToCamel) as Record<string, unknown>;

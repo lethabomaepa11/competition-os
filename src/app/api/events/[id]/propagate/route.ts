@@ -119,7 +119,7 @@ export async function POST(
       ...m,
       participants: [...(m.participants as Record<string, unknown>[])],
       participantIds: [...(m.participantIds as string[])],
-    }));
+    })) as Record<string, unknown>[];
 
     const stageTypeToFormat: Record<string, FormatType> = {
       round_robin: "league" as FormatType,
@@ -129,7 +129,7 @@ export async function POST(
       group_stage: "group_stage" as FormatType,
     };
 
-    let propagated = allMatches;
+    let propagated: any[] = allMatches as any[];
     const seenTypes = new Set<string>();
     for (const stage of stages) {
       if (seenTypes.has(stage.type as string)) continue;
@@ -148,15 +148,15 @@ export async function POST(
         return aIdx - bIdx;
       });
       const propagatedStage = getFormat(ft).propagateResults(
-        stageOnlyMatches,
-        allRounds,
+        stageOnlyMatches as any,
+        allRounds as any,
       );
-      const propMap = new Map(propagatedStage.map((m) => [m.id, m]));
+      const propMap = new Map(propagatedStage.map((m) => [(m as any).id as string, m]));
       propagated = propagated.map((m) => propMap.get(m.id) ?? m);
     }
 
     // Find changed matches and save to DB
-    const originalMap = new Map(rawMatches.map((m) => [m.id, m]));
+    const originalMap = new Map(rawMatches.map((m) => [m.id as string, m]));
     const changedIds = new Set<string>();
     for (const m of propagated) {
       const orig = originalMap.get(m.id);
@@ -174,7 +174,7 @@ export async function POST(
       const { participantIds, participants, result, ...cleanMatch } = m;
       const dbPayload: Record<string, unknown> = { ...cleanMatch };
       if (result) {
-        const r = result as Record<string, unknown>;
+        const r = result;
         dbPayload.winnerId = r.winnerId ?? null;
         dbPayload.scores = r.scores;
         dbPayload.isWalkover = r.isWalkover ?? false;
@@ -184,18 +184,12 @@ export async function POST(
       }
       delete dbPayload.result;
 
-      await supabase
-        .from("matches")
-        .update(dbPayload)
-        .eq("id", m.id as string);
-      await supabase
-        .from("match_participants")
-        .delete()
-        .eq("match_id", m.id as string);
-      for (let i = 0; i < (participantIds as string[]).length; i++) {
-        await supabase.from("match_participants").insert({
-          match_id: m.id as string,
-          participant_id: (participantIds as string[])[i],
+      await (supabase.from("matches" as never) as any).update(dbPayload).eq("id", m.id);
+      await (supabase.from("match_participants" as never) as any).delete().eq("match_id", m.id);
+      for (let i = 0; i < participantIds.length; i++) {
+        await (supabase.from("match_participants" as never) as any).insert({
+          match_id: m.id,
+          participant_id: participantIds[i],
           position: i + 1,
           result: null,
           score: null,

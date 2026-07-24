@@ -61,14 +61,19 @@ export async function GET(
     });
 
     // First get all round IDs for this event (to filter matches by event)
-    const { data: rounds } = await supabase
+    const { data: rawStages } = await supabase
+      .from("stages")
+      .select("id")
+      .eq("event_id", id);
+    const stageIds = ((rawStages ?? []) as Record<string, unknown>[]).map((s) => s.id as string);
+
+    const { data: rawRounds } = await supabase
       .from("rounds")
       .select("id, stage_id")
-      .in("stage_id",
-        (await supabase.from("stages").select("id").eq("event_id", id)).data?.map(s => s.id) ?? [],
-      );
+      .in("stage_id", stageIds);
 
-    const allRoundIds = (rounds ?? []).map((r) => r.id);
+    const rounds = (rawRounds ?? []) as Record<string, unknown>[];
+    const allRoundIds = rounds.map((r) => r.id as string);
     if (allRoundIds.length === 0) {
       return NextResponse.json({ data: { matches: [], total: 0, page, limit } });
     }
@@ -88,18 +93,19 @@ export async function GET(
     const { data: rawMatches, count } = await query
       .order("round_id", { ascending: true })
       .range(offset, offset + limit - 1);
+    const allMatchesRaw = (rawMatches ?? []) as Record<string, unknown>[];
 
-    if (!rawMatches) {
+    if (allMatchesRaw.length === 0 && page === 1) {
       return NextResponse.json({ data: { matches: [], total: 0, page, limit } });
     }
 
     // Filter by stageId client-side since we already have all matches (supabase doesn't do nested joins)
-    let filtered = rawMatches;
+    let filtered: Record<string, unknown>[] = allMatchesRaw;
     if (stageId) {
       const stageRoundIds = new Set(
-        (rounds ?? []).filter((r) => r.stage_id === stageId).map((r) => r.id),
+        rounds.filter((r) => (r.stage_id as string) === stageId).map((r) => r.id as string),
       );
-      filtered = filtered.filter((m) => stageRoundIds.has(m.round_id));
+      filtered = filtered.filter((m) => (stageRoundIds as Set<string>).has(m.round_id as string));
     }
 
     // Convert and populate participants
