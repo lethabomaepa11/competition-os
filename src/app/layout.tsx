@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -37,6 +38,7 @@ export default function RootLayout({
         <AntdRegistry>
           <Providers>{children}</Providers>
         </AntdRegistry>
+        <Analytics />
         <Script
           id="register-sw"
           strategy="afterInteractive"
