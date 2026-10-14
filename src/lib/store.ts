@@ -7,10 +7,16 @@ import {
   query as repoQuery,
   GetWhere as repoGetWhere,
   GetWhereIn as repoGetWhereIn,
+  ListPage as repoListPage,
 } from "./supabase/repository";
+import type { ListPageOptions, ListPageResult } from "./supabase/repository";
 
 export async function GetAll<T extends { id: string }>(key: string): Promise<T[]> {
   return repoGetAll<T>(key);
+}
+
+export async function ListPage<T extends { id: string }>(key: string, options?: ListPageOptions): Promise<ListPageResult<T>> {
+  return repoListPage<T>(key, options);
 }
 
 export async function GetWhere<T extends { id: string }>(key: string, criteria: Record<string, unknown>): Promise<T[]> {

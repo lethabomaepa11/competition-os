@@ -134,6 +134,41 @@ export async function POST(
         break;
       }
 
+      case "List": {
+        const requestedPage = Number(body.page ?? 1);
+        const requestedSize = Number(body.pageSize ?? 20);
+        const page = Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1;
+        const pageSize = Number.isFinite(requestedSize) ? Math.min(100, Math.max(1, Math.floor(requestedSize))) : 20;
+        const criteria = body.criteria && typeof body.criteria === "object" ? body.criteria as Record<string, unknown> : {};
+        const validColumn = (value: unknown): value is string => typeof value === "string" && /^[a-z][a-z0-9_]*$/.test(value);
+        let listQuery = supabase.from(tb).select("*", { count: "exact" });
+        for (const [key, value] of Object.entries(criteria)) {
+          const column = camelToSnake(key);
+          if (!validColumn(column)) return NextResponse.json({ error: "Invalid filter field." }, { status: 400 });
+          listQuery = value === null ? listQuery.is(column, null) : listQuery.eq(column, value as string | number | boolean);
+        }
+        const criteriaIn = body.criteriaIn && typeof body.criteriaIn === "object" ? body.criteriaIn as Record<string, unknown> : {};
+        for (const [key, value] of Object.entries(criteriaIn)) {
+          const column = camelToSnake(key);
+          if (!validColumn(column) || !Array.isArray(value) || value.length > 20) return NextResponse.json({ error: "Invalid list filter." }, { status: 400 });
+          if (value.length) listQuery = listQuery.in(column, value as (string | number)[]);
+        }
+        const search = typeof body.search === "string" ? body.search.trim().slice(0, 100) : "";
+        const searchFields = Array.isArray(body.searchFields) ? body.searchFields.map(camelToSnake).filter(validColumn).slice(0, 6) : [];
+        if (search && searchFields.length) {
+          const escaped = search.replace(/[%_,()]/g, " ");
+          listQuery = listQuery.or(searchFields.map((field) => `${field}.ilike.%${escaped}%`).join(","));
+        }
+        const requestedSortField = typeof body.sortField === "string" ? camelToSnake(body.sortField) : "";
+        const sortField = validColumn(requestedSortField) ? requestedSortField : "created_at";
+        const ascending = body.sortOrder === "ascend";
+        const from = (page - 1) * pageSize;
+        const { data, error, count } = await listQuery.order(sortField, { ascending }).range(from, from + pageSize - 1);
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        result = { items: mapKeys(data ?? [], snakeToCamel), total: count ?? 0, page, pageSize };
+        break;
+      }
+
       case "Get": {
         const { data, error } = await supabase.from(tb).select("*").eq("id", id as string).maybeSingle();
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });

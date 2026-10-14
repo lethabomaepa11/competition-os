@@ -1,6 +1,7 @@
 import { type Competition } from "../competition";
 import { type ID, CompetitionStatus, ParticipantType, Visibility } from "../types";
-import { GetAll, GetWhere, Get, create, update, Delete } from "../../lib/store";
+import { GetWhere, Get, create, update, Delete, ListPage } from "../../lib/store";
+import type { ListPageResult } from "../../lib/supabase/repository";
 import { generateId } from "../../lib/id";
 import { writeAudit } from "../audit";
 
@@ -9,6 +10,11 @@ const COMP_KEY = "competitions";
 export class CompetitionService {
   async list(orgId: ID): Promise<Competition[]> {
     return GetWhere<Competition>(COMP_KEY, { organizationId: orgId });
+  }
+
+  async listPage(orgId: ID, options: { page: number; pageSize: number; search?: string; statuses?: string[]; sortField?: string; sortOrder?: "ascend" | "descend" }): Promise<ListPageResult<Competition>> {
+    const { statuses, ...paging } = options;
+    return ListPage<Competition>(COMP_KEY, { ...paging, criteria: { organizationId: orgId }, criteriaIn: statuses?.length ? { status: statuses } : undefined, searchFields: ["name", "description", "category", "status"] });
   }
 
   async get(id: ID): Promise<Competition | undefined> {

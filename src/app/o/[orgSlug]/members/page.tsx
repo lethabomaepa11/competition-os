@@ -58,12 +58,12 @@ export default function MembersPage() {
       <header className="page-header"><div><span className="eyebrow">People and access</span><h1 className="page-title">Build the crew.</h1><p className="page-subtitle">Give operators, officials, moderators, and members the right access for every competition day.</p></div><div className="page-actions"><Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setOpen(true)}>Invite member</Button></div></header>
       <div className={styles.peopleSummary}><div><TeamOutlined /><span><b>{members.length}</b> active members</span></div><div><CopyOutlined /><span><b>{invites.filter((item) => item.status === "pending").length}</b> pending invites</span></div></div>
       <div className="section-heading"><Typography.Title level={3}>Accredited team</Typography.Title></div>
-      <SystemTable dataSource={members} rowKey="id" loading={loading} searchText={(row) => `${row.member?.displayName ?? ""} ${row.member?.email ?? ""} ${row.role}`} scroll={{ x: 680 }} columns={[
+      <SystemTable tableId="members" dataSource={members} rowKey="id" loading={loading} searchText={(row) => `${row.member?.displayName ?? ""} ${row.member?.email ?? ""} ${row.role}`} scroll={{ x: 680 }} columns={[
         { title: "Person", key: "person", render: (_: unknown, row: Row) => <div className={styles.personCell}><span>{row.member?.displayName?.charAt(0).toUpperCase() ?? "?"}</span><div><strong>{row.member?.displayName ?? "Unknown"}</strong><small>{row.member?.email ?? "—"}</small></div></div> },
         { title: "Role", dataIndex: "role", key: "role", render: (role: Role) => <Tag>{role}</Tag> },
         { title: "Joined", dataIndex: "joinedAt", key: "joinedAt", render: (date: string) => new Date(date).toLocaleDateString() },
       ]} />
-      {invites.length > 0 && <><div className="section-heading"><Typography.Title level={3}>Invitations</Typography.Title></div><SystemTable dataSource={invites} rowKey="id" loading={loading} searchText={(row) => `${row.email} ${row.role} ${row.status}`} scroll={{ x: 700 }} columns={[
+      {invites.length > 0 && <><div className="section-heading"><Typography.Title level={3}>Invitations</Typography.Title></div><SystemTable tableId="member-invites" dataSource={invites} rowKey="id" loading={loading} searchText={(row) => `${row.email} ${row.role} ${row.status}`} scroll={{ x: 700 }} columns={[
         { title: "Email", dataIndex: "email", key: "email" },
         { title: "Role", dataIndex: "role", key: "role", render: (role: string) => <Tag>{role}</Tag> },
         { title: "Status", dataIndex: "status", key: "status", render: (status: string) => <Tag color={inviteColors[status]}>{status}</Tag> },

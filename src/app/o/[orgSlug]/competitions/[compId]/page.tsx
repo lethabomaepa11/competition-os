@@ -894,6 +894,7 @@ export default function CompetitionDetailPage() {
           </Text>
         ) : (
           <SystemTable
+            tableId="competition-invites"
             dataSource={invites}
             rowKey="id"
             loading={invitesLoading}

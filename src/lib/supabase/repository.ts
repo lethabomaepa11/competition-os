@@ -5,6 +5,30 @@ export async function GetAll<T extends { id: string }>(entity: string): Promise<
   return (json.data ?? []) as T[];
 }
 
+export interface ListPageOptions {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  searchFields?: string[];
+  criteria?: Record<string, unknown>;
+  criteriaIn?: Record<string, (string | number)[]>;
+  sortField?: string;
+  sortOrder?: "ascend" | "descend";
+}
+
+export interface ListPageResult<T> { items: T[]; total: number; page: number; pageSize: number }
+
+export async function ListPage<T extends { id: string }>(entity: string, options: ListPageOptions = {}): Promise<ListPageResult<T>> {
+  const res = await fetch(`/api/${entity}/crud/List`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(options),
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json.data as ListPageResult<T>;
+}
+
 export async function Get<T extends { id: string }>(entity: string, id: string): Promise<T | undefined> {
   const res = await fetch(`/api/${entity}/crud/Get`, {
     method: "POST",

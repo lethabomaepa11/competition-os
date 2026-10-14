@@ -1,6 +1,7 @@
 import { type ID, type AuditEntry } from "./types";
 import { generateId } from "../lib/id";
-import { GetWhere, update as storeUpdate, create } from "../lib/store";
+import { GetWhere, ListPage, update as storeUpdate, create } from "../lib/store";
+import type { ListPageResult } from "../lib/supabase/repository";
 
 const AUDIT_KEY = "audit_entries";
 
@@ -39,6 +40,16 @@ export async function getAuditLog(
   entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   if (options?.limit) entries = entries.slice(0, options.limit);
   return entries;
+}
+
+export function getAuditLogPage(organizationId: ID, options: { page: number; pageSize: number; search?: string; resourceTypes?: string[]; sortField?: string; sortOrder?: "ascend" | "descend" }): Promise<ListPageResult<AuditEntry>> {
+  const { resourceTypes, ...paging } = options;
+  return ListPage<AuditEntry>(AUDIT_KEY, {
+    ...paging,
+    criteria: { organizationId },
+    criteriaIn: resourceTypes?.length ? { resourceType: resourceTypes } : undefined,
+    searchFields: ["action", "resourceType", "resourceId"],
+  });
 }
 
 export async function undoAudit(auditId: ID): Promise<boolean> {

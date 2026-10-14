@@ -19,6 +19,7 @@ async function mockApp(page: Page, authenticated = true, accountType: "operator"
     if (path.includes("/members/crud/GetAll")) return json(route, { data: [{ ...member, accountType: profileAccountType }] });
     if (path.includes("/organizations/crud/GetAll")) return json(route, { data: availableOrganizations });
     if (path.includes("/competitions/crud/GetWhere")) return json(route, { data: [] });
+    if (path.includes("/competitions/crud/List")) return json(route, { data: { items: [], total: 0, page: 1, pageSize: 10 } });
     if (path.includes("/org_members/crud/GetWhere")) return json(route, { data: [{ id: "om-1", organizationId: organization.id, memberId: member.id, role: "owner", permissions: [], joinedAt: "2026-01-01T00:00:00.000Z" }] });
     if (path.includes("/members/crud/Get")) return json(route, { data: member });
     return json(route, { data: [] });
@@ -229,9 +230,16 @@ test.describe("authenticated participant workspace", () => {
 test.describe("competition and event administration", () => {
   test("searches and paginates the competition system table", async ({ page }) => {
     await mockApp(page, true, "operator");
-    await page.route("**/api/competitions/crud/GetWhere", (route) => json(route, { data: Array.from({ length: 14 }, (_, index) => ({
+    const competitions = Array.from({ length: 14 }, (_, index) => ({
       id: `competition-${index + 1}`, organizationId: organization.id, name: `Continental League ${index + 1}`, description: `Season ${index + 1} competition`, category: "football", entryType: "team", visibility: "public", eligibility: {}, status: index % 2 ? "published" : "draft", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
-    })) }));
+    }));
+    await page.route("**/api/competitions/crud/List", async (route) => {
+      const body = route.request().postDataJSON() as { page?: number; pageSize?: number; search?: string };
+      const pageNumber = body.page ?? 1;
+      const size = body.pageSize ?? 10;
+      const filtered = body.search ? competitions.filter((item) => item.name.toLowerCase().includes(body.search!.toLowerCase())) : competitions;
+      return json(route, { data: { items: filtered.slice((pageNumber - 1) * size, pageNumber * size), total: filtered.length, page: pageNumber, pageSize: size } });
+    });
     await page.goto(`/o/${organization.slug}/competitions`);
     await expect(page.getByLabel("Search table")).toBeVisible();
     await expect(page.getByText("14 records")).toBeVisible();
@@ -241,6 +249,7 @@ test.describe("competition and event administration", () => {
     await page.getByLabel("Search table").fill("League 14");
     await expect(page.getByText("1 record")).toBeVisible();
     await expect(page.getByText("Continental League 14")).toBeVisible();
+    await expect(page).toHaveURL(/competitions_q=League(?:\+|%20)14/);
   });
 
   test.beforeEach(async ({ page }) => { await mockApp(page, true, "operator"); });
