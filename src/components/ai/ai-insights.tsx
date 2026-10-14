@@ -11,13 +11,12 @@ import {
   Col,
   Progress,
   Button,
-  Empty,
+  Alert,
 } from "antd";
 import {
   ThunderboltOutlined,
   ReloadOutlined,
   TrophyOutlined,
-  WarningOutlined,
   InfoCircleOutlined,
   RiseOutlined,
   FallOutlined,
@@ -36,27 +35,18 @@ import type {
   MatchInsight,
 } from "@/domain/score-audit";
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 interface Props {
   matches: Match[];
   participants: Participant[];
-  eventName: string;
   autoAnalyze?: boolean;
-  compact?: boolean;
+  eventId?: string;
+  allowAi?: boolean;
 }
 
 function getSeverityColor(severity: InterestingFact["severity"]): string {
-  switch (severity) {
-    case "record":
-      return "volcano";
-    case "amazing":
-      return "orange";
-    case "interesting":
-      return "gold";
-    default:
-      return "default";
-  }
+  return severity === "normal" ? "default" : "blue";
 }
 
 function getSeverityIcon(severity: InterestingFact["severity"]): React.ReactNode {
@@ -153,7 +143,7 @@ function PlayerDeepDive({ player, color }: PlayerDeepDiveProps) {
           <Text type="secondary" style={{ fontSize: 11, display: "block", marginBottom: 2 }}>Recent Form</Text>
           <Space size={4}>
             {player.last5Results.slice(-5).map((r, i) => {
-              const bg = r === "win" ? "#2ABFAA" : r === "loss" ? "#DC2626" : undefined;
+              const bg = r === "win" ? "#2457B8" : r === "loss" ? "#58677D" : undefined;
               return (
                 <span
                   key={i}
@@ -251,12 +241,15 @@ function ParticipantStatBar({
 export function AiInsights({
   matches,
   participants,
-  eventName,
   autoAnalyze = true,
-  compact = false,
+  eventId,
+  allowAi = false,
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiAnalysis, setAiAnalysis] = useState<{ analysis: string; basedOn: { completedMatches: number; participants: number } } | null>(null);
 
   const auditSvc = useMemo(() => new ScoreAuditService(), []);
 
@@ -298,27 +291,27 @@ export function AiInsights({
   const [matchInsights, setMatchInsights] = useState<Map<string, MatchInsight>>(new Map());
 
   useEffect(() => {
+    if (!autoAnalyze) return;
     (async () => {
       setLoading(true);
-      const insights = new Map<string, MatchInsight>();
-      for (const m of matches) {
-        if (m.participantIds.length !== 2) continue;
-        const p1 = participantStats.get(m.participantIds[0]);
-        const p2 = participantStats.get(m.participantIds[1]);
-        if (!p1 || !p2) continue;
-        const insight = await auditSvc.getMatchInsight(
-          m,
-          p1,
-          p2,
-          completedMatches,
-          "",
-        );
-        insights.set(m.id, insight);
+      try {
+        const insights = new Map<string, MatchInsight>();
+        for (const m of matches) {
+          if (m.participantIds.length !== 2) continue;
+          const p1 = participantStats.get(m.participantIds[0]);
+          const p2 = participantStats.get(m.participantIds[1]);
+          if (!p1 || !p2) continue;
+          const insight = await auditSvc.getMatchInsight(m, p1, p2, completedMatches, "");
+          insights.set(m.id, insight);
+        }
+        setMatchInsights(insights);
+      } catch {
+        setError("Some computed event insights could not be loaded.");
+      } finally {
+        setLoading(false);
       }
-      setMatchInsights(insights);
-      setLoading(false);
     })();
-  }, [matches, participantStats, auditSvc, completedMatches]);
+  }, [matches, participantStats, auditSvc, completedMatches, autoAnalyze]);
 
   const globalFacts = useMemo(() => {
     const allFacts: InterestingFact[] = [];
@@ -370,6 +363,22 @@ export function AiInsights({
     return null;
   }
 
+  const generateAnalystSummary = async () => {
+    if (!eventId) return;
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const response = await fetch("/api/ai/analyst", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ eventId }) });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error ?? "Could not generate analyst summary");
+      setAiAnalysis(json.data);
+    } catch (cause) {
+      setAiError(cause instanceof Error ? cause.message : "Could not generate analyst summary");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   return (
     <div style={{ marginTop: 16 }}>
       <Card
@@ -380,15 +389,14 @@ export function AiInsights({
         }
         size="small"
         extra={
-          <Button
-            size="small"
-            icon={<ReloadOutlined />}
-            onClick={() => window.location.reload()}
-          >
-            Refresh
-          </Button>
+          <Space>
+            {allowAi && eventId && <Button size="small" icon={<ThunderboltOutlined />} loading={aiLoading} onClick={generateAnalystSummary}>{aiAnalysis ? "Refresh analyst" : "Ask the analyst"}</Button>}
+            <Button size="small" icon={<ReloadOutlined />} onClick={() => window.location.reload()}>Refresh</Button>
+          </Space>
         }
       >
+        {aiError && <Alert type="error" showIcon message="Analyst summary unavailable" description={aiError} style={{ marginBottom: 12 }} />}
+        {aiAnalysis && <Alert type="info" showIcon message="Competition analyst" description={<><p>{aiAnalysis.analysis}</p><Text type="secondary">Based on {aiAnalysis.basedOn.completedMatches} completed results and {aiAnalysis.basedOn.participants} entrant summaries.</Text></>} style={{ marginBottom: 16 }} />}
         {loading && (
           <Spin size="small" style={{ display: "block", margin: "16px auto" }} />
         )}
@@ -427,7 +435,7 @@ export function AiInsights({
             </Text>
             <div style={{ marginTop: 8 }}>
               {playerDeepDives.map((p, i) => {
-                const colors = ["#E8A623", "#2ABFAA", "#F0EDE6", "#E8A623"];
+                const colors = ["#2457B8", "#4D75B8", "#7E9DCC", "#A9BEDF"];
                 return (
                   <PlayerDeepDive key={p.participantId} player={p} color={colors[i % colors.length]} />
                 );
@@ -557,7 +565,7 @@ export function AiInsights({
                       {p1?.currentWinStreak && p1.currentWinStreak >= 2 && (
                         <Tag
                           icon={<RiseOutlined />}
-                          color="green"
+                          color="blue"
                           style={{ fontSize: 10 }}
                         >
                           {p1Name}: {p1.currentWinStreak}W streak
@@ -566,7 +574,7 @@ export function AiInsights({
                       {p2?.currentWinStreak && p2.currentWinStreak >= 2 && (
                         <Tag
                           icon={<RiseOutlined />}
-                          color="green"
+                          color="blue"
                           style={{ fontSize: 10 }}
                         >
                           {p2Name}: {p2.currentWinStreak}W streak
@@ -575,7 +583,7 @@ export function AiInsights({
                       {p1?.currentLossStreak && p1.currentLossStreak >= 2 && (
                         <Tag
                           icon={<FallOutlined />}
-                          color="red"
+                          color="default"
                           style={{ fontSize: 10 }}
                         >
                           {p1Name}: {p1.currentLossStreak}L streak

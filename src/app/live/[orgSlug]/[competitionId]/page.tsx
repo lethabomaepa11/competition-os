@@ -546,8 +546,7 @@ function LiveContent() {
               <AiInsights
                 matches={matches}
                 participants={participants}
-                eventName={activeEvent.name}
-              eventId={activeEvent.id}
+                eventId={activeEvent.id}
                 autoAnalyze
               />
             ) : (

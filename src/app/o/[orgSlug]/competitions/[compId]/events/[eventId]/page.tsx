@@ -25,7 +25,9 @@ import {
   Divider,
   Collapse,
   Popconfirm,
+  Breadcrumb,
 } from "antd";
+import Link from "next/link";
 import {
   PlusOutlined,
   PlayCircleOutlined,
@@ -50,8 +52,8 @@ import {
   CloseOutlined,
 } from "@ant-design/icons";
 import { useApp } from "@/lib/app-context";
-import ImageUpload from "@/components/upload/image-upload";
 import { EventService } from "@/domain/services/event.service";
+import { CompetitionService } from "@/domain/services/competition.service";
 import { RegistrationService } from "@/domain/services/registration.service";
 import { ParticipantInviteService } from "@/domain/services/participant-invite.service";
 import { MemberService } from "@/domain/services/organization.service";
@@ -69,7 +71,6 @@ import {
 import { canEditMatches } from "@/lib/permissions";
 import { AiInsights } from "@/components/ai/ai-insights";
 import { FormatRuleDefinitions } from "@/domain/rules";
-import { create, query, Delete, update } from "@/lib/store";
 import type { StandingsEntry } from "@/domain/formats/interface";
 import { ProgressionService } from "@/domain/services/progression.service";
 import type {
@@ -241,6 +242,7 @@ export default function EventDetailPage() {
   const router = useRouter();
   const { currentOrg, currentMember } = useApp();
   const [event, setEvent] = useState<Event | null>(null);
+  const [competitionName, setCompetitionName] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
@@ -276,9 +278,6 @@ export default function EventDetailPage() {
   const [newPhaseQualifiers, setNewPhaseQualifiers] = useState(8);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  const [awardedPoints, setAwardedPoints] = useState<Record<string, number>>(
-    {},
-  );
 
   const eventId = params.eventId as string;
   const compId = params.compId as string;
@@ -317,9 +316,6 @@ export default function EventDetailPage() {
       const plan = detail.event.config?.progressionPlan as ProgressionPlan | null ?? null;
       setPhasePlan(plan);
       setProgressionLinks(detail.progressionLinks);
-      const pointsMap: Record<string, number> = {};
-      for (const sp of detail.awardedPoints) pointsMap[sp.participantId] = sp.points;
-      setAwardedPoints(pointsMap);
       const nextSelectedId =
         detail.stages.length > 0 &&
         (selectedStageId === null ||
@@ -365,6 +361,11 @@ export default function EventDetailPage() {
     if (!eventId) return;
     refresh();
   }, [eventId]);
+
+  useEffect(() => {
+    if (!compId) return;
+    void new CompetitionService().get(compId).then((competition) => setCompetitionName(competition?.name ?? "Competition"));
+  }, [compId]);
 
   const handleMatchUpdate = async () => {
     const res = await fetch(`/api/events/${eventId}/propagate`, { method: "POST" });
@@ -677,30 +678,6 @@ export default function EventDetailPage() {
     const phases = phasePlan.phases.filter((_, i) => i !== idx);
     await progSvc.saveProgressionPlan(event.id, { phases });
     setPhasePlan(phases.length > 0 ? { phases } : null);
-  };
-
-  const handleSaveAwardedPoints = async () => {
-    if (!event) return;
-    const existing = await query<{
-      id: string;
-      eventId: string;
-      participantId: string;
-      points: number;
-    }>("awarded_points", (p: { eventId: string }) => p.eventId === event.id);
-    for (const item of existing) {
-      await Delete("awarded_points", item.id);
-    }
-    for (const [participantId, points] of Object.entries(awardedPoints)) {
-      if (points > 0) {
-        await create("awarded_points", {
-          id: participantId,
-          eventId: event.id,
-          participantId,
-          points,
-        });
-      }
-    }
-    message.success("Points saved!");
   };
 
   const handleDeleteEvent = async () => {
@@ -1159,73 +1136,6 @@ export default function EventDetailPage() {
             </Card>
           )}
 
-          {isInitialized && participants.length > 0 && (
-            <Card style={{ marginTop: 16 }} title="Award Points">
-              <Text
-                type="secondary"
-                style={{ display: "block", marginBottom: 12 }}
-              >
-                Manually assign placement points to participants (e.g., 1st: 10,
-                2nd: 6, 3rd: 3, 4th: 2).
-              </Text>
-              <Table
-                dataSource={participants}
-                rowKey="id"
-                pagination={false}
-                columns={[
-                  {
-                    title: "Participant",
-                    dataIndex: "displayName",
-                    key: "displayName",
-                  },
-                  {
-                    title: "Points",
-                    key: "points",
-                    width: 120,
-                    render: (_: unknown, record: Participant) => (
-                      <InputNumber
-                        value={awardedPoints[record.id] ?? 0}
-                        onChange={(v) =>
-                          setAwardedPoints((prev) => ({
-                            ...prev,
-                            [record.id]: v ?? 0,
-                          }))
-                        }
-                        min={0}
-                        style={{ width: 100 }}
-                      />
-                    ),
-                  },
-                ]}
-                summary={() => (
-                  <Table.Summary fixed>
-                    <Table.Summary.Row>
-                      <Table.Summary.Cell index={0}>
-                        <Text strong>Total</Text>
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={1}>
-                        <Text strong>
-                          {Object.values(awardedPoints).reduce(
-                            (a, b) => a + b,
-                            0,
-                          )}
-                        </Text>
-                      </Table.Summary.Cell>
-                    </Table.Summary.Row>
-                  </Table.Summary>
-                )}
-              />
-              <Button
-                type="primary"
-                icon={<SaveOutlined />}
-                onClick={handleSaveAwardedPoints}
-                style={{ marginTop: 12 }}
-              >
-                Save Points
-              </Button>
-            </Card>
-          )}
-
           {isGroupStage && stages.length > 0 && (
             <Card style={{ marginTop: 16 }} title="Group Overview">
               <Row gutter={[16, 16]}>
@@ -1309,7 +1219,8 @@ export default function EventDetailPage() {
         <AiInsights
           matches={groupMatches}
           participants={participants}
-          eventName={event.name}
+          eventId={event.id}
+          allowAi={isAdmin}
           autoAnalyze
         />
       )}
@@ -1328,7 +1239,8 @@ export default function EventDetailPage() {
         <AiInsights
           matches={selectedStageMatches}
           participants={participants}
-          eventName={event.name}
+          eventId={event.id}
+          allowAi={isAdmin}
           autoAnalyze
         />
       )}
@@ -1658,6 +1570,12 @@ export default function EventDetailPage() {
 
   return (
     <div>
+      {currentOrg && <Breadcrumb style={{ marginBottom: 18 }} items={[
+        { title: <Link href={`/o/${currentOrg.slug}`}>{currentOrg.name}</Link> },
+        { title: <Link href={`/o/${currentOrg.slug}/competitions`}>Competitions</Link> },
+        { title: <Link href={`/o/${currentOrg.slug}/competitions/${compId}`}>{competitionName}</Link> },
+        { title: event.name },
+      ]} />}
       <div style={{ marginBottom: 16 }}>
         {event.coverImage && (
           <img
@@ -1685,22 +1603,9 @@ export default function EventDetailPage() {
             <Title level={3} className="page-title" style={{ margin: 0 }}>
               {event.name}
             </Title>
-            <ImageUpload
-              currentUrl={event.coverImage}
-              onUpload={async (url) => {
-                if (!currentMember) return;
-                const svc = new EventService();
-                await svc.update(
-                  event.id,
-                  { coverImage: url },
-                  currentMember.id,
-                );
-                message.success("Cover image updated");
-                refresh();
-              }}
-            />
           </div>
           <Space>
+            {isAdmin && <Button icon={<SettingOutlined />} onClick={() => router.push(`/o/${currentOrg!.slug}/competitions/${compId}/events/${event.id}/settings`)}>Event settings</Button>}
             <Text type="secondary">{event.format}</Text>
             <Tag
               color={

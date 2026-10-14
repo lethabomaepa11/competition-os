@@ -264,7 +264,8 @@ export default function OrgLivePage() {
         <AiInsights
           matches={matches}
           participants={participants}
-          eventName={activeEvent.name}
+          eventId={activeEvent.id}
+          allowAi={!!currentMember}
           autoAnalyze
         />
       ) : <Empty description="Select an event to view insights" />,
