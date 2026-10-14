@@ -45,7 +45,7 @@ export class BetService {
     return profiles[0];
   }
 
-  async placeBet(betterId: ID, betterName: string, matchId: ID, eventId: ID, participantId: ID, points: number): Promise<Bet | string> {
+  async placeBet(betterId: ID, betterName: string, matchId: ID, eventId: ID, participantId: ID, points: number, decimalOdds?: number): Promise<Bet | string> {
     const profile = await this.getOrCreateProfile(betterId, betterName);
 
     if (points < MIN_BET) return `Minimum bet is ${MIN_BET} points`;
@@ -67,6 +67,7 @@ export class BetService {
       settled: false,
       won: false,
       pointsAwarded: 0,
+      ...(decimalOdds && Number.isFinite(decimalOdds) ? { decimalOdds } : {}),
     };
     await create(BET_KEY, bet);
 
@@ -80,8 +81,9 @@ export class BetService {
     for (const bet of bets) {
       if (bet.settled) continue;
       const won = match.result.winnerId === bet.participantId;
-      const payout = won ? bet.pointsWagered * 2 : 0;
+      const payout = won ? Math.round(bet.pointsWagered * (bet.decimalOdds ?? 2)) : 0;
       await storeUpdate<Bet>(BET_KEY, bet.id, { settled: true, won, pointsAwarded: payout } as Partial<Bet>);
+      if (!bet.betterId) continue;
       const profile = await this.getProfile(bet.betterId);
       if (profile) {
         profile.totalPoints += payout;
@@ -99,6 +101,7 @@ export class BetService {
     for (const bet of bets) {
       if (!bet.settled) continue;
       await storeUpdate<Bet>(BET_KEY, bet.id, { settled: false, won: false, pointsAwarded: 0 } as Partial<Bet>);
+      if (!bet.betterId) continue;
       const profile = await this.getProfile(bet.betterId);
       if (profile) {
         profile.totalPoints -= bet.pointsAwarded;

@@ -92,6 +92,10 @@ export interface Database {
           entry_type: "individual" | "team";
           eligibility: Json;
           published_at: string | null;
+          cover_image: string | null;
+          content: Json | null;
+          theme_color: string | null;
+          pages: Json;
           created_at: string;
           updated_at: string;
         };
@@ -111,6 +115,10 @@ export interface Database {
           entry_type?: "individual" | "team";
           eligibility?: Json;
           published_at?: string | null;
+          cover_image?: string | null;
+          content?: Json | null;
+          theme_color?: string | null;
+          pages?: Json;
         };
         Update: {
           name?: string;
@@ -125,6 +133,10 @@ export interface Database {
           entry_type?: "individual" | "team";
           eligibility?: Json;
           published_at?: string | null;
+          cover_image?: string | null;
+          content?: Json | null;
+          theme_color?: string | null;
+          pages?: Json;
         };
         Relationships: [];
       };
@@ -142,6 +154,8 @@ export interface Database {
           config: Json;
           date_start: string | null;
           date_end: string | null;
+          cover_image: string | null;
+          theme_color: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -158,6 +172,8 @@ export interface Database {
           config?: Json;
           date_start?: string | null;
           date_end?: string | null;
+          cover_image?: string | null;
+          theme_color?: string | null;
         };
         Update: {
           name?: string;
@@ -170,6 +186,8 @@ export interface Database {
           config?: Json;
           date_start?: string | null;
           date_end?: string | null;
+          cover_image?: string | null;
+          theme_color?: string | null;
         };
         Relationships: [];
       };
@@ -378,30 +396,36 @@ export interface Database {
           match_id: string;
           event_id: string;
           participant_id: string;
-          better_id: string;
+          better_id: string | null;
           better_name: string;
           points_wagered: number;
           placed_at: string;
           settled: boolean;
           won: boolean;
           points_awarded: number;
+          decimal_odds: number | null;
+          guest_token_hash: string | null;
         };
         Insert: {
           id?: string;
           match_id: string;
           event_id: string;
           participant_id: string;
-          better_id: string;
+          better_id?: string | null;
           better_name: string;
           points_wagered: number;
           settled?: boolean;
           won?: boolean;
           points_awarded?: number;
+          decimal_odds?: number | null;
+          guest_token_hash?: string | null;
         };
         Update: {
           settled?: boolean;
           won?: boolean;
           points_awarded?: number;
+          decimal_odds?: number | null;
+          guest_token_hash?: string | null;
         };
       };
       better_profiles: {

@@ -28,6 +28,7 @@ import {
   ReloadOutlined,
   ThunderboltOutlined,
   BarChartOutlined,
+  ShareAltOutlined,
 } from "@ant-design/icons";
 import { CompetitionService } from "@/domain/services/competition.service";
 import { EventService } from "@/domain/services/event.service";
@@ -37,7 +38,7 @@ import type { Competition } from "@/domain/competition";
 import type { Event, Stage, Round } from "@/domain/event";
 import type { Match } from "@/domain/match";
 import type { Participant } from "@/domain/participant";
-import { MatchStatus, FormatType } from "@/domain/types";
+import { MatchStatus, FormatType, Visibility, EventStatus } from "@/domain/types";
 import { StandingsService } from "@/domain/services/standings.service";
 import type { StandingsEntry } from "@/domain/formats/interface";
 import { StandingsTable } from "@/components/standings/standings-table";
@@ -47,7 +48,10 @@ import { AiInsights } from "@/components/ai/ai-insights";
 import { PlayerStats } from "@/components/stats/player-stats";
 import { AppProvider, useApp } from "@/lib/app-context";
 import { BetPanel } from "@/components/bet/bet-panel";
+import { GuestPredictionPanel } from "@/components/bet/guest-prediction-panel";
 import { BrandMark } from "@/components/common/brand-mark";
+import { resolveEventChampion } from "@/domain/champion";
+import championStyles from "./champion.module.css";
 
 const { Title, Text } = Typography;
 
@@ -113,12 +117,12 @@ function LiveContent() {
     setError(null);
     const comp = await compSvc.get(compId);
     setCompetition(comp ?? null);
-    if (!comp) {
-      setError("Competition not found");
+    if (!comp || comp.visibility === Visibility.Private) {
+      setError("Competition not found or unavailable");
       setLoading(false);
       return;
     }
-    const evts = await evtSvc.list(comp.id);
+    const evts = (await evtSvc.list(comp.id)).filter((event) => event.status !== EventStatus.Draft && event.status !== EventStatus.Cancelled);
     setEvents(evts);
     if (evts.length > 0 && !activeEventId) {
       setActiveEventId(evts[0].id);
@@ -223,6 +227,14 @@ function LiveContent() {
   }, [bracketStage, bracketRounds, matches]);
 
   const activeEvent = events.find((e) => e.id === activeEventId);
+  const champion = activeEvent ? resolveEventChampion({
+    event: activeEvent,
+    stages,
+    rounds: allRounds,
+    matches,
+    participants,
+    standings,
+  }) : { state: "pending" as const };
 
   const groupConfig = stages[0]?.config?.groups as string[][] | undefined;
   const isGroupStage = stages.length > 0 && stages[0].type === "group_stage" && !!groupConfig;
@@ -465,13 +477,13 @@ function LiveContent() {
                         key: "winner",
                         render: (_: unknown, record: Match) =>
                           record.result?.winnerId ? (
-                            <Tag color="green">
+                            <Tag color="blue">
                               {participants.find(
                                 (p) => p.id === record.result!.winnerId,
                               )?.displayName ?? "?"}
                             </Tag>
                           ) : (
-                            <Tag color="gold">Draw</Tag>
+                            <Tag>Draw</Tag>
                           ),
                       },
                       {
@@ -507,7 +519,7 @@ function LiveContent() {
                       : "TBD";
                     return <Text>{names}</Text>;
                   }},
-                  { title: "Winner", key: "winner", render: (_: unknown, record: Match) => record.result?.winnerId ? <Tag color="green">{participants.find(p => p.id === record.result!.winnerId)?.displayName ?? "?"}</Tag> : <Tag color="gold">Draw</Tag> },
+                  { title: "Winner", key: "winner", render: (_: unknown, record: Match) => record.result?.winnerId ? <Tag color="blue">{participants.find(p => p.id === record.result!.winnerId)?.displayName ?? "?"}</Tag> : <Tag>Draw</Tag> },
                   { title: "Score", key: "score", render: (_: unknown, record: Match) => record.result?.scores && record.result.scores.length > 0 ? record.result.scores.map(s => `${participants.find(p => p.id === s.participantId)?.displayName ?? "?"}: ${s.value}`).join(" | ") : "-" },
                   { title: "Round", key: "round", render: (_: unknown, record: Match) => record.roundId ? roundMap.get(record.roundId) ?? "-" : "-" },
                 ]}
@@ -535,6 +547,7 @@ function LiveContent() {
                 matches={matches}
                 participants={participants}
                 eventName={activeEvent.name}
+              eventId={activeEvent.id}
                 autoAnalyze
               />
             ) : (
@@ -555,6 +568,38 @@ function LiveContent() {
             ),
           },
         ]
+      : []),
+    ...(activeEvent?.status === "completed"
+      ? [{
+          key: "champion",
+          label: <Space><TrophyOutlined /> Champion</Space>,
+          children: champion.state === "winner" ? (
+            <section className={championStyles.reveal} aria-labelledby="champion-title">
+              <div className={championStyles.rays} aria-hidden="true" />
+              <div className={championStyles.trophy} aria-hidden="true"><TrophyOutlined /></div>
+              <span className={championStyles.eyebrow}>Competition complete</span>
+              <Title id="champion-title" level={1} className={championStyles.title}>Champions</Title>
+              <Text className={championStyles.eventName}>{activeEvent.name}</Text>
+              <div className={championStyles.winner}>{champion.participant.displayName}</div>
+              {champion.finalMatch?.result?.scores && (
+                <div className={championStyles.score} aria-label="Final score">
+                  {champion.finalMatch.result.scores.map((score) => `${participants.find((p) => p.id === score.participantId)?.displayName ?? "Entrant"} ${score.value}`).join("  ·  ")}
+                </div>
+              )}
+              <Button icon={<ShareAltOutlined />} onClick={async () => {
+                const shareData = { title: `${champion.participant.displayName} are champions`, text: `${champion.participant.displayName} won ${activeEvent.name}.`, url: window.location.href };
+                if (navigator.share) await navigator.share(shareData).catch(() => undefined);
+                else await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+              }}>Share the result</Button>
+            </section>
+          ) : (
+            <div className={championStyles.unresolved}>
+              <TrophyOutlined aria-hidden="true" />
+              <Title level={3}>Champion decision pending</Title>
+              <Text>{champion.state === "tied" ? "The final data currently resolves to more than one leader. Review the event tiebreak rules before announcing a champion." : "The event is marked complete, but its final result does not identify a single winner yet."}</Text>
+            </div>
+          ),
+        }]
       : []),
     ...(matches.length > 0
       ? [
@@ -586,17 +631,17 @@ function LiveContent() {
           },
         ]
       : []),
-    ...(currentMember
+    ...(activeEvent
       ? [
           {
             key: "predictions",
             label: (
               <Space>
-                <span style={{ color: "#52c41a" }}>$</span> Predictions
+                <span style={{ color: "#2457b8" }}>◎</span> Predictions
                 (Tournament Oracle)
               </Space>
             ),
-            children: activeEvent ? (
+            children: currentMember ? (
               <BetPanel
                 matches={matches}
                 participants={participants}
@@ -607,14 +652,16 @@ function LiveContent() {
                 eventId={activeEvent.id}
                 onBetUpdate={() => setRefreshKey((k) => k + 1)}
               />
-            ) : null,
+            ) : (
+              <GuestPredictionPanel matches={matches} participants={participants} eventId={activeEvent.id} />
+            ),
           },
         ]
       : []),
   ];
 
   return (
-    <div className="live-page">
+    <div className="live-page" style={{ "--competition-accent": activeEvent?.themeColor ?? competition?.themeColor ?? "#1c5fd4" } as React.CSSProperties}>
       <header className="live-broadcast-bar">
         <BrandMark dark />
         <span><i className="status-dot status-dot--live" /> Live competition broadcast</span>
@@ -806,7 +853,9 @@ function LiveContent() {
           </Button>
         </div>
 
-        {activeEvent && <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={tabItems as any} />}
+        {activeEvent && activeEvent.config?.publicResults === false ? (
+          <Alert type="info" showIcon message="Results are private" description="The event operator has not enabled public results for this event." />
+        ) : activeEvent && <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={tabItems as any} />}
 
         {events.length === 0 && <Empty description="No events found." />}
       </div>
@@ -836,24 +885,24 @@ function StatisticLike({
     { iconBg: string; textBg: string; shadow: string }
   > = {
     Participants: {
-      iconBg: "linear-gradient(135deg, #3b82f6, #1e3a8a)",
-      textBg: "linear-gradient(135deg, #1e3a8a, #3b82f6)",
-      shadow: "rgba(59, 130, 246, 0.35)",
+      iconBg: "linear-gradient(135deg, #2457b8, #1c5fd4)",
+      textBg: "linear-gradient(135deg, #1c5fd4, #2457b8)",
+      shadow: "rgba(36, 87, 184, 0.25)",
     },
     Matches: {
-      iconBg: "linear-gradient(135deg, #f59e0b, #d97706)",
-      textBg: "linear-gradient(135deg, #d97706, #f59e0b)",
-      shadow: "rgba(245, 158, 11, 0.35)",
+      iconBg: "linear-gradient(135deg, #2457b8, #1c5fd4)",
+      textBg: "linear-gradient(135deg, #1c5fd4, #2457b8)",
+      shadow: "rgba(36, 87, 184, 0.25)",
     },
     Completed: {
-      iconBg: "linear-gradient(135deg, #22c55e, #16a34a)",
-      textBg: "linear-gradient(135deg, #16a34a, #22c55e)",
-      shadow: "rgba(34, 197, 94, 0.35)",
+      iconBg: "linear-gradient(135deg, #2457b8, #1c5fd4)",
+      textBg: "linear-gradient(135deg, #1c5fd4, #2457b8)",
+      shadow: "rgba(36, 87, 184, 0.25)",
     },
     Live: {
-      iconBg: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
-      textBg: "linear-gradient(135deg, #7c3aed, #8b5cf6)",
-      shadow: "rgba(139, 92, 246, 0.35)",
+      iconBg: "linear-gradient(135deg, #2457b8, #1c5fd4)",
+      textBg: "linear-gradient(135deg, #1c5fd4, #2457b8)",
+      shadow: "rgba(36, 87, 184, 0.25)",
     },
   };
   const g = gradients[label] ?? gradients.Participants;

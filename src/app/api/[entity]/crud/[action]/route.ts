@@ -46,9 +46,20 @@ function sanitizePayload(payload: Record<string, unknown>): Record<string, unkno
   return payload;
 }
 
+function hideGuestIdentity(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(hideGuestIdentity);
+  if (value !== null && typeof value === "object") {
+    const safe = { ...(value as Record<string, unknown>) };
+    delete safe.guestTokenHash;
+    return Object.fromEntries(Object.entries(safe).map(([key, child]) => [key, hideGuestIdentity(child)]));
+  }
+  return value;
+}
+
 function stripGeneratedId(payload: Record<string, unknown>): Record<string, unknown> {
   if (typeof payload.id === "string" && !isUuid(payload.id)) {
-    const { id, ...rest } = payload;
+    const rest = { ...payload };
+    delete rest.id;
     return rest;
   }
   return payload;
@@ -175,6 +186,21 @@ export async function POST(
       }
 
       case "Delete": {
+        if (tb === "organizations") {
+          if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+          const { data: membership, error: membershipError } = await supabase
+            .from("organization_members")
+            .select("role")
+            .eq("organization_id", id as string)
+            .eq("member_id", user.id)
+            .maybeSingle();
+          if (membershipError) return NextResponse.json({ error: "Could not verify organization permissions" }, { status: 500 });
+          const membershipRole = (membership as unknown as { role?: string } | null)?.role;
+          if (!membershipRole || !["owner", "admin"].includes(membershipRole)) {
+            return NextResponse.json({ error: "Only organization owners and admins can delete an organization" }, { status: 403 });
+          }
+        }
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         const { error } = await supabase.from(tb).delete().eq("id", id as string);
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
         result = true;
@@ -225,7 +251,7 @@ export async function POST(
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
     }
 
-    const response = NextResponse.json({ data: result });
+    const response = NextResponse.json({ data: tb === "bets" ? hideGuestIdentity(result) : result });
     for (const { name, value } of pendingCookies) {
       response.cookies.set(name, value);
     }

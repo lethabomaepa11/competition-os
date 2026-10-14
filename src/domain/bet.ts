@@ -5,13 +5,15 @@ export interface Bet {
   matchId: ID;
   eventId: ID;
   participantId: ID;
-  betterId: ID;
+  betterId: ID | null;
   betterName: string;
   pointsWagered: number;
   placedAt: string;
   settled: boolean;
   won: boolean;
   pointsAwarded: number;
+  decimalOdds?: number;
+  guestTokenHash?: string | null;
 }
 
 export interface BetterProfile {

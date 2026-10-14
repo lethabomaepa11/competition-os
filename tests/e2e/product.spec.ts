@@ -26,6 +26,30 @@ async function mockApp(page: Page, authenticated = true, accountType: "operator"
 }
 
 test.describe("public product story", () => {
+  test("lets a guest submit a named prediction without creating an account", async ({ page }) => {
+    await mockApp(page, false);
+    await page.route("**/api/**", async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path === "/api/competitions/crud/Get") return json(route, { data: { id: "comp-live", organizationId: organization.id, name: "Continental Cup", description: "Annual cup", category: "football", status: "in_progress", visibility: "public", settings: {}, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" } });
+      if (path === "/api/events/crud/GetWhere") return json(route, { data: [{ id: "event-live", competitionId: "comp-live", name: "Open Division", format: "league", participantType: "individual", registrationPolicy: "open", status: "in_progress", config: {}, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }] });
+      if (path === "/api/stages/crud/GetWhere") return json(route, { data: [{ id: "stage-live", eventId: "event-live", name: "League", type: "league", orderIndex: 0, config: {}, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }] });
+      if (path === "/api/rounds/crud/GetWhere") return json(route, { data: [{ id: "round-live", stageId: "stage-live", name: "League", roundNumber: 1, config: {}, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }] });
+      if (path === "/api/matches/crud/GetWhere") return json(route, { data: [{ id: "match-live", eventId: "event-live", roundId: "round-live", status: "scheduled", participantIds: ["player-a", "player-b"], participants: [], config: {}, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }] });
+      if (path === "/api/match_participants/crud/GetWhereIn") return json(route, { data: [{ matchId: "match-live", participantId: "player-a", position: 1 }, { matchId: "match-live", participantId: "player-b", position: 2 }] });
+      if (path === "/api/participants/crud/GetWhere") return json(route, { data: [{ id: "player-a", eventId: "event-live", displayName: "Cape Town City", status: "active", registeredAt: "2026-01-01T00:00:00.000Z", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }, { id: "player-b", eventId: "event-live", displayName: "Sekhukhune United", status: "active", registeredAt: "2026-01-01T00:00:00.000Z", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }] });
+      if (path === "/api/bets/crud/GetWhere") return json(route, { data: [] });
+      if (path === "/api/guest-predictions") return json(route, { ok: true, name: "Sam Supporter", matchId: "match-live", participantId: "player-a", odds: null });
+      return route.fallback();
+    });
+    await page.goto(`/live/${organization.slug}/comp-live`);
+    await page.getByRole("tab", { name: /Predictions/ }).click();
+    await page.getByLabel("Prediction display name").fill("Sam Supporter");
+    await page.getByRole("button", { name: "Cape Town City" }).click();
+    await page.getByRole("button", { name: "Save prediction" }).click();
+    await expect(page.getByText(/Sam Supporter: Cape Town City/)).toBeVisible();
+    await expect(page.getByText(/No account, money or points required/).first()).toBeVisible();
+  });
+
   test("explains organizers, teams, and players without layout overflow", async ({ page }) => {
     await mockApp(page, false);
     await page.goto("/");
@@ -199,5 +223,107 @@ test.describe("authenticated participant workspace", () => {
     await expect(description).toHaveAttribute("aria-invalid", "true");
     await description.fill("A season for the best clubs across the continent.");
     await expect(page.locator("aside").getByText("A season for the best clubs across the continent.", { exact: true })).toBeVisible();
+  });
+});
+
+test.describe("competition and event administration", () => {
+  test.beforeEach(async ({ page }) => { await mockApp(page, true, "operator"); });
+
+  test("edits a competition on its own settings page with image controls in settings", async ({ page }) => {
+    await page.route("**/api/competitions/crud/Get", (route) => json(route, { data: {
+      id: "competition-settings-1", organizationId: organization.id, name: "Continental Cup", description: "A long enough description explaining the annual continental club tournament.", category: "football", entryType: "team", visibility: "public", eligibility: {}, status: "draft", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
+    } }));
+    await page.goto(`/o/${organization.slug}/competitions/competition-settings-1/settings`);
+    await expect(page.getByRole("heading", { name: "Competition settings" })).toBeVisible();
+    await expect(page.getByLabel("Competition name")).toHaveValue("Continental Cup");
+    await expect(page.getByText("Competition image")).toBeVisible();
+    await expect(page.getByRole("navigation").getByText("Competitions")).toBeVisible();
+  });
+
+  test("edits an event name and appearance on a dedicated settings page", async ({ page }) => {
+    await page.route("**/api/competitions/crud/Get", (route) => json(route, { data: {
+      id: "competition-settings-1", organizationId: organization.id, name: "Continental Cup", description: "A long enough description explaining the annual continental club tournament.", category: "football", entryType: "team", visibility: "public", eligibility: {}, status: "draft", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
+    } }));
+    await page.route("**/api/events/crud/Get", (route) => json(route, { data: {
+      id: "event-settings-1", competitionId: "competition-settings-1", name: "Open Division", format: "league", participantType: "team", registrationPolicy: "open", status: "draft", config: {}, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
+    } }));
+    await page.goto(`/o/${organization.slug}/competitions/competition-settings-1/events/event-settings-1/settings`);
+    await expect(page.getByRole("heading", { name: "Event settings" })).toBeVisible();
+    await expect(page.getByLabel("Event name")).toHaveValue("Open Division");
+    await expect(page.getByText("Event image")).toBeVisible();
+    await expect(page.getByText("Entry and capacity")).toBeVisible();
+  });
+
+  test("exposes scoring, publication, approval and esports game settings without touching fixture tables", async ({ page }) => {
+    await page.route("**/api/competitions/crud/Get", (route) => json(route, { data: {
+      id: "competition-esports-1", organizationId: organization.id, name: "Esports Open", description: "A tournament for registered esports teams and players.", category: "esports", entryType: "team", visibility: "public", eligibility: {}, status: "draft", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
+    } }));
+    await page.route("**/api/events/crud/Get", (route) => json(route, { data: {
+      id: "event-esports-1", competitionId: "competition-esports-1", name: "Valorant Open", format: "single_elimination", participantType: "team", registrationPolicy: "approval_required", status: "open", config: {}, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
+    } }));
+    await page.route("**/api/stages/crud/GetWhere", (route) => json(route, { data: [{ id: "stage-1", eventId: "event-esports-1", orderIndex: 0, name: "Knockout", type: "single_elimination", config: {} }] }));
+    await page.goto(`/o/${organization.slug}/competitions/competition-esports-1/events/event-esports-1/settings`);
+    await expect(page.getByLabel("Competition format")).toBeVisible();
+    await expect(page.getByLabel("Competition format")).toBeDisabled();
+    await expect(page.getByLabel("Score label")).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Game (optional)" })).toBeVisible();
+    await expect(page.getByLabel("External tournament ID")).toBeVisible();
+    await expect(page.getByLabel("Public results")).toBeVisible();
+    await expect(page.getByLabel("Require operator approval")).toBeVisible();
+  });
+
+  test("builds required home, invite and live pages and preserves the home links", async ({ page }) => {
+    const competition = {
+      id: "competition-pages-1", organizationId: organization.id, name: "Continental Cup", description: "A long enough description explaining the annual continental club tournament.", category: "football", entryType: "team", visibility: "public", eligibility: {}, status: "published", themeColor: "#2457B8", pages: [
+        { id: "system-home", kind: "home", name: "Home", slug: "home", enabled: true, blocks: [{ id: "hero", type: "hero", title: "Welcome" }, { id: "stats", type: "statistics", title: "Competition progress" }, { id: "events", type: "event_list", title: "Programme" }] },
+        { id: "system-invite", kind: "invite", name: "Invite", slug: "invite", enabled: true, blocks: [{ id: "join", type: "call_to_action", title: "Join", href: "/register" }] },
+        { id: "system-live", kind: "live", name: "Live", slug: "live", enabled: true, blocks: [{ id: "live-link", type: "call_to_action", title: "Open live view" }] },
+      ], createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
+    };
+    await page.route("**/api/competitions/crud/Get", (route) => json(route, { data: competition }));
+    await page.route("**/api/organizations/crud/Get", (route) => json(route, { data: organization }));
+    await page.goto(`/c/${competition.id}`);
+    await expect(page.getByRole("navigation", { name: "Competition pages" }).getByRole("link")).toHaveCount(3);
+    await page.getByRole("navigation", { name: "Competition pages" }).getByRole("link", { name: "Invite" }).click();
+    await expect(page).toHaveURL(/page=invite/);
+    await expect(page.getByRole("heading", { name: "Find your place in the field." })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Continue to registration" })).toHaveAttribute("href", "/register");
+  });
+
+  test("offers required pages and editable sections in the competition page editor", async ({ page }) => {
+    await page.route("**/api/competitions/crud/Get", (route) => json(route, { data: {
+      id: "competition-pages-1", organizationId: organization.id, name: "Continental Cup", description: "A long enough description explaining the annual continental club tournament.", category: "football", entryType: "team", visibility: "public", eligibility: {}, status: "draft", pages: [], createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
+    } }));
+    await page.goto(`/o/${organization.slug}/competitions/competition-pages-1/pages`);
+    await expect(page.getByRole("heading", { name: "Build competition pages" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Home/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Invite/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Live/ })).toBeVisible();
+    await page.getByRole("button", { name: /Invite/ }).click();
+    await page.getByRole("checkbox", { name: "Show Join link on Home and publish this page" }).check();
+    await expect(page.getByText("Join is also linked from Home")).toBeVisible();
+  });
+
+  test("requires an exact organization name before the owner can delete the workspace", async ({ page }) => {
+    let deleteRequest: Record<string, unknown> | undefined;
+    await page.route("**/api/organizations/crud/Delete", async (route) => {
+      deleteRequest = route.request().postDataJSON() as Record<string, unknown>;
+      return json(route, { data: true });
+    });
+    await page.goto(`/o/${organization.slug}/settings`);
+    await page.getByRole("button", { name: "Delete organization" }).click();
+    const dialog = page.getByRole("dialog", { name: "Delete organization" });
+    await expect(dialog.getByRole("button", { name: "Delete organization" })).toBeDisabled();
+    await dialog.getByLabel("Confirm organization name").fill(organization.name);
+    await expect(dialog.getByRole("button", { name: "Delete organization" })).toBeEnabled();
+    await dialog.getByRole("button", { name: "Delete organization" }).click();
+    await expect.poll(() => deleteRequest).toMatchObject({ id: organization.id });
+  });
+
+  test("does not show organization deletion to a regular organization member", async ({ page }) => {
+    await page.route("**/api/org_members/crud/GetWhere", (route) => json(route, { data: [{ id: "member-role", organizationId: organization.id, memberId: member.id, role: "member", permissions: [], joinedAt: "2026-01-01T00:00:00.000Z" }] }));
+    await page.goto(`/o/${organization.slug}/settings`);
+    await expect(page.getByRole("heading", { name: "Identity and control." })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Delete organization" })).toHaveCount(0);
   });
 });
