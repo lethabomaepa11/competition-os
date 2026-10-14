@@ -2,13 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, Form, Input, Button, Typography, message, Divider, Layout } from "antd";
-import { ArrowRightOutlined } from "@ant-design/icons";
-import { BackButton } from "@/components/common/back-button";
-
-
-const { Content } = Layout;
-const { Title, Text } = Typography;
+import { Button, Divider, Form, Input, message } from "antd";
+import { ArrowRightOutlined, LockOutlined, MailOutlined, UserOutlined } from "@ant-design/icons";
+import { AuthShell } from "@/components/common/auth-shell";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -17,59 +13,27 @@ export default function RegisterPage() {
   const onFinish = async (values: { email: string; password: string; displayName: string }) => {
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: values.email, password: values.password, displayName: values.displayName }),
-      });
+      const res = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Registration failed");
-      message.success("Account created! You can now sign in.");
+      message.success("Account created. You can sign in now.");
       router.push("/login");
     } catch (err: unknown) {
       message.error(err instanceof Error ? err.message : "Registration failed");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <BackButton fallback="/" />
-      <Content style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-        <Card style={{ width: 400, maxWidth: "100%" }}>
-          <div style={{ textAlign: "center", marginBottom: 28 }}>
-            <img src="/logo.jpg" alt="CompetitionOS" style={{ height: 64, marginBottom: 12 }} />
-            <Title level={3} style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Create your account</Title>
-            <Text style={{ fontSize: 14, marginTop: 4, display: "block" }}>No credit card required</Text>
-          </div>
-
-          <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
-            <Form.Item label="Display Name" name="displayName" rules={[{ required: true }]}>
-              <Input placeholder="Your name" size="large" />
-            </Form.Item>
-            <Form.Item label="Email" name="email" rules={[{ required: true, type: "email" }]}>
-              <Input placeholder="you@example.com" size="large" />
-            </Form.Item>
-            <Form.Item label="Password" name="password" rules={[{ required: true, min: 6 }]}>
-              <Input.Password placeholder="Create a password" size="large" />
-            </Form.Item>
-            <Form.Item style={{ marginBottom: 16 }}>
-              <Button type="primary" htmlType="submit" block loading={loading} size="large">
-                Create Account <ArrowRightOutlined />
-              </Button>
-            </Form.Item>
-          </Form>
-
-          <Divider style={{ margin: "16px 0" }}>
-            <Text style={{ fontSize: 12 }}>Already registered?</Text>
-          </Divider>
-
-          <Button type="default" block size="large" onClick={() => router.push("/login")}>
-            Sign in
-          </Button>
-        </Card>
-      </Content>
-    </Layout>
+    <AuthShell eyebrow="Build your arena" title="Big competition energy. Zero spreadsheet chaos." description="Create your workspace, shape the rules, invite your team, and take your first competition live.">
+      <div className="auth-card__heading"><span className="eyebrow">New workspace</span><h1>Start operating.</h1><p>Your first organization takes less than a minute.</p></div>
+      <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
+        <Form.Item label="Your name" name="displayName" rules={[{ required: true, message: "Enter your name" }]}><Input prefix={<UserOutlined />} placeholder="Alex Morgan" size="large" autoComplete="name" /></Form.Item>
+        <Form.Item label="Work email" name="email" rules={[{ required: true, type: "email", message: "Enter a valid email address" }]}><Input prefix={<MailOutlined />} placeholder="alex@league.com" size="large" autoComplete="email" /></Form.Item>
+        <Form.Item label="Password" name="password" rules={[{ required: true, min: 6, message: "Use at least 6 characters" }]} extra="Use at least 6 characters."><Input.Password prefix={<LockOutlined />} placeholder="Create a password" size="large" autoComplete="new-password" /></Form.Item>
+        <Button type="primary" htmlType="submit" block loading={loading} size="large">Create account <ArrowRightOutlined /></Button>
+      </Form>
+      <Divider plain>Already have an account?</Divider>
+      <Button block size="large" onClick={() => router.push("/login")}>Sign in</Button>
+    </AuthShell>
   );
 }
