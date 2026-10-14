@@ -44,6 +44,7 @@ function LandingInner() {
         <button className={styles.brandButton} onClick={() => router.push("/")} aria-label="CompetitionOS home">
           <BrandMark dark />
         </button>
+        <div className={styles.navLinks}><button onClick={() => document.getElementById("platform")?.scrollIntoView()}>Platform</button><button onClick={() => document.getElementById("roles")?.scrollIntoView()}>For teams and players</button><button onClick={() => router.push("/how-to")}>How to</button><button onClick={() => router.push("/login")}>Match centre</button></div>
         <div className={styles.navMeta}>
           <span><span className="status-dot status-dot--live" /> Systems operational</span>
           <Button type="text" className={styles.signIn} onClick={() => router.push("/login")}>Player & team login</Button>
@@ -54,11 +55,11 @@ function LandingInner() {
       <section className={styles.hero}>
         <div className={styles.heroGrid} aria-hidden="true" />
         <div className={styles.heroCopy}>
-          <div className={styles.kicker}><ThunderboltOutlined /> Competition infrastructure for the main stage</div>
-          <h1>Every match.<br />Every format.<br /><em>One command.</em></h1>
-          <p>Build, operate, and broadcast world class competitions across football, esports, schools, communities, and everything between.</p>
+          <div className={styles.kicker}><ThunderboltOutlined /> Professional competition management</div>
+          <h1>Run competitions at <em>professional scale.</em></h1>
+          <p>Manage registrations, eligibility, formats, fixtures, results, tables, brackets, teams, players, and public coverage from one accountable platform.</p>
           <div className={styles.heroActions}>
-            <Button type="primary" size="large" onClick={() => router.push("/register")}>Create your competition <ArrowRightOutlined /></Button>
+            <Button type="primary" size="large" onClick={() => router.push("/register")}>Create an organization <ArrowRightOutlined /></Button>
             <Button size="large" ghost onClick={() => document.getElementById("platform")?.scrollIntoView()}><PlayCircleOutlined /> Explore the platform</Button>
           </div>
           <div className={styles.trustRow}>
@@ -119,10 +120,10 @@ function LandingInner() {
         </div>
       </section>
 
-      <section className={styles.roleSection}>
+      <section className={styles.roleSection} id="roles">
         <header className={styles.roleIntro}>
           <span className="eyebrow">One platform, every role</span>
-          <h2>The organizer runs the competition. Everyone else gets a place in it.</h2>
+          <h2>One governed workspace for organizers, teams, and players.</h2>
           <p>CompetitionOS separates operational control from the participant experience, so the right information and actions reach the right people.</p>
         </header>
         <div className={styles.roleGrid}>
@@ -157,7 +158,7 @@ function LandingInner() {
         </div>
         <div className={styles.formatCopy}>
           <span className="eyebrow">Rules without limits</span>
-          <h2>Your competition should not have to fit the software.</h2>
+          <h2>Competition formats with defined progression.</h2>
           <p>Choose a proven format, then control scoring, tiebreakers, seeding, progression, registration, and scheduling around the way your organization actually works.</p>
           <div className={styles.checkGrid}>
             {platformPoints.map((point) => <span key={point}><CheckOutlined /> {point}</span>)}
@@ -168,7 +169,7 @@ function LandingInner() {
       <section className={styles.finalCta}>
         <div>
           <span>Ready when the pressure is on.</span>
-          <h2>Build the competition<br />everyone remembers.</h2>
+          <h2>Ready for the next season.</h2>
         </div>
         <Button type="primary" size="large" onClick={() => router.push("/register")}>Enter the command center <ArrowRightOutlined /></Button>
       </section>
