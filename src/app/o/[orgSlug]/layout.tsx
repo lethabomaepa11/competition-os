@@ -9,7 +9,9 @@ import {
   AuditOutlined,
   LogoutOutlined,
   MenuOutlined,
+  FormOutlined,
   SettingOutlined,
+  BookOutlined,
   TeamOutlined,
   TrophyOutlined,
   UserOutlined,
@@ -35,6 +37,7 @@ function OrgLayoutInner({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     if (!currentMember) { router.push("/login"); return; }
+    if (currentMember.accountType !== "operator") { router.replace("/app"); return; }
     if (org) selectOrg(org);
   }, [ready, currentMember, org, selectOrg, router]);
 
@@ -49,10 +52,12 @@ function OrgLayoutInner({ children }: { children: React.ReactNode }) {
   const menuItems = [
     { key: base, icon: <AppstoreOutlined />, label: "Command center" },
     { key: `${base}/competitions`, icon: <TrophyOutlined />, label: "Competitions" },
+    { key: `${base}/registrations`, icon: <FormOutlined />, label: "Registrations" },
     { key: `${base}/members`, icon: <TeamOutlined />, label: "People" },
     { key: `${base}/blueprints`, icon: <ApartmentOutlined />, label: "Blueprints" },
     { key: `${base}/audit`, icon: <AuditOutlined />, label: "Audit trail" },
     { key: `${base}/settings`, icon: <SettingOutlined />, label: "Settings" },
+    { key: "/how-to", icon: <BookOutlined />, label: "How to" },
   ];
   const selected = [...menuItems].sort((a, b) => b.key.length - a.key.length).find((item) => pathname === item.key || pathname.startsWith(`${item.key}/`))?.key ?? base;
   const go = (key: string) => { router.push(key); setDrawerOpen(false); };
@@ -81,9 +86,8 @@ function OrgLayoutInner({ children }: { children: React.ReactNode }) {
           </div>
           <div className={styles.headerStatus}><span><i /> Platform live</span><b>All systems nominal</b></div>
           <Dropdown placement="bottomRight" menu={{ items: [
-            ...organizations.filter((item) => item.id !== org.id).map((item) => ({ key: item.slug, label: item.name, onClick: () => router.push(`/o/${item.slug}`) })),
+            { key: "guide", icon: <BookOutlined />, label: "How to use CompetitionOS", onClick: () => router.push("/how-to") },
             { type: "divider" },
-            { key: "workspace", icon: <AppstoreOutlined />, label: "All organizations", onClick: () => router.push("/app") },
             { key: "profile", icon: <UserOutlined />, label: "Profile", onClick: () => router.push("/profile") },
             { key: "logout", icon: <LogoutOutlined />, label: "Sign out", onClick: async () => { await logout(); router.push("/login"); } },
           ] }}>

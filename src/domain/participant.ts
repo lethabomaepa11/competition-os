@@ -16,4 +16,22 @@ export interface Team extends Timestamps {
   name: string;
   memberIds: ID[];
   avatarUrl?: string;
+  category: string;
+  teamType: string;
+  description: string;
+}
+
+export type RegistrationStatus = "pending" | "approved" | "rejected" | "withdrawn";
+
+export interface CompetitionRegistration extends Timestamps {
+  id: ID;
+  competitionId: ID;
+  registrantType: "individual" | "team";
+  memberId?: ID;
+  teamId?: ID;
+  status: RegistrationStatus;
+  registrationNote: string;
+  reviewNote: string;
+  reviewedBy?: ID;
+  reviewedAt?: string;
 }

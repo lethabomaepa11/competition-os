@@ -50,7 +50,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const json = await res.json();
         const session = json.data;
         if (session?.user) {
-          const { id, email, displayName } = session.user;
+          const { id, email, displayName, accountType } = session.user;
           const existing = await memberSvc.getByEmail(email);
           if (existing) {
             const [members, organizations] = await Promise.all([
@@ -58,7 +58,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               orgSvc.list(),
             ]);
             setState({
-              currentMember: existing,
+              currentMember: { ...existing, accountType: existing.accountType ?? accountType ?? "player" },
               currentOrg: null,
               members,
               organizations,
@@ -68,6 +68,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             const member = await memberSvc.create({
               email,
               displayName: displayName ?? email,
+              accountType: accountType ?? "player",
               id,
             });
             const [members, organizations] = await Promise.all([

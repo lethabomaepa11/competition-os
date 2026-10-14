@@ -1,72 +1,624 @@
-.portfolioMeta { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 30px; }
-.portfolioMeta > span { display: inline-flex; align-items: center; gap: 7px; padding: 8px 11px; border: 1px solid #d9dfdc; border-radius: 999px; background: #fff; color: #77828d; font-size: 10px; font-weight: 750; letter-spacing: .07em; text-transform: uppercase; }
-.portfolioMeta b { color: #101820; }
-.portfolioMeta i { width: 7px; height: 7px; border-radius: 50%; background: #19c37d; }
-.orgGrid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
-.orgCard { position: relative; display: grid; min-height: 178px; padding: 24px; overflow: hidden; border: 1px solid #d9dfdc; border-radius: 20px; grid-template-columns: auto 1fr auto; align-items: end; gap: 18px; background: #fff; color: #101820; text-align: left; cursor: pointer; box-shadow: 0 8px 24px rgba(7,17,31,.04); transition: transform 180ms,border 180ms,box-shadow 180ms; }
-.orgCard::after { position: absolute; top: -70px; right: -70px; width: 170px; height: 170px; border: 28px solid #f0f3f1; border-radius: 50%; content: ""; transition: transform 300ms; }
-.orgCard:hover { transform: translateY(-4px); border-color: #b5c0bb; box-shadow: 0 20px 50px rgba(7,17,31,.1); }
-.orgCard:hover::after { transform: scale(1.12) rotate(12deg); }
-.orgIndex { position: absolute; top: 20px; left: 24px; color: #95a09b; font-size: 10px; font-weight: 800; letter-spacing: .1em; }
-.orgCard :global(.ant-avatar) { z-index: 1; background: #07111f; color: #b8ff3d; }
-.orgCard div { z-index: 1; display: flex; min-width: 0; flex-direction: column; }
-.orgCard strong { overflow: hidden; font-size: 20px; letter-spacing: -.03em; text-overflow: ellipsis; white-space: nowrap; }
-.orgCard div span { margin-top: 3px; color: #7b8792; font-size: 12px; }
-.orgArrow { z-index: 1; }
-.addCard { border-style: dashed; background: transparent; box-shadow: none; }
-.addCard > :global(.anticon) { align-self: center; justify-self: center; color: #60707b; font-size: 26px; }
-.emptyPortfolio,.emptyEvents { display: flex; min-height: 430px; padding: 48px 24px; align-items: center; justify-content: center; flex-direction: column; border: 1px dashed #c8d0cc; border-radius: 24px; background: rgba(255,255,255,.54); text-align: center; }
-.emptyIcon { display: grid; width: 76px; height: 76px; margin-bottom: 28px; place-items: center; border-radius: 50%; background: #07111f; color: #b8ff3d; font-size: 28px; }
-.emptyPortfolio h2 { max-width: 580px; margin: 0; font-size: clamp(36px,5vw,58px); letter-spacing: -.055em; line-height: 1; }
-.emptyPortfolio p { max-width: 500px; margin: 18px 0 28px; color: #6b7784; }
-.modalIntro { margin: -4px 0 24px; color: #6b7784; }
-.slugPreview { display: flex; margin: -8px 0 24px; padding: 12px 14px; flex-direction: column; border-radius: 10px; background: #f1f4f2; }
-.slugPreview span { color: #7c8781; font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-.slugPreview code { margin-top: 4px; color: #31404d; font-size: 12px; word-break: break-all; }
-.loading { display: grid; min-height: 360px; place-items: center; }
-.eventGrid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
-.eventCard { display: flex; min-height: 300px; padding: 24px; border: 1px solid #d9dfdc; border-radius: 22px; flex-direction: column; background: #fff; color: #101820; text-align: left; cursor: pointer; box-shadow: 0 8px 24px rgba(7,17,31,.04); transition: transform 180ms,box-shadow 180ms; }
-.eventCard:hover { transform: translateY(-4px); box-shadow: 0 20px 50px rgba(7,17,31,.1); }
-.eventTop { display: flex; align-items: center; justify-content: space-between; color: #96a19c; font-size: 10px; font-weight: 800; }
-.eventIcon { margin-top: 32px; color: #8bcf1e; font-size: 28px; }
-.eventCard h2 { margin: 15px 0 2px; font-size: 26px; letter-spacing: -.04em; }
-.eventCard > p { margin: 0; color: #75808b; }
-.eventFooter { display: flex; margin-top: auto; padding-top: 24px; align-items: flex-end; justify-content: space-between; gap: 20px; border-top: 1px solid #e3e7e5; }
-.eventFooter span { color: #87928d; font-size: 10px; }
-.eventFooter strong { font-size: 12px; }
-@media (max-width: 700px) { .orgGrid,.eventGrid { grid-template-columns: 1fr; } .orgCard { min-height: 160px; } .eventFooter { align-items: flex-start; flex-direction: column; } }
-.performanceHero { display: grid; overflow: hidden; border-radius: 22px; grid-template-columns: 1.5fr repeat(3,1fr); background: #07111f; color: #fff; box-shadow: 0 20px 50px rgba(7,17,31,.16); }
-.performanceHero > div { display: flex; min-height: 190px; padding: 24px; border-right: 1px solid rgba(255,255,255,.1); flex-direction: column; }
-.performanceHero > div:last-child { border: 0; }
-.performanceHero span { color: rgba(255,255,255,.48); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-.performanceHero strong { margin-top: auto; color: #b8ff3d; font-size: 60px; letter-spacing: -.07em; line-height: 1; }
-.performanceHero > div > b { display: flex; margin-top: auto; align-items: baseline; flex-wrap: wrap; gap: 7px; font-size: 34px; letter-spacing: -.05em; }
-.performanceHero small { margin-top: 8px; color: rgba(255,255,255,.45); font-size: 10px; font-weight: 500; letter-spacing: 0; text-transform: none; }
-.entryGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
-.entryCard { min-height: 215px; padding: 20px; border: 1px solid #d9dfdc; border-radius: 18px; background: #fff; }
-.entryCard > div { display: flex; justify-content: space-between; color: #87928c; font-size: 10px; }
-.entryCard h3 { margin: 38px 0 3px; font-size: 22px; letter-spacing: -.04em; }
-.entryCard p { margin: 0; color: #6f7b75; }
-.entryCard footer { margin-top: 28px; padding-top: 15px; border-top: 1px solid #e0e5e2; color: #65716b; font-size: 11px; }
-.score { font-size: 18px; font-variant-numeric: tabular-nums; }
-.competitionCell { display: flex; flex-direction: column; }
-.competitionCell span { color: #7a867f; font-size: 11px; }
-.teamGrid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
-.teamCard { min-height: 290px; padding: 24px; border: 1px solid #d9dfdc; border-radius: 22px; background: #fff; box-shadow: 0 8px 24px rgba(7,17,31,.04); }
-.teamCard > header { display: flex; align-items: flex-start; gap: 15px; }
-.teamCard > header > div { flex: 1; }
-.teamCard h2 { margin: 6px 0 0; font-size: 24px; letter-spacing: -.04em; }
-.roster { display: flex; margin-top: 56px; }
-.roster :global(.ant-avatar) { margin-right: -8px; border: 3px solid #fff; background: #07111f; }
-.teamCard footer { display: flex; margin-top: 22px; padding-top: 17px; justify-content: space-between; border-top: 1px solid #e0e5e2; color: #66726c; font-size: 11px; }
-.teamCard footer small { color: #8a958f; }
-.renameForm { display: grid !important; grid-template-columns: 1fr auto; gap: 8px; }
-.renameForm :global(.ant-form-item) { margin: 0; }
-.rosterList { margin-bottom: 20px; border-block: 1px solid #e3e8e5; }
-.rosterRow { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid #edf0ee; }
-.rosterRow:last-child { border-bottom: 0; }
-.rosterRow > div { min-width: 0; }
-.rosterRow strong { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; color: #07111f; }
-.rosterRow span { display: block; margin-top: 2px; overflow: hidden; color: #6b7784; font-size: 12px; text-overflow: ellipsis; }
-@media (max-width: 900px) { .performanceHero { grid-template-columns: repeat(3,1fr); } .performanceHero > div:first-child { grid-column: 1/-1; } .entryGrid { grid-template-columns: repeat(2,1fr); } }
-@media (max-width: 700px) { .performanceHero,.entryGrid,.teamGrid { grid-template-columns: 1fr; } .performanceHero > div:first-child { grid-column: auto; } .teamCard footer { align-items: flex-start; flex-direction: column; gap: 4px; } }
+.quickGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.quickGrid button { display: grid; min-height: 190px; padding: 22px; border: 1px solid #d9dfdc; border-radius: 14px; grid-template-columns: 1fr auto; align-content: space-between; gap: 10px; background: #fff; color: #07111f; text-align: left; cursor: pointer; }
+.quickGrid button > :global(.anticon):first-child { color: #1c5fd4; font-size: 22px; }
+.quickGrid button > :global(.anticon):last-child { grid-column: 2; grid-row: 1 / 4; align-self: center; }
+.quickGrid span,.quickGrid strong { grid-column: 1; }
+.quickGrid span { color: #66727e; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.quickGrid strong { max-width: 330px; font-size: 18px; }
+.helpStrip { display: flex; margin-top: 16px; padding: 18px 20px; align-items: center; justify-content: space-between; gap: 18px; border-radius: 12px; background: #07111f; color: #fff; }
+.helpStrip div { display: flex; flex-direction: column; gap: 3px; }
+.helpStrip span { color: #75aeff; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+@media (max-width: 700px) { .quickGrid { grid-template-columns: 1fr; } .helpStrip { align-items: stretch; flex-direction: column; } }
+
+.portfolioMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0 30px;
+}
+.portfolioMeta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  border: 1px solid #d9dfdc;
+  border-radius: 999px;
+  background: #fff;
+  color: #77828d;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.portfolioMeta b {
+  color: #101820;
+}
+.portfolioMeta i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2d7ff9;
+}
+.orgGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.orgCard {
+  position: relative;
+  display: grid;
+  min-height: 178px;
+  padding: 24px;
+  overflow: hidden;
+  border: 1px solid #d9dfdc;
+  border-radius: 20px;
+  grid-template-columns: auto 1fr auto;
+  align-items: end;
+  gap: 18px;
+  background: #fff;
+  color: #101820;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(7, 17, 31, 0.04);
+  transition:
+    transform 180ms,
+    border 180ms,
+    box-shadow 180ms;
+}
+.orgCard::after {
+  position: absolute;
+  top: -70px;
+  right: -70px;
+  width: 170px;
+  height: 170px;
+  border: 28px solid #f0f3f1;
+  border-radius: 50%;
+  content: "";
+  transition: transform 300ms;
+}
+.orgCard:hover {
+  transform: translateY(-4px);
+  border-color: #b5c0bb;
+  box-shadow: 0 20px 50px rgba(7, 17, 31, 0.1);
+}
+.orgCard:hover::after {
+  transform: scale(1.12) rotate(12deg);
+}
+.orgIndex {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  color: #95a09b;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+.orgCard :global(.ant-avatar) {
+  z-index: 1;
+  background: #07111f;
+  color: #1c5fd4;
+}
+.orgCard div {
+  z-index: 1;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.orgCard strong {
+  overflow: hidden;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.orgCard div span {
+  margin-top: 3px;
+  color: #7b8792;
+  font-size: 12px;
+}
+.orgArrow {
+  z-index: 1;
+}
+.addCard {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+}
+.addCard > :global(.anticon) {
+  align-self: center;
+  justify-self: center;
+  color: #60707b;
+  font-size: 26px;
+}
+.emptyPortfolio,
+.emptyEvents {
+  display: flex;
+  min-height: 430px;
+  padding: 48px 24px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  border: 1px dashed #c8d0cc;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.54);
+  text-align: center;
+}
+.emptyIcon {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  margin-bottom: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: #07111f;
+  color: #1c5fd4;
+  font-size: 28px;
+}
+.emptyPortfolio h2 {
+  max-width: 580px;
+  margin: 0;
+  font-size: clamp(36px, 5vw, 58px);
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+.emptyPortfolio p {
+  max-width: 500px;
+  margin: 18px 0 28px;
+  color: #6b7784;
+}
+.modalIntro {
+  margin: -4px 0 24px;
+  color: #6b7784;
+}
+.slugPreview {
+  display: flex;
+  margin: -8px 0 24px;
+  padding: 12px 14px;
+  flex-direction: column;
+  border-radius: 10px;
+  background: #f1f4f2;
+}
+.slugPreview span {
+  color: #7c8781;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.slugPreview code {
+  margin-top: 4px;
+  color: #31404d;
+  font-size: 12px;
+  word-break: break-all;
+}
+.loading {
+  display: grid;
+  min-height: 360px;
+  place-items: center;
+}
+.eventGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.eventCard {
+  display: flex;
+  min-height: 300px;
+  padding: 24px;
+  border: 1px solid #d9dfdc;
+  border-radius: 22px;
+  flex-direction: column;
+  background: #fff;
+  color: #101820;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(7, 17, 31, 0.04);
+  transition:
+    transform 180ms,
+    box-shadow 180ms;
+}
+.eventCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 50px rgba(7, 17, 31, 0.1);
+}
+.eventTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #96a19c;
+  font-size: 10px;
+  font-weight: 800;
+}
+.eventIcon {
+  margin-top: 32px;
+  color: #8bcf1e;
+  font-size: 28px;
+}
+.eventCard h2 {
+  margin: 15px 0 2px;
+  font-size: 26px;
+  letter-spacing: -0.04em;
+}
+.eventCard > p {
+  margin: 0;
+  color: #75808b;
+}
+.eventFooter {
+  display: flex;
+  margin-top: auto;
+  padding-top: 24px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  border-top: 1px solid #e3e7e5;
+}
+.eventFooter span {
+  color: #87928d;
+  font-size: 10px;
+}
+.eventFooter strong {
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  .orgGrid,
+  .eventGrid {
+    grid-template-columns: 1fr;
+  }
+  .orgCard {
+    min-height: 160px;
+  }
+  .eventFooter {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+.performanceHero {
+  display: grid;
+  overflow: hidden;
+  border-radius: 22px;
+  grid-template-columns: 1.5fr repeat(3, 1fr);
+  background: #07111f;
+  color: #fff;
+  box-shadow: 0 20px 50px rgba(7, 17, 31, 0.16);
+}
+.performanceHero > div {
+  display: flex;
+  min-height: 190px;
+  padding: 24px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  flex-direction: column;
+}
+.performanceHero > div:last-child {
+  border: 0;
+}
+.performanceHero span {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.performanceHero strong {
+  margin-top: auto;
+  color: #1c5fd4;
+  font-size: 60px;
+  letter-spacing: -0.07em;
+  line-height: 1;
+}
+.performanceHero > div > b {
+  display: flex;
+  margin-top: auto;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 7px;
+  font-size: 34px;
+  letter-spacing: -0.05em;
+}
+.performanceHero small {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.entryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.entryCard {
+  min-height: 215px;
+  padding: 20px;
+  border: 1px solid #d9dfdc;
+  border-radius: 18px;
+  background: #fff;
+}
+.entryCard > div {
+  display: flex;
+  justify-content: space-between;
+  color: #87928c;
+  font-size: 10px;
+}
+.entryCard h3 {
+  margin: 38px 0 3px;
+  font-size: 22px;
+  letter-spacing: -0.04em;
+}
+.entryCard p {
+  margin: 0;
+  color: #6f7b75;
+}
+.entryCard footer {
+  margin-top: 28px;
+  padding-top: 15px;
+  border-top: 1px solid #e0e5e2;
+  color: #65716b;
+  font-size: 11px;
+}
+.score {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.competitionCell {
+  display: flex;
+  flex-direction: column;
+}
+.competitionCell span {
+  color: #7a867f;
+  font-size: 11px;
+}
+.teamGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.teamCard {
+  min-height: 290px;
+  padding: 24px;
+  border: 1px solid #d9dfdc;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(7, 17, 31, 0.04);
+}
+.teamCard > header {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+}
+.teamCard > header > div {
+  flex: 1;
+}
+.teamCard h2 {
+  margin: 6px 0 0;
+  font-size: 24px;
+  letter-spacing: -0.04em;
+}
+.roster {
+  display: flex;
+  margin-top: 56px;
+}
+.teamTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.teamDescription {
+  min-height: 42px;
+  margin: 20px 0 0;
+  color: #66727e;
+  line-height: 1.55;
+}
+.formPair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.roster :global(.ant-avatar) {
+  margin-right: -8px;
+  border: 3px solid #fff;
+  background: #07111f;
+}
+.teamCard footer {
+  display: flex;
+  margin-top: 22px;
+  padding-top: 17px;
+  justify-content: space-between;
+  border-top: 1px solid #e0e5e2;
+  color: #66726c;
+  font-size: 11px;
+}
+.teamCard footer small {
+  color: #8a958f;
+}
+.renameForm {
+  display: grid !important;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+.renameForm :global(.ant-form-item) {
+  margin: 0;
+}
+.rosterList {
+  margin-bottom: 20px;
+  border-block: 1px solid #e3e8e5;
+}
+.rosterRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #edf0ee;
+}
+.rosterRow:last-child {
+  border-bottom: 0;
+}
+.rosterRow > div {
+  min-width: 0;
+}
+.rosterRow strong {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: #07111f;
+}
+.rosterRow span {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: #6b7784;
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+.inviteLink {
+  display: grid;
+  margin-top: 14px;
+  padding: 10px;
+  border: 1px solid #dce3df;
+  border-radius: 10px;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  background: #f4f7f5;
+}
+.inviteLink code {
+  overflow: hidden;
+  color: #234;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.alertMetric {
+  display: flex;
+  min-width: 150px;
+  padding: 14px 16px;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #dce3df;
+  border-radius: 12px;
+  background: #fff;
+}
+.alertMetric > :global(.anticon) {
+  color: #1464d2;
+  font-size: 20px;
+}
+.alertMetric span {
+  display: flex;
+  flex-direction: column;
+  color: #66727e;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.alertMetric strong {
+  color: #07111f;
+  font-size: 22px;
+  line-height: 1;
+}
+.directoryBar {
+  display: flex;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #dce3df;
+  border-radius: 12px;
+  background: #fff;
+}
+.opportunityGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.opportunityCard {
+  display: flex;
+  min-height: 350px;
+  padding: 24px;
+  border: 1px solid #dce3df;
+  border-radius: 16px;
+  flex-direction: column;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(7, 17, 31, 0.035);
+}
+.opportunityCard > header,
+.opportunityCard > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.opportunityCard > header > span {
+  color: #66727e;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.opportunityCard h2 {
+  margin: 32px 0 10px;
+  color: #07111f;
+  font-size: 28px;
+  letter-spacing: -0.035em;
+}
+.opportunityCard > p {
+  margin: 0;
+  color: #66727e;
+  line-height: 1.6;
+}
+.opportunityCard dl {
+  display: grid;
+  margin: 26px 0 12px;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.opportunityCard dt {
+  color: #849089;
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+.opportunityCard dd {
+  margin: 5px 0 0;
+  color: #26343f;
+  font-weight: 700;
+}
+.opportunityCard > small {
+  color: #66727e;
+}
+.opportunityCard > footer {
+  margin-top: auto;
+  padding-top: 22px;
+}
+@media (max-width: 900px) {
+  .performanceHero {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .performanceHero > div:first-child {
+    grid-column: 1/-1;
+  }
+  .entryGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .performanceHero,
+  .entryGrid,
+  .teamGrid,
+  .formPair,
+  .opportunityGrid {
+    grid-template-columns: 1fr;
+  }
+  .directoryBar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .performanceHero > div:first-child {
+    grid-column: auto;
+  }
+  .teamCard footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+}

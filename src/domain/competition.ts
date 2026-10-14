@@ -1,4 +1,4 @@
-import { type ID, type Timestamps, CompetitionStatus, Visibility } from "./types";
+import { type ID, type Timestamps, CompetitionStatus, ParticipantType, Visibility } from "./types";
 
 export interface Competition extends Timestamps {
   id: ID;
@@ -9,6 +9,14 @@ export interface Competition extends Timestamps {
   logoUrl?: string;
   coverImage?: string;
   content?: Record<string, unknown>;
+  category: string;
+  entryType: ParticipantType;
+  eligibility: {
+    region?: string;
+    minRosterSize?: number;
+    maxRosterSize?: number;
+    notes?: string;
+  };
   visibility: Visibility;
   game?: {
     name: string;
@@ -16,5 +24,6 @@ export interface Competition extends Timestamps {
   };
   dateStart?: string;
   dateEnd?: string;
+  publishedAt?: string;
   status: CompetitionStatus;
 }

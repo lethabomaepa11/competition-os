@@ -171,26 +171,13 @@ export async function POST(
 
     for (const m of propagated) {
       if (!changedIds.has(m.id)) continue;
-      const { participantIds, participants, result, ...cleanMatch } = m;
-      const dbPayload: Record<string, unknown> = { ...cleanMatch };
-      if (result) {
-        const r = result;
-        dbPayload.winnerId = r.winnerId ?? null;
-        dbPayload.scores = r.scores;
-        dbPayload.isWalkover = r.isWalkover ?? false;
-        dbPayload.notes = r.notes ?? null;
-        dbPayload.finalizedBy = r.finalizedBy ?? null;
-        dbPayload.finalizedAt = r.finalizedAt ?? null;
-      }
-      delete dbPayload.result;
-
-      await (supabase.from("matches" as never) as any).update(dbPayload).eq("id", m.id);
+      const participants = m.participants as { participantId: string; position: number }[];
       await (supabase.from("match_participants" as never) as any).delete().eq("match_id", m.id);
-      for (let i = 0; i < participantIds.length; i++) {
+      for (const participant of participants) {
         await (supabase.from("match_participants" as never) as any).insert({
           match_id: m.id,
-          participant_id: participantIds[i],
-          position: i + 1,
+          participant_id: participant.participantId,
+          position: participant.position,
           result: null,
           score: null,
         });

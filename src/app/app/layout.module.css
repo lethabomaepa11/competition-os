@@ -7,7 +7,7 @@
 .navRow { display: flex; min-height: 56px; padding: 0 clamp(18px,3vw,44px); align-items: center; justify-content: space-between; border-bottom: 1px solid #dce2df; background: #fff; }
 .menu { min-width: 350px; border-bottom: 0 !important; background: transparent; }
 .navRow > span { display: flex; align-items: center; gap: 8px; color: #76828d; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-.navRow > span i { width: 7px; height: 7px; border-radius: 50%; background: #19c37d; box-shadow: 0 0 0 4px rgba(25,195,125,.12); }
+.navRow > span i { width: 7px; height: 7px; border-radius: 50%; background: #2d7ff9; box-shadow: 0 0 0 4px rgba(45,127,249,.12); }
 .content { width: 100%; max-width: 1240px; margin: 0 auto; padding: 48px clamp(18px,4vw,56px) 72px; }
 @media (max-width: 700px) {
   .header { height: 64px; grid-template-columns: 1fr auto; }

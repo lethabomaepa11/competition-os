@@ -87,11 +87,12 @@ export class MemberService {
     return members[0];
   }
 
-  async create(data: { email: string; displayName: string; id?: string }): Promise<Member> {
+  async create(data: { email: string; displayName: string; id?: string; accountType?: "operator" | "team" | "player" }): Promise<Member> {
     const member: Member = {
       id: data.id ?? generateId(),
       email: data.email,
       displayName: data.displayName,
+      accountType: data.accountType ?? "player",
       createdAt: new Date().toISOString(),
     };
     return create(MEMBER_KEY, member);

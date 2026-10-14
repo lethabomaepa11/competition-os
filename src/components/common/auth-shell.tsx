@@ -10,18 +10,35 @@ type AuthShellProps = {
   fallback?: string;
 };
 
-export function AuthShell({ children, eyebrow, title, description, fallback = "/" }: AuthShellProps) {
+export function AuthShell({
+  children,
+  eyebrow,
+  title,
+  description,
+  fallback = "/",
+}: AuthShellProps) {
   return (
     <main className="auth-shell">
       <BackButton fallback={fallback} />
       <section className="auth-story" aria-label="CompetitionOS introduction">
         <BrandMark dark />
         <div className="auth-story__copy">
-          <span className="eyebrow" style={{ color: "#B8FF3D" }}>{eyebrow}</span>
+          <span className="eyebrow" style={{ color: "#1c5fd4" }}>
+            {eyebrow}
+          </span>
           <h1>{title}</h1>
           <p>{description}</p>
         </div>
-        <span style={{ position: "relative", zIndex: 1, color: "rgba(255,255,255,.4)", fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase" }}>
+        <span
+          style={{
+            position: "relative",
+            zIndex: 1,
+            color: "rgba(255,255,255,.4)",
+            fontSize: 11,
+            letterSpacing: ".1em",
+            textTransform: "uppercase",
+          }}
+        >
           Competition command center / 2026
         </span>
       </section>

@@ -14,6 +14,7 @@ export interface Member {
   email: string;
   displayName: string;
   avatarUrl?: string;
+  accountType: "operator" | "team" | "player";
   createdAt: string;
 }
 

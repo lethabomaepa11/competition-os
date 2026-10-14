@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   other: {
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-title": "CompOS",
+    "apple-mobile-web-app-status-bar-style": "black-translucent",
   },
 };
 
@@ -31,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body>
         <AntdRegistry>
           <Providers>{children}</Providers>
