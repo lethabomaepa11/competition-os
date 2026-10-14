@@ -84,11 +84,12 @@ drop policy if exists "auth_sel" on invites;
 drop policy if exists "auth_upd" on invites;
 drop policy if exists "auth_del" on invites;
 
-create policy "Organization members can view invites"
+create policy "Organization admins can view invites"
   on invites for select to authenticated
   using (exists (
     select 1 from organization_members om
-    where om.organization_id = invites.organization_id and om.member_id = auth.uid()
+    where om.organization_id = invites.organization_id
+      and om.member_id = auth.uid() and om.role in ('owner', 'admin')
   ));
 
 create policy "Organization admins can create invites"
