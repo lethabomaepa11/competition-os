@@ -1011,11 +1011,11 @@ export default function EventDetailPage() {
                     style={{
                       fontSize: 40,
                       marginBottom: 12,
-                      background: "linear-gradient(135deg, #2ABFAA, #2ABFAA)",
+                      background: "linear-gradient(135deg, #2563eb, #3b82f6)",
                       borderRadius: 14,
                       padding: 14,
                       display: "inline-flex",
-                      boxShadow: "0 10px 25px rgba(34, 197, 94, 0.3)",
+                      boxShadow: "0 10px 25px rgba(37, 99, 235, 0.24)",
                     }}
                   >
                     <TrophyOutlined style={{ color: "#fff", fontSize: 24 }} />
@@ -1029,7 +1029,7 @@ export default function EventDetailPage() {
                     valueStyle={{
                       fontSize: 36,
                       fontWeight: 800,
-                      background: "linear-gradient(135deg, #16a34a, #22c55e)",
+                      background: "linear-gradient(135deg, #1d4ed8, #3b82f6)",
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
                       letterSpacing: "-0.02em",
