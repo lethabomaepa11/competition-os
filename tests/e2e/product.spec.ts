@@ -324,9 +324,9 @@ test.describe("competition and event administration", () => {
     await expect(page.getByRole("button", { name: /Home/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /Invite/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /Live/ })).toBeVisible();
-    await expect(page.getByLabel("Section heading").first()).toHaveValue("Welcome");
+    await expect(page.getByLabel("Section heading")).toHaveValue("Welcome");
     await page.getByRole("button", { name: "Move section 1 down" }).click();
-    await expect(page.getByLabel("Section heading").first()).toHaveValue("Progress");
+    await expect(page.getByText("Section 2 of 3")).toBeVisible();
     await page.getByRole("button", { name: /Invite/ }).click();
     await page.getByRole("checkbox", { name: "Show Join link on Home and publish this page" }).check();
     await expect(page.getByText("Join is also linked from Home")).toBeVisible();

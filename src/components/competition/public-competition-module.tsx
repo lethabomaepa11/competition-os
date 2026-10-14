@@ -20,7 +20,7 @@ const { Text } = Typography;
 type ModuleKind = "standings" | "bracket" | "results" | "statistics" | "schedule" | "roster";
 
 export function PublicCompetitionModule({ kind, title, events }: { kind: ModuleKind; title: string; events: Event[] }) {
-  const [eventId, setEventId] = useState(events[0]?.id);
+  const [selectedEventId, setSelectedEventId] = useState<string>();
   const [loadedEventId, setLoadedEventId] = useState<string>();
   const [error, setError] = useState("");
   const [event, setEvent] = useState<Event | null>(null);
@@ -29,6 +29,9 @@ export function PublicCompetitionModule({ kind, title, events }: { kind: ModuleK
   const [stages, setStages] = useState<Awaited<ReturnType<EventService["getStages"]>>>([]);
   const [rounds, setRounds] = useState<Awaited<ReturnType<EventService["getRounds"]>>>([]);
   const [standings, setStandings] = useState<StandingsEntry[]>([]);
+  // Derive the active event from the props so asynchronous loads and
+  // multi-event competitions always resolve to a real, still-valid event.
+  const eventId = selectedEventId && events.some((item) => item.id === selectedEventId) ? selectedEventId : events[0]?.id;
   const loading = Boolean(eventId && eventId !== loadedEventId);
 
   useEffect(() => {
@@ -76,9 +79,9 @@ export function PublicCompetitionModule({ kind, title, events }: { kind: ModuleK
     <Space direction="vertical" size={16} style={{ width: "100%" }}>
       <div style={{ display: "flex", gap: 16, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
         <div><Text type="secondary">Live competition data</Text><Typography.Title level={3} style={{ margin: "4px 0" }}>{title}</Typography.Title></div>
-        {events.length > 1 && <Select aria-label="Select event" value={eventId} onChange={setEventId} style={{ minWidth: 220 }} options={events.map((item) => ({ value: item.id, label: item.name }))} />}
+        {events.length > 1 && <Select aria-label="Select event" value={eventId} onChange={setSelectedEventId} style={{ minWidth: 220 }} options={events.map((item) => ({ value: item.id, label: item.name }))} />}
       </div>
-      {loading ? <Skeleton active paragraph={{ rows: 4 }} /> : error ? <Alert type="error" showIcon message="Competition data unavailable" description={error} /> : event?.config?.publicResults === false ? <Alert type="info" showIcon message="Results are private" description="The event operator has not enabled public results for this event." /> : !event ? <Empty description="No event selected" /> : kind === "standings" ? (groupConfig ? <GroupStandingsView standings={standings} event={event} groupNames={groupNames} /> : <StandingsTable standings={standings} event={event} />) : kind === "bracket" ? <BracketView matches={bracketMatches} participants={participants} rounds={bracketRounds} /> : kind === "statistics" ? <PlayerStats matches={matches} participants={participants} /> : kind === "roster" ? <Table<Participant>
+      {loading ? <Skeleton active paragraph={{ rows: 4 }} /> : error ? <Alert type="error" showIcon message="Competition data unavailable" description={error} /> : event?.config?.publicResults === false ? <Alert type="info" showIcon message="Results are private" description="The event operator has not enabled public results for this event." /> : !event ? <Empty description={events.length === 0 ? "No published events yet. Published events will appear here automatically." : "No event selected"} /> : kind === "standings" ? (groupConfig ? <GroupStandingsView standings={standings} event={event} groupNames={groupNames} /> : <StandingsTable standings={standings} event={event} />) : kind === "bracket" ? <BracketView matches={bracketMatches} participants={participants} rounds={bracketRounds} /> : kind === "statistics" ? <PlayerStats matches={matches} participants={participants} /> : kind === "roster" ? <Table<Participant>
         dataSource={participants.filter((participant) => participant.status !== "disqualified")}
         rowKey="id"
         locale={{ emptyText: "Approved entrants will appear here." }}
