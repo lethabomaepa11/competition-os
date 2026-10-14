@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Alert, Breadcrumb, Button, Card, Col, Form, Input, Row, Select, Space, Typography, message } from "antd";
+import { Alert, Breadcrumb, Button, Card, Col, ColorPicker, Form, Input, Row, Select, Space, Typography, message } from "antd";
 import Link from "next/link";
 import { CompetitionService } from "@/domain/services/competition.service";
 import type { Competition } from "@/domain/competition";
@@ -95,7 +95,7 @@ export default function CompetitionSettingsPage() {
             <Form.Item label="Page content" name="content" getValueFromEvent={(value) => value}>
               <TipTapEditor placeholder="Add details participants need before they register." minHeight={220} />
             </Form.Item>
-            <Form.Item label="Public page accent color" name="themeColor" rules={[{ pattern: /^#[0-9A-Fa-f]{6}$/, message: "Enter a six-digit hex color such as #1C5FD4" }]} extra="Optional. This affects public competition pages only; your operator workspace stays blue."><Input placeholder="#1C5FD4" maxLength={7} /></Form.Item>
+            <Form.Item label="Public page accent color" name="themeColor" getValueFromEvent={(color) => color?.toHexString()} rules={[{ pattern: /^#[0-9A-Fa-f]{6}$/, message: "Choose a valid six-digit color" }]} extra="Optional. This affects public competition pages only; your operator workspace stays blue."><ColorPicker format="hex" showText allowClear /></Form.Item>
           </Card>
           <Card title="Registration and visibility" style={{ marginBottom: 16 }}>
             <Row gutter={16}>

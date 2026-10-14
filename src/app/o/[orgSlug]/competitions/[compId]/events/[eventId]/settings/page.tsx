@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Alert, Breadcrumb, Button, Card, Col, Form, Input, InputNumber, Row, Select, Space, Typography, message, Switch, Divider } from "antd";
+import { Alert, Breadcrumb, Button, Card, Col, ColorPicker, Form, Input, InputNumber, Row, Select, Space, Typography, message, Switch, Divider } from "antd";
 import { EventService } from "@/domain/services/event.service";
 import type { Event } from "@/domain/event";
 import { useApp } from "@/lib/app-context";
@@ -125,7 +125,7 @@ export default function EventSettingsPage() {
               <Col xs={24} md={15}>
                 <Form.Item label="Event name" name="name" rules={[{ required: true }, { min: 2, max: 100 }]} extra="Renaming changes the display label only; registrations and scores remain linked to this event."><Input size="large" maxLength={100} /></Form.Item>
                 <Form.Item label="Event image" name="coverImage"><ImageUpload currentUrl={event.coverImage} onUpload={(url) => form.setFieldValue("coverImage", url)} /></Form.Item>
-                <Form.Item label="Public page accent color" name="themeColor" rules={[{ pattern: /^#[0-9A-Fa-f]{6}$/, message: "Enter a six-digit hex color such as #1C5FD4" }]} extra="Optional. Applies to this event’s public view and keeps operator navigation unchanged."><Input placeholder="#1C5FD4" maxLength={7} /></Form.Item>
+                <Form.Item label="Public page accent color" name="themeColor" getValueFromEvent={(color) => color?.toHexString()} rules={[{ pattern: /^#[0-9A-Fa-f]{6}$/, message: "Choose a valid six-digit color" }]} extra="Optional. Applies to this event’s public view and keeps operator navigation unchanged."><ColorPicker format="hex" showText allowClear /></Form.Item>
               </Col>
               <Col xs={24} md={9}><Alert type="info" showIcon title="Image uploads live here" description="The event page stays focused on fixtures and operations. Change its cover image from settings." /></Col>
             </Row>
