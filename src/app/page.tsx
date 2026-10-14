@@ -46,7 +46,7 @@ function LandingInner() {
         </button>
         <div className={styles.navMeta}>
           <span><span className="status-dot status-dot--live" /> Systems operational</span>
-          <Button type="text" className={styles.signIn} onClick={() => router.push("/login")}>Sign in</Button>
+          <Button type="text" className={styles.signIn} onClick={() => router.push("/login")}>Player & team login</Button>
           <Button type="primary" onClick={() => router.push("/register")}>Start building <ArrowRightOutlined /></Button>
         </div>
       </nav>
@@ -116,6 +116,33 @@ function LandingInner() {
               <ArrowRightOutlined />
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className={styles.roleSection}>
+        <header className={styles.roleIntro}>
+          <span className="eyebrow">One platform, every role</span>
+          <h2>The organizer runs the competition. Everyone else gets a place in it.</h2>
+          <p>CompetitionOS separates operational control from the participant experience, so the right information and actions reach the right people.</p>
+        </header>
+        <div className={styles.roleGrid}>
+          <article><span>01 / Organizers</span><h3>Control the operation</h3><p>Create formats and rules, open registration, schedule fixtures, record scores, resolve disputes, and publish the live view.</p><ul><li>Competition and event setup</li><li>Officials, roles, and audit history</li><li>Live scores, tables, brackets, and stats</li></ul></article>
+          <article><span>02 / Team managers</span><h3>Own the roster</h3><p>Create a team, update its identity, add registered players by email, and keep the competition roster accurate.</p><ul><li>Team profile and captain controls</li><li>Add and remove players</li><li>Team events and results</li></ul></article>
+          <article><span>03 / Players</span><h3>See your game</h3><p>Log in with your own account to follow fixtures, scores, competition entries, form, win rate, and match history.</p><ul><li>Personal performance dashboard</li><li>My events and live match access</li><li>Profile and account updates</li></ul></article>
+        </div>
+        <div className={styles.playerPortal}>
+          <div className={styles.portalCopy}>
+            <span className="eyebrow">Player portal</span>
+            <h3>Your record follows you.</h3>
+            <p>Every participant entry tied to an account becomes a personal competition history. Players can see where they are entered, how they are performing, and what comes next.</p>
+            <Button size="large" onClick={() => router.push("/login")}>Open player login <ArrowRightOutlined /></Button>
+          </div>
+          <div className={styles.portalPanel}>
+            <header><div><i>AM</i><span><b>Alex Morgan</b><small>Player profile · Active</small></span></div><em>2026 season</em></header>
+            <div className={styles.portalMetrics}><div><span>Win rate</span><strong>74%</strong></div><div><span>Played</span><strong>19</strong></div><div><span>Form</span><strong>W W D</strong></div></div>
+            <div className={styles.portalFixture}><span>Next fixture</span><div><b>Alex Morgan</b><i>vs</i><b>Jordan Lee</b></div><time>FRI · 19:30</time></div>
+            <footer><span><i /> Continental Cup / Quarter final</span><b>View match centre <ArrowRightOutlined /></b></footer>
+          </div>
         </div>
       </section>
 

@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, Button, Dropdown, Layout, Menu } from "antd";
-import { AppstoreOutlined, LogoutOutlined, TrophyOutlined, UserOutlined } from "@ant-design/icons";
+import { AppstoreOutlined, BarChartOutlined, LogoutOutlined, TeamOutlined, TrophyOutlined, UserOutlined } from "@ant-design/icons";
 import { AppProvider, useApp } from "@/lib/app-context";
 import { BrandMark } from "@/components/common/brand-mark";
 import styles from "./layout.module.css";
@@ -10,6 +10,8 @@ import styles from "./layout.module.css";
 const items = [
   { key: "/app", label: "Organizations", icon: <AppstoreOutlined /> },
   { key: "/app/events", label: "My events", icon: <TrophyOutlined /> },
+  { key: "/app/performance", label: "Performance", icon: <BarChartOutlined /> },
+  { key: "/app/teams", label: "Teams", icon: <TeamOutlined /> },
 ];
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {

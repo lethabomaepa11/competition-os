@@ -17,11 +17,17 @@ export default function AppDashboard() {
   const { currentMember, organizations, createOrg, ready } = useApp();
   const [open, setOpen] = useState(false);
   const [slug, setSlug] = useState("");
+  const [host, setHost] = useState("");
   const [creating, setCreating] = useState(false);
   const [form] = Form.useForm();
 
   useEffect(() => { if (ready && !currentMember) router.push("/login"); }, [ready, currentMember, router]);
   if (!currentMember) return null;
+
+  const openCreate = () => {
+    setHost(window.location.host);
+    setOpen(true);
+  };
 
   const create = async (values: { name: string }) => {
     setCreating(true);
@@ -41,7 +47,7 @@ export default function AppDashboard() {
     <>
       <header className="page-header">
         <div><span className="eyebrow">Operator portfolio</span><h1 className="page-title">Choose your arena.</h1><p className="page-subtitle">Every organization has its own competitions, people, blueprints, controls, and public audience.</p></div>
-        <div className="page-actions"><Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setOpen(true)}>New organization</Button></div>
+        <div className="page-actions"><Button type="primary" size="large" icon={<PlusOutlined />} onClick={openCreate}>New organization</Button></div>
       </header>
 
       <div className={styles.portfolioMeta}><span><b>{String(organizations.length).padStart(2, "0")}</b> Organizations</span><span><b>{currentMember.displayName}</b> Operator</span><span><i /> Workspace online</span></div>
@@ -52,7 +58,7 @@ export default function AppDashboard() {
           <span className="eyebrow">Your first workspace</span>
           <h2>Give the operation a home.</h2>
           <p>Create an organization for your league, club, federation, school, company, or tournament brand.</p>
-          <Button type="primary" size="large" onClick={() => setOpen(true)}>Create organization <ArrowRightOutlined /></Button>
+          <Button type="primary" size="large" onClick={openCreate}>Create organization <ArrowRightOutlined /></Button>
         </section>
       ) : (
         <section className={styles.orgGrid} aria-label="Your organizations">
@@ -64,7 +70,7 @@ export default function AppDashboard() {
               <ArrowRightOutlined className={styles.orgArrow} />
             </button>
           ))}
-          <button className={`${styles.orgCard} ${styles.addCard}`} onClick={() => setOpen(true)}><PlusOutlined /><div><strong>Add organization</strong><span>Open another arena</span></div></button>
+          <button className={`${styles.orgCard} ${styles.addCard}`} onClick={openCreate}><PlusOutlined /><div><strong>Add organization</strong><span>Open another arena</span></div></button>
         </section>
       )}
 
@@ -72,7 +78,7 @@ export default function AppDashboard() {
         <p className={styles.modalIntro}>Organizations separate competitions, teams, settings, and access.</p>
         <Form form={form} layout="vertical" onFinish={create} requiredMark={false}>
           <Form.Item label="Organization name" name="name" rules={[{ required: true, message: "Enter an organization name" }]}><Input placeholder="e.g. Continental Esports League" size="large" autoFocus onChange={(event) => setSlug(slugify(event.target.value))} /></Form.Item>
-          <div className={styles.slugPreview}><span>Workspace URL</span><code>competitionos.io/o/{slug || "your-organization"}</code></div>
+          <div className={styles.slugPreview}><span>Workspace URL</span><code>{host}/o/{slug || "your-organization"}</code></div>
           <Button type="primary" htmlType="submit" block loading={creating} size="large">Create workspace <ArrowRightOutlined /></Button>
         </Form>
       </Modal>

@@ -62,6 +62,44 @@
 .operationItem h3 { margin: 0; font-size: clamp(28px,3vw,44px); letter-spacing: -.045em; }
 .operationItem p { margin: 0; color: #66727e; }
 .operationItem > :last-child { font-size: 18px; }
+.roleSection { padding: 130px max(24px,calc((100vw - 1480px)/2)); background: #e8edea; color: #101820; }
+.roleIntro { display: grid; grid-template-columns: 1.2fr .8fr; column-gap: 9vw; }
+.roleIntro > span { grid-column: 1/-1; }
+.roleIntro h2 { margin: 0; font-size: clamp(44px,5.4vw,80px); letter-spacing: -.065em; line-height: .92; }
+.roleIntro p { align-self: end; margin: 0; color: #64716b; font-size: 16px; line-height: 1.7; }
+.roleGrid { display: grid; margin-top: 70px; border-block: 1px solid #c5ceca; grid-template-columns: repeat(3,1fr); }
+.roleGrid article { min-height: 390px; padding: 30px clamp(20px,3vw,42px) 34px; border-right: 1px solid #c5ceca; }
+.roleGrid article:first-child { padding-left: 0; }
+.roleGrid article:last-child { padding-right: 0; border: 0; }
+.roleGrid article > span { color: #78847e; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.roleGrid h3 { margin: 70px 0 14px; font-size: 31px; letter-spacing: -.045em; }
+.roleGrid p { margin: 0; color: #68756f; line-height: 1.65; }
+.roleGrid ul { display: grid; margin: 28px 0 0; padding: 0; gap: 9px; color: #3d4a44; font-size: 12px; font-weight: 700; list-style: none; }
+.roleGrid li::before { margin-right: 9px; color: #6da600; content: "✓"; }
+.playerPortal { display: grid; margin-top: 70px; padding: clamp(26px,5vw,70px); border-radius: 28px; grid-template-columns: .7fr 1.3fr; align-items: center; gap: clamp(50px,8vw,120px); background: #07111f; color: #fff; box-shadow: 0 30px 80px rgba(7,17,31,.18); }
+.portalCopy h3 { margin: 8px 0 18px; font-size: clamp(38px,5vw,68px); letter-spacing: -.06em; line-height: .94; }
+.portalCopy p { margin: 0 0 30px; color: rgba(255,255,255,.55); line-height: 1.7; }
+.portalCopy :global(.ant-btn) { border-color: rgba(255,255,255,.2); background: rgba(255,255,255,.07); color: #fff; }
+.portalPanel { overflow: hidden; border: 1px solid rgba(255,255,255,.14); border-radius: 20px; background: rgba(255,255,255,.05); }
+.portalPanel > header { display: flex; padding: 20px; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,.1); }
+.portalPanel > header > div { display: flex; align-items: center; gap: 12px; }
+.portalPanel header i { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 50%; background: #b8ff3d; color: #07111f; font-style: normal; font-weight: 850; }
+.portalPanel header span { display: flex; flex-direction: column; }
+.portalPanel header b { font-size: 13px; }
+.portalPanel header small,.portalPanel header em { color: rgba(255,255,255,.45); font-size: 9px; font-style: normal; letter-spacing: .07em; text-transform: uppercase; }
+.portalMetrics { display: grid; grid-template-columns: repeat(3,1fr); }
+.portalMetrics > div { display: flex; min-height: 130px; padding: 18px; border-right: 1px solid rgba(255,255,255,.1); flex-direction: column; }
+.portalMetrics > div:last-child { border: 0; }
+.portalMetrics span,.portalFixture > span { color: rgba(255,255,255,.42); font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.portalMetrics strong { margin-top: auto; color: #b8ff3d; font-size: 35px; letter-spacing: -.05em; }
+.portalFixture { display: grid; padding: 22px 20px; border-block: 1px solid rgba(255,255,255,.1); grid-template-columns: auto 1fr auto; align-items: center; gap: 18px; }
+.portalFixture > div { display: flex; justify-content: center; gap: 12px; font-size: 12px; }
+.portalFixture i { color: rgba(255,255,255,.35); font-style: normal; }
+.portalFixture time { color: #b8ff3d; font-size: 10px; font-weight: 800; }
+.portalPanel > footer { display: flex; padding: 17px 20px; align-items: center; justify-content: space-between; color: rgba(255,255,255,.48); font-size: 10px; }
+.portalPanel footer span { display: flex; align-items: center; gap: 8px; }
+.portalPanel footer span i { width: 7px; height: 7px; border-radius: 50%; background: #19c37d; }
+.portalPanel footer b { color: #fff; }
 .formatSection { display: grid; padding: 120px max(24px,calc((100vw - 1480px)/2)); grid-template-columns: 1.08fr .92fr; align-items: center; gap: clamp(50px,8vw,130px); background: #fff; color: #101820; }
 .formatBoard { overflow: hidden; border-radius: 26px; background: #07111f; color: #fff; box-shadow: 0 30px 80px rgba(7,17,31,.22); }
 .formatHeader { display: flex; padding: 20px 24px; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,.1); color: rgba(255,255,255,.45); font-size: 10px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
@@ -114,6 +152,16 @@
   .fixtureStrip { grid-template-columns: auto 1fr auto 1fr; }
   .fixtureStrip time { display: none; }
   .operationSection,.formatSection { padding: 82px 18px; }
+  .roleSection { padding: 82px 18px; }
+  .roleIntro { display: block; }
+  .roleIntro p { margin-top: 24px; }
+  .roleGrid { grid-template-columns: 1fr; }
+  .roleGrid article,.roleGrid article:first-child,.roleGrid article:last-child { min-height: auto; padding: 28px 0; border-right: 0; border-bottom: 1px solid #c5ceca; }
+  .roleGrid article:last-child { border-bottom: 0; }
+  .roleGrid h3 { margin-top: 30px; }
+  .playerPortal { padding: 30px 18px; grid-template-columns: 1fr; }
+  .portalFixture { grid-template-columns: 1fr auto; }
+  .portalFixture > span { grid-column: 1/-1; }
   .sectionIntro { display: block; }
   .sectionIntro p { margin-top: 28px; }
   .operationList { margin-top: 52px; }
