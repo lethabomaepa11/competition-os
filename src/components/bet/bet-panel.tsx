@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Card, Typography, Button, Space, Tag, message, Modal, InputNumber, Table, Statistic, Row, Col, Divider, Empty, Tooltip } from "antd";
+import { Card, Typography, Button, Space, Tag, message, Modal, InputNumber, Table, Row, Col, Divider, Tooltip } from "antd";
 import { DollarOutlined, TrophyOutlined, ThunderboltOutlined, ReloadOutlined, BarChartOutlined } from "@ant-design/icons";
 import type { Match } from "@/domain/match";
 import type { Participant } from "@/domain/participant";
@@ -9,6 +9,7 @@ import { MatchStatus } from "@/domain/types";
 import { BetService } from "@/domain/services/bet.service";
 import type { Bet, BetterProfile } from "@/domain/bet";
 import { MIN_BET, MAX_BET } from "@/domain/bet";
+import { calculatePredictionOdds } from "@/domain/prediction-odds";
 
 const { Text } = Typography;
 
@@ -45,12 +46,13 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
     [matches]
   );
 
-  const completedMatches = useMemo(() =>
-    matches.filter(m => m.status === MatchStatus.Completed && m.result),
-    [matches]
-  );
-
   const [allBets, setAllBets] = useState<Bet[]>([]);
+  const market = betModal && betModal.participantIds.length === 2
+    ? calculatePredictionOdds(matches, betModal.participantIds[0], betModal.participantIds[1])
+    : null;
+  const selectedPrice = market && betTargetId
+    ? market[betModal?.participantIds.indexOf(betTargetId) ?? -1]
+    : undefined;
 
   useEffect(() => {
     (async () => {
@@ -72,9 +74,18 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
 
   const handlePlaceBet = useCallback(async () => {
     if (!betModal || !betTargetId) return;
+    const prices = betModal.participantIds.length === 2
+      ? calculatePredictionOdds(matches, betModal.participantIds[0], betModal.participantIds[1])
+      : null;
+    const priceIndex = betModal.participantIds.indexOf(betTargetId);
+    const price = priceIndex >= 0 ? prices?.[priceIndex] : undefined;
+    if (!price) {
+      message.info("Odds will appear after both entrants have completed at least one match.");
+      return;
+    }
     setPlacing(true);
     try {
-      const result = await betSvc.placeBet(currentUserId, currentUserName, betModal.id, eventId, betTargetId, betAmount);
+      const result = await betSvc.placeBet(currentUserId, currentUserName, betModal.id, eventId, betTargetId, betAmount, price.decimalOdds);
       if (typeof result === "string") {
         message.error(result);
       } else {
@@ -88,23 +99,23 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
     } finally {
       setPlacing(false);
     }
-  }, [betModal, betTargetId, betAmount, betSvc, currentUserId, currentUserName, eventId, onBetUpdate]);
+  }, [betModal, betTargetId, betAmount, betSvc, currentUserId, currentUserName, eventId, matches, onBetUpdate]);
 
   return (
     <Card
-      title={<Space><DollarOutlined style={{ color: "#52c41a" }} /> Predictions (Tournament Oracle)</Space>}
+      title={<Space><DollarOutlined style={{ color: "#1c5fd4" }} /> Match predictions</Space>}
       size="small"
       style={{ marginTop: 16 }}
       extra={
         <Space>
-          <Tag icon={<TrophyOutlined />} color="gold">
+          <Tag icon={<TrophyOutlined />} color="blue">
             {profile.totalPoints} pts
           </Tag>
           <Button size="small" icon={<ReloadOutlined />} onClick={() => setRefreshKey(k => k + 1)} />
         </Space>
       }
     >
-      <div style={{ textAlign: "center", marginBottom: 12, background: "#fffbe6", padding: "6px 12px", borderRadius: 6 }}>
+      <div style={{ textAlign: "center", marginBottom: 12, background: "#f1f6ff", padding: "6px 12px", borderRadius: 6 }}>
         <Text type="secondary" style={{ fontSize: 12 }}>
           <ThunderboltOutlined style={{ marginRight: 4 }} />
           Just for fun — no real money. Bragging rights only!
@@ -113,28 +124,28 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
       {/* Profile Stats */}
       <Row gutter={[8, 8]} style={{ marginBottom: 12 }}>
         <Col span={6}>
-          <Card size="small" style={{ textAlign: "center", background: "#f6ffed" }}>
+          <Card size="small" style={{ textAlign: "center", background: "#f3f7ff" }}>
             <Text style={{ fontSize: 11, color: "#888" }}>Points</Text>
-            <div><Text strong style={{ fontSize: 18, color: "#52c41a" }}>{profile.totalPoints}</Text></div>
+            <div><Text strong style={{ fontSize: 18, color: "#2457b8" }}>{profile.totalPoints}</Text></div>
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small" style={{ textAlign: "center", background: "#fff7e6" }}>
+          <Card size="small" style={{ textAlign: "center", background: "#f3f7ff" }}>
             <Text style={{ fontSize: 11, color: "#888" }}>Won</Text>
-            <div><Text strong style={{ fontSize: 18, color: "#fa8c16" }}>{profile.betsWon}</Text></div>
+            <div><Text strong style={{ fontSize: 18, color: "#2457b8" }}>{profile.betsWon}</Text></div>
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small" style={{ textAlign: "center", background: "#fff1f0" }}>
+          <Card size="small" style={{ textAlign: "center", background: "#f3f7ff" }}>
             <Text style={{ fontSize: 11, color: "#888" }}>Lost</Text>
-            <div><Text strong style={{ fontSize: 18, color: "#ff4d4f" }}>{profile.betsLost}</Text></div>
+            <div><Text strong style={{ fontSize: 18, color: "#486179" }}>{profile.betsLost}</Text></div>
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small" style={{ textAlign: "center", background: "#f0f5ff" }}>
+          <Card size="small" style={{ textAlign: "center", background: "#f3f7ff" }}>
             <Text style={{ fontSize: 11, color: "#888" }}>Net</Text>
             <div>
-              <Text strong style={{ fontSize: 18, color: profile.netPoints >= 0 ? "#52c41a" : "#ff4d4f" }}>
+              <Text strong style={{ fontSize: 18, color: profile.netPoints >= 0 ? "#2457b8" : "#486179" }}>
                 {profile.netPoints >= 0 ? "+" : ""}{profile.netPoints}
               </Text>
             </div>
@@ -168,6 +179,7 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
                 title: "Wager", dataIndex: "pointsWagered", key: "wager",
                 render: (v: number) => <Text>{v} pts</Text>,
               },
+              { title: "Fair odds", dataIndex: "decimalOdds", key: "odds", render: (v?: number) => v ? <Tag color="blue">{v.toFixed(2)}</Tag> : <Text type="secondary">—</Text> },
               {
                 title: "Status", key: "status",
                 render: (_: unknown, record: Bet) => record.settled
@@ -184,19 +196,20 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
       {/* Available Matches to Bet On */}
       {upcomingMatches.length > 0 && (
         <div>
-          <Text strong style={{ fontSize: 12 }}>Place Bets on Upcoming Matches</Text>
+          <Text strong style={{ fontSize: 12 }}>Predict an upcoming match</Text>
           <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6 }}>
             {upcomingMatches.slice(0, 5).map(m => {
               const myExistingBet = myBets.find(b => b.matchId === m.id);
               const p1Name = participantMap.get(m.participantIds[0]) ?? "?";
               const p2Name = participantMap.get(m.participantIds[1]) ?? "?";
+              const prices = calculatePredictionOdds(matches, m.participantIds[0], m.participantIds[1]);
 
               if (myExistingBet) {
                 return (
-                  <Card key={m.id} size="small" style={{ background: "#f6ffed" }}>
+                  <Card key={m.id} size="small" style={{ background: "#eef4ff" }}>
                     <Space>
                       <Text style={{ fontSize: 12 }}>{p1Name} vs {p2Name}</Text>
-                      <Tag color="green">Bet on {participantMap.get(myExistingBet.participantId)} ({myExistingBet.pointsWagered} pts)</Tag>
+                      <Tag color="blue">Predicted {participantMap.get(myExistingBet.participantId)} ({myExistingBet.pointsWagered} pts)</Tag>
                     </Space>
                   </Card>
                 );
@@ -205,14 +218,16 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
               return (
                 <Card key={m.id} size="small" style={{ background: "#fafafa" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <Space>
+                    <Space wrap>
                       <Text style={{ fontSize: 12 }}>{p1Name}</Text>
                       <Text type="secondary">vs</Text>
                       <Text style={{ fontSize: 12 }}>{p2Name}</Text>
+                      {prices ? <Tooltip title={`Fair estimate from completed event matches. Samples: ${prices[0].sampleSize} and ${prices[1].sampleSize}; no bookmaker margin.`}><Tag color="blue">{Math.round(prices[0].probability * 100)}% · {prices[0].decimalOdds.toFixed(2)}</Tag><Tag color="blue">{Math.round(prices[1].probability * 100)}% · {prices[1].decimalOdds.toFixed(2)}</Tag></Tooltip> : <Tooltip title="Both entrants need at least one completed result before estimates are shown."><Tag>Odds developing</Tag></Tooltip>}
                     </Space>
                     <Button
                       size="small"
                       icon={<DollarOutlined />}
+                      disabled={!prices}
                       onClick={() => {
                         setBetModal(m);
                         setBetTargetId(null);
@@ -244,14 +259,13 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
               {
                 title: "#", key: "rank", width: 30,
                 render: (_: unknown, __: unknown, i: number) => {
-                  const colors = ["#F59E0B", "#94A3B8", "#CD7F32"];
-                  return <TrophyOutlined style={{ color: colors[i] || "#64748B" }} />;
+                  return <TrophyOutlined style={{ color: i === 0 ? "#2457b8" : "#94a7c5" }} />;
                 },
               },
               { title: "Better", dataIndex: "name", key: "name", render: (v: string) => <Text style={{ fontSize: 12 }}>{v}</Text> },
               {
                 title: "Points", dataIndex: "totalPoints", key: "points",
-                render: (v: number) => <Text strong style={{ color: "#52c41a" }}>{v}</Text>,
+                render: (v: number) => <Text strong style={{ color: "#2457b8" }}>{v}</Text>,
               },
               {
                 title: "W/L", key: "wl",
@@ -274,13 +288,14 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
         onOk={handlePlaceBet}
         okText="Place Bet"
         confirmLoading={placing}
-        okButtonProps={{ disabled: !betTargetId }}
+        okButtonProps={{ disabled: !betTargetId || !selectedPrice }}
       >
         {betModal && (
           <div>
             <Text style={{ display: "block", marginBottom: 12, textAlign: "center" }}>
               Who will win?
             </Text>
+            {market ? <Text type="secondary" style={{ display: "block", marginBottom: 12, textAlign: "center" }}>Illustrative event-form estimate · fair decimal odds · no real money</Text> : <Text type="secondary" style={{ display: "block", marginBottom: 12, textAlign: "center" }}>Odds need a completed result from both entrants first. No guesswork while the sample is empty.</Text>}
             <Space style={{ width: "100%", justifyContent: "center", marginBottom: 16 }}>
               {betModal.participants.map(p => {
                 const name = participantMap.get(p.participantId) ?? "?";
@@ -292,18 +307,19 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
                     style={{
                       width: 140,
                       textAlign: "center",
-                      border: betTargetId === p.participantId ? "2px solid #52c41a" : "1px solid #d9d9d9",
+                      border: betTargetId === p.participantId ? "2px solid #1c5fd4" : "1px solid #d9d9d9",
                     }}
                     onClick={() => setBetTargetId(p.participantId)}
                   >
                     <Text strong={betTargetId === p.participantId}>{name}</Text>
-                    {betTargetId === p.participantId && <Tag color="green" style={{ display: "block", marginTop: 4 }}>Selected</Tag>}
+                    {market && <Text type="secondary" style={{ display: "block", fontSize: 11 }}>{Math.round(market[betModal.participantIds.indexOf(p.participantId)].probability * 100)}% · {market[betModal.participantIds.indexOf(p.participantId)].decimalOdds.toFixed(2)}</Text>}
+                    {betTargetId === p.participantId && <Tag color="blue" style={{ display: "block", marginTop: 4 }}>Selected</Tag>}
                   </Card>
                 );
               })}
             </Space>
             <div style={{ textAlign: "center" }}>
-              <Text>Wager (payout: 2x):</Text>
+              <Text>Prediction points:</Text>
               <div style={{ marginTop: 8 }}>
                 <InputNumber
                   min={MIN_BET}
@@ -315,7 +331,7 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
                 />
               </div>
               <Text type="secondary" style={{ display: "block", marginTop: 4, fontSize: 11 }}>
-                Min: {MIN_BET} | Max: {Math.min(MAX_BET, profile.totalPoints)} | Balance: {profile.totalPoints} pts
+                {selectedPrice ? `Potential total return: ${Math.round(betAmount * selectedPrice.decimalOdds)} pts at ${selectedPrice.decimalOdds.toFixed(2)}` : "Potential return appears when the sample is ready."} · Balance: {profile.totalPoints} pts
               </Text>
             </div>
           </div>

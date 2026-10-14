@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, Input, Space, Tag, Typography, message } from "antd";
+import { Alert, Button, Card, Input, Space, Tag, Typography } from "antd";
 import { ThunderboltOutlined } from "@ant-design/icons";
 import type { Match } from "@/domain/match";
 import type { Participant } from "@/domain/participant";
@@ -18,6 +18,7 @@ export function GuestPredictionPanel({ matches, participants, eventId }: { match
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const participantNames = useMemo(() => new Map(participants.map((participant) => [participant.id, participant.displayName])), [participants]);
 
   useEffect(() => {
@@ -32,6 +33,7 @@ export function GuestPredictionPanel({ matches, participants, eventId }: { match
     if (!participantId || name.trim().length < 2) return;
     setSubmitting(match.id);
     setError("");
+    setSuccess("");
     try {
       const response = await fetch("/api/guest-predictions", {
         method: "POST",
@@ -40,7 +42,7 @@ export function GuestPredictionPanel({ matches, participants, eventId }: { match
       });
       const data = await response.json() as { error?: string; odds?: number | null; name?: string };
       if (!response.ok) throw new Error(data.error ?? "Prediction could not be saved.");
-      message.success(data.odds ? `Prediction saved at ${data.odds.toFixed(2)} illustrative odds.` : "Prediction saved. Odds will appear when enough results are available.");
+      setSuccess(data.odds ? `Your prediction is saved at ${data.odds.toFixed(2)} illustrative odds.` : "Your prediction is saved. Odds will appear when enough results are available.");
       setBets((current) => [...current, { id: `guest-${match.id}`, matchId: match.id, eventId, participantId, betterId: null, betterName: data.name ?? name.trim(), pointsWagered: 0, placedAt: new Date().toISOString(), settled: false, won: false, pointsAwarded: 0, decimalOdds: data.odds ?? undefined }]);
       setSelected((current) => { const next = { ...current }; delete next[match.id]; return next; });
     } catch (cause) {
@@ -51,10 +53,11 @@ export function GuestPredictionPanel({ matches, participants, eventId }: { match
   };
 
   return <Card title={<Space><ThunderboltOutlined style={{ color: "#1c5fd4" }} /> Match predictions</Space>} style={{ marginTop: 16 }}>
-    <Alert type="info" showIcon message="For the love of the game" description="Pick a winner and leave your name. No account, money or points required. Odds are illustrative event-form estimates, never a guarantee." />
-    {error && <Alert style={{ marginTop: 12 }} type="error" showIcon message={error} />}
+    <Alert type="info" showIcon title="For the love of the game" description="Pick a winner and leave your name. No account, money or points required. Odds are illustrative event-form estimates, never a guarantee." />
+    {error && <Alert style={{ marginTop: 12 }} type="error" showIcon title={error} />}
+    {success && <Alert style={{ marginTop: 12 }} type="success" showIcon title={success} />}
     <div style={{ maxWidth: 380, margin: "16px 0" }}><Text strong>Your display name</Text><Input aria-label="Prediction display name" maxLength={48} minLength={2} value={name} onChange={(event) => setName(event.target.value)} placeholder="How should we show your pick?" /></div>
-    <Space direction="vertical" style={{ width: "100%" }}>
+    <Space orientation="vertical" style={{ width: "100%" }}>
       {openMatches.map((match) => {
         const names = match.participantIds.map((id) => participantNames.get(id) ?? "Entrant");
         const prices = calculatePredictionOdds(matches, match.participantIds[0], match.participantIds[1]);
