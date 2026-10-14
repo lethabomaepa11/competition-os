@@ -45,7 +45,22 @@ test.describe("public product story", () => {
     await expect(page.locator(".competition-loader-orbit--outer")).toHaveCount(2);
     const animation = await page.locator(".competition-loader-bounce").first().evaluate((element) => getComputedStyle(element).animationName);
     expect(animation).toContain("competition-bounce");
-    await expect(page.getByRole("heading", { name: "Tournament crest" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Workspace loading" })).toBeVisible();
+  });
+
+  test("shows a qualified-only knockout projection and separate double-elimination paths", async ({ page }) => {
+    await mockApp(page, false);
+    await page.goto("/bracket-preview");
+    await expect(page.getByRole("heading", { name: "Projected knockout draw" })).toBeVisible();
+    await expect(page.getByTestId("qualifier-counter")).toContainText("8");
+    await expect(page.getByTestId("qualifier-counter")).toContainText("12");
+    await expect(page.getByText("Winners pathway")).toBeVisible();
+    await expect(page.getByText("Losers pathway")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Grand final", exact: true })).toBeVisible();
+    const doubleEliminationView = page.getByRole("region", { name: "Competition bracket" }).nth(1);
+    await doubleEliminationView.getByRole("button", { name: "View fixture: Cape Town City versus Sekhukhune United" }).click();
+    await expect(page.getByText("Winner advances to")).toBeVisible();
+    await expect(page.getByText("Loser drops to")).toBeVisible();
   });
 
   test("presents a focused sign in path", async ({ page }) => {

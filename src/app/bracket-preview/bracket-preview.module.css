@@ -1,0 +1,35 @@
+.page {
+  min-height: 100vh;
+  padding: 44px clamp(18px, 5vw, 72px) 72px;
+  color: #eaf1ff;
+  background: #07111f;
+}
+
+.header,
+.sectionHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.header { max-width: 1480px; margin: 0 auto 42px; }
+.header > div:first-child > span,
+.sectionHeading > div > span { color: #7ba5eb; font-size: 10px; font-weight: 850; letter-spacing: .16em; text-transform: uppercase; }
+.header h1 { margin: 12px 0 8px; color: #f4f7ff; font-size: clamp(34px, 5vw, 58px); letter-spacing: -.06em; line-height: 1; }
+.header p { max-width: 690px; margin: 0; color: #9fb2cf; font-size: 14px; line-height: 1.65; }
+.counter { display: grid; min-width: 150px; justify-items: end; padding: 13px 17px; border: 1px solid rgba(115, 157, 224, .2); border-radius: 13px; background: #0c1c31; }
+.counter b { color: #e9f1ff; font-size: 27px; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.counter i { padding: 0 3px; color: #6682ad; font-size: 16px; font-style: normal; }
+.counter span { color: #8ba2c5; font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.section { max-width: 1480px; margin: 0 auto 30px; }
+.sectionHeading { align-items: center; margin-bottom: 14px; padding: 0 2px; }
+.sectionHeading h2 { margin: 4px 0 0; color: #eaf1ff; font-size: 19px; letter-spacing: -.035em; }
+.sectionHeading > p { margin: 0; color: #8da1bf; font-size: 11px; }
+
+@media (max-width: 650px) {
+  .page { padding: 26px 12px 44px; }
+  .header { align-items: flex-start; flex-direction: column; margin-bottom: 30px; }
+  .counter { min-width: 0; justify-items: start; }
+  .sectionHeading { align-items: flex-start; flex-direction: column; gap: 4px; }
+}

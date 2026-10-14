@@ -149,6 +149,7 @@ a {
   inset: 14px;
   border: 1px solid rgba(21, 94, 239, 0.12);
   box-shadow: 0 0 18px rgba(21, 94, 239, 0.13);
+  animation: competition-pulse 1.8s ease-in-out infinite alternate;
 }
 .competition-loader-bounce {
   position: relative;
@@ -174,6 +175,10 @@ a {
 @keyframes competition-orbit {
   to { transform: rotate(360deg); }
 }
+@keyframes competition-pulse {
+  from { opacity: .3; transform: scale(.86); }
+  to { opacity: .95; transform: scale(1.08); }
+}
 @keyframes competition-logo-spin {
   0% { transform: rotate(0deg) scale(.9); }
   45% { transform: rotate(210deg) scale(1.04); }
@@ -188,6 +193,7 @@ a {
   .competition-loader-indicator::before,
   .competition-loader-indicator::after,
   .competition-loader-orbit--outer,
+  .competition-loader-orbit--inner,
   .competition-loader-bounce,
   .competition-loader-spin {
     animation: none;

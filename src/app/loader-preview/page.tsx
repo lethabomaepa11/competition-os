@@ -2,32 +2,52 @@ import { notFound } from "next/navigation";
 import { Spin } from "antd";
 import { BrandMark } from "@/components/common/brand-mark";
 import { CompetitionLogo } from "@/components/common/competition-logo";
+import styles from "./loader-preview.module.css";
 
 export default function LoaderPreviewPage() {
   if (process.env.NODE_ENV !== "development") notFound();
 
   return (
-    <main style={{ minHeight: "100vh", padding: "32px clamp(20px, 6vw, 88px) 64px", background: "#f1f5fb", color: "#14243a" }}>
-      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", maxWidth: 1120, margin: "0 auto 72px" }}>
-        <BrandMark />
-        <span style={{ color: "#52627a", fontSize: 12, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase" }}>Local preview</span>
-      </header>
-      <section style={{ maxWidth: 1120, margin: "0 auto" }}>
-        <span className="eyebrow">CompetitionOS identity</span>
-        <h1 style={{ maxWidth: 740, margin: "0 0 14px", fontSize: "clamp(36px, 6vw, 64px)", letterSpacing: "-.055em", lineHeight: .98 }}>A little movement while the competition comes together.</h1>
-        <p style={{ maxWidth: 620, margin: 0, color: "#60718a", fontSize: 16, lineHeight: 1.7 }}>The same tournament crest now carries through the brand and every loading state. The badge lifts and spins while the orbit rings cycle around it.</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 18, marginTop: 42 }}>
-          <article style={{ minHeight: 300, display: "grid", placeItems: "center", padding: 28, border: "1px solid #dce5f1", borderRadius: 18, background: "#fff", boxShadow: "0 16px 42px rgba(18, 51, 94, .07)" }}>
-            <div style={{ textAlign: "center" }}><Spin size="large" /><h2 style={{ margin: "20px 0 4px", fontSize: 16 }}>Workspace loading</h2><p style={{ margin: 0, color: "#74839a", fontSize: 13 }}>Full motion</p></div>
-          </article>
-          <article style={{ minHeight: 300, display: "grid", placeItems: "center", padding: 28, border: "1px solid #dce5f1", borderRadius: 18, background: "#102744", color: "#fff", boxShadow: "0 16px 42px rgba(18, 51, 94, .12)" }}>
-            <div style={{ textAlign: "center" }}><CompetitionLogo size={76} /><h2 style={{ margin: "14px 0 4px", fontSize: 16 }}>Tournament crest</h2><p style={{ margin: 0, color: "#b9c9df", fontSize: 13 }}>Static brand mark</p></div>
-          </article>
-          <article style={{ minHeight: 300, display: "grid", placeItems: "center", padding: 28, border: "1px solid #dce5f1", borderRadius: 18, background: "#fff", boxShadow: "0 16px 42px rgba(18, 51, 94, .07)" }}>
-            <div style={{ textAlign: "center" }}><Spin size="small" /><h2 style={{ margin: "20px 0 4px", fontSize: 16 }}>Compact loading</h2><p style={{ margin: 0, color: "#74839a", fontSize: 13 }}>Inline scale</p></div>
-          </article>
-        </div>
-      </section>
+    <main className={styles.preview}>
+      <div className={styles.ambient} aria-hidden="true"><i /><i /><i /><span /></div>
+      <div className={styles.content}>
+        <header className={styles.header}>
+          <BrandMark dark />
+          <span className={styles.localTag}><i /> Local motion study</span>
+        </header>
+        <section className={styles.intro}>
+          <span className={styles.eyebrow}>CompetitionOS / Identity system</span>
+          <h1>Every fixture starts with a signal.</h1>
+          <p>The crest stays in motion while CompetitionOS prepares the next screen. A quiet blue field and moving bracket paths give the loading state more depth without pulling focus from the task.</p>
+        </section>
+        <section className={styles.stage} aria-label="Loader previews">
+          <div className={`${styles.loaderPanel} ${styles.loaderPanelPrimary}`}>
+            <div className={styles.panelGrid} aria-hidden="true" />
+            <div className={styles.signalLine} aria-hidden="true"><i /><i /><i /><i /></div>
+            <div className={styles.loaderContent}>
+              <Spin size="large" />
+              <span className={styles.panelEyebrow}>Match centre</span>
+              <h2>Workspace loading</h2>
+              <p>Fixtures, standings, and the next round are coming into view.</p>
+            </div>
+            <div className={styles.progressTrack} aria-hidden="true"><i /></div>
+          </div>
+          <div className={styles.sideStack}>
+            <article className={styles.markPanel}>
+              <div className={styles.logoHalo} aria-hidden="true" />
+              <CompetitionLogo size={88} />
+              <span className={styles.panelEyebrow}>Tournament mark</span>
+              <h2>CompetitionOS</h2>
+              <p>Built around the route to the final.</p>
+            </article>
+            <article className={styles.compactPanel}>
+              <div><Spin size="small" /></div>
+              <span><b>Compact loader</b><small>For inline actions and short transitions</small></span>
+            </article>
+          </div>
+        </section>
+        <footer className={styles.footer}><span>Blue on blue. Motion with a purpose.</span><span>Reduced-motion settings are respected.</span></footer>
+      </div>
     </main>
   );
 }

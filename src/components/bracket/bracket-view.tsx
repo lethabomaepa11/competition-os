@@ -1,17 +1,16 @@
 "use client";
 
 import { useMemo, useRef, useCallback, useState } from "react";
-import { Tag, Empty, Typography, Button, message, Modal, Descriptions } from "antd";
+import { Empty, Button, message, Modal, Descriptions } from "antd";
 import { Bracket } from "bracketkit";
 import type { BracketRound } from "bracketkit";
 import type { Match } from "@/domain/match";
 import type { Participant } from "@/domain/participant";
 import type { Round } from "@/domain/event";
 import { MatchStatus } from "@/domain/types";
+import styles from "./bracket-view.module.css";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
-
-const { Text } = Typography;
 
 interface Props {
   matches: Match[];
@@ -27,6 +26,10 @@ interface BracketMatchData {
   p2Score?: number;
   winner?: string;
   status: MatchStatus;
+  fixtureNumber?: number;
+  bracketGroup?: string;
+  winnerTarget?: string;
+  loserTarget?: string;
 }
 
 export function BracketView({ matches, participants, rounds }: Props) {
@@ -60,6 +63,16 @@ export function BracketView({ matches, participants, rounds }: Props) {
 
   const bracketRounds: BracketRound<BracketMatchData>[] = useMemo(() => {
     const roundMap = new Map<string, BracketMatchData[]>();
+    const targetLabels = new Map<string, string>();
+    for (const match of matches) {
+      const engineKey = match.config.engineMatchKey;
+      if (typeof engineKey !== "string") continue;
+      const roundName = roundNameMap.get(match.roundId) ?? "Next round";
+      const engineIndex = match.config.engineMatchIndex;
+      const fixture = typeof engineIndex === "number" ? `Fixture ${String(engineIndex + 1).padStart(2, "0")}` : "Next fixture";
+      targetLabels.set(engineKey, `${roundName} · ${fixture}`);
+    }
+
     for (const m of matches) {
       const [p1, p2] = m.participants;
       const scores = m.result?.scores ?? [];
@@ -75,6 +88,12 @@ export function BracketView({ matches, participants, rounds }: Props) {
           ? participantMap.get(m.result.winnerId)
           : undefined,
         status: m.status,
+        fixtureNumber: typeof m.config.matchIndex === "number"
+          ? m.config.matchIndex
+          : typeof m.config.engineMatchIndex === "number" ? m.config.engineMatchIndex + 1 : undefined,
+        bracketGroup: m.bracketGroup,
+        winnerTarget: typeof m.config.nextMatchKey === "string" ? targetLabels.get(m.config.nextMatchKey) : undefined,
+        loserTarget: typeof m.config.loserNextMatchKey === "string" ? targetLabels.get(m.config.loserNextMatchKey) : undefined,
       };
       const list = roundMap.get(m.roundId) ?? [];
       list.push(data);
@@ -91,6 +110,24 @@ export function BracketView({ matches, participants, rounds }: Props) {
           (roundOrderMap.get(a.id) ?? 0) - (roundOrderMap.get(b.id) ?? 0),
       );
   }, [matches, participantMap, roundNameMap, roundOrderMap]);
+
+  const bracketSections = useMemo(() => {
+    const isDoubleElimination = matches.some((match) => match.bracketGroup);
+    if (!isDoubleElimination) return [{ id: "main", name: "Knockout bracket", rounds: bracketRounds }];
+
+    return ([
+      { id: "winners", name: "Winners pathway" },
+      { id: "losers", name: "Losers pathway" },
+      { id: "finals", name: "Grand final" },
+    ] as const).map((section) => ({
+      ...section,
+      rounds: bracketRounds.map((round) => ({
+        ...round,
+        matches: round.matches.filter((match) => match.bracketGroup === section.id),
+      })).filter((round) => round.matches.length > 0),
+    })).filter((section) => section.rounds.length > 0);
+  }, [bracketRounds, matches]);
+  const isDoubleElimination = matches.some((match) => match.bracketGroup);
 
   const bracketRef = useRef<HTMLDivElement>(null);
 
@@ -124,15 +161,15 @@ export function BracketView({ matches, participants, rounds }: Props) {
   }
 
   return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginBottom: 12,
-          gap: 8,
-        }}
-      >
+    <section className={styles.shell} aria-label="Competition bracket">
+      <header className={styles.heading}>
+        <div><span className={styles.headingLabel}>Knockout pathway</span><h2 className={styles.headingTitle}>Road to the final</h2></div>
+        <div className={styles.summary}>
+          <span>{bracketSections.length > 1 ? `${bracketSections.length} pathways` : `${rounds.length} ${rounds.length === 1 ? "round" : "rounds"}`}</span>
+          <span>{matches.length} {matches.length === 1 ? "fixture" : "fixtures"}</span>
+        </div>
+      </header>
+      <div className={styles.toolbar}>
         <Button size="small" onClick={() => exportBracket("png")}>
           Export PNG
         </Button>
@@ -140,40 +177,38 @@ export function BracketView({ matches, participants, rounds }: Props) {
           Export PDF
         </Button>
       </div>
-      <div
-        ref={bracketRef}
-        style={{
-          overflow: "auto",
-          padding: "16px 0",
-        }}
-      >
-        <Bracket
-          key={renderKey}
-          rounds={bracketRounds}
-          matchWidth={220}
-          connectorWidth={48}
-          matchGap={12}
-          renderRoundHeader={(round) => (
-            <div
-              style={{
-                textAlign: "center",
-                fontWeight: 700,
-                fontSize: 13,
-                marginBottom: 12,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              {round.name}
-            </div>
-          )}
-          renderMatch={(match) => <MatchCard match={match} onClick={() => setSelectedMatch(match)} />}
-        />
+      <div ref={bracketRef} className={styles.canvas}>
+        {bracketSections.map((section) => (
+          <div className={styles.pathway} key={section.id}>
+            {bracketSections.length > 1 && <h3 className={styles.pathwayTitle}>{section.name}</h3>}
+            {isDoubleElimination && <p className={styles.pathwayHint}>Select a fixture to see the exact winner and loser destination.</p>}
+            {isDoubleElimination ? (
+              <div className={styles.roundColumns}>
+                {section.rounds.map((round) => <div className={styles.roundColumn} key={round.id}>
+                  <h4 className={styles.roundHeader}>{round.name}</h4>
+                  <div className={styles.roundFixtures}>{round.matches.map((match) => <MatchCard key={match.id} match={match} onClick={() => setSelectedMatch(match)} />)}</div>
+                </div>)}
+              </div>
+            ) : (
+              <Bracket
+                key={`${renderKey}-${section.id}`}
+                className={styles.bracketRoot}
+                rounds={section.rounds}
+                matchWidth={220}
+                connectorWidth={48}
+                matchGap={12}
+                renderRoundHeader={(round) => <div className={styles.roundHeader}>{round.name}</div>}
+                renderMatch={(match) => <MatchCard match={match} onClick={() => setSelectedMatch(match)} />}
+              />
+            )}
+          </div>
+        ))}
       </div>
       <Modal
         title="Fixture details"
         open={selectedMatch !== null}
         onCancel={() => setSelectedMatch(null)}
+        className={styles.modal}
         footer={<Button type="primary" onClick={() => setSelectedMatch(null)}>Done</Button>}
       >
         {selectedMatch && <Descriptions column={1} bordered size="small">
@@ -181,9 +216,11 @@ export function BracketView({ matches, participants, rounds }: Props) {
           <Descriptions.Item label="Status">{selectedMatch.status.replaceAll("_", " ")}</Descriptions.Item>
           {(selectedMatch.p1Score !== undefined || selectedMatch.p2Score !== undefined) && <Descriptions.Item label="Score">{selectedMatch.p1Score ?? "—"} – {selectedMatch.p2Score ?? "—"}</Descriptions.Item>}
           {selectedMatch.winner && <Descriptions.Item label="Winner">{selectedMatch.winner}</Descriptions.Item>}
+          {selectedMatch.winnerTarget && <Descriptions.Item label="Winner advances to">{selectedMatch.winnerTarget}</Descriptions.Item>}
+          {selectedMatch.loserTarget && <Descriptions.Item label="Loser drops to">{selectedMatch.loserTarget}</Descriptions.Item>}
         </Descriptions>}
       </Modal>
-    </div>
+    </section>
   );
 }
 
@@ -195,8 +232,13 @@ function MatchCard({ match, onClick }: { match: BracketMatchData; onClick: () =>
   const isWalkover = match.status === MatchStatus.Walkover;
   const isCompleted = match.status === MatchStatus.Completed;
 
-  const p1Color = isP1Winner ? undefined : undefined;
-  const p2Color = isP2Winner ? undefined : undefined;
+  const statusLabel = match.status === MatchStatus.Completed
+    ? "Full time"
+    : match.status === MatchStatus.InProgress
+      ? "Live now"
+      : match.status === MatchStatus.Walkover
+        ? "Walkover"
+        : "Upcoming";
 
   return (
     <div
@@ -210,117 +252,26 @@ function MatchCard({ match, onClick }: { match: BracketMatchData; onClick: () =>
           onClick();
         }
       }}
-      style={{
-        border: `1px solid ${isCompleted ? "#1677ff" : isWalkover ? "#8c8c8c" : "#d9e2ef"}`,
-        borderRadius: 12,
-        padding: "10px 12px",
-        background: "#fff",
-        color: "inherit",
-        textAlign: "left",
-        cursor: "pointer",
-        width: "100%",
-        opacity: isWalkover ? 0.7 : 1,
-        minWidth: 190,
-        transition: "all 0.2s ease",
-      }}
+      className={styles.matchCard}
+      data-completed={isCompleted}
+      data-walkover={isWalkover}
     >
+      <div className={styles.fixtureMeta}><span>{match.fixtureNumber ? `Fixture ${String(match.fixtureNumber).padStart(2, "0")}` : "Match fixture"}</span><span className={match.status === MatchStatus.InProgress ? `${styles.status} ${styles.statusLive}` : styles.status}>{statusLabel}</span></div>
       {isEmpty ? (
-        <Text type="secondary" style={{ fontSize: 13 }}>
-          Awaiting participants
-        </Text>
+        <div className={styles.empty}>Awaiting qualified entrants</div>
       ) : (
         <>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 6,
-              padding: "4px 6px",
-              borderRadius: 6,
-              background: isP1Winner ? "rgba(22,119,255,0.08)" : "transparent",
-            }}
-          >
-            <Text
-              strong={!!isP1Winner}
-              delete={isP2Winner && !!match.winner}
-              style={{
-                fontSize: 13,
-                fontWeight: isP1Winner ? 700 : 500,
-              }}
-            >
-              {match.p1Name}
-            </Text>
-            {match.p1Score !== undefined && (
-              <Tag
-                color={isP1Winner ? "blue" : "default"}
-                style={{
-                  margin: 0,
-                  fontWeight: 600,
-                  minWidth: 28,
-                  textAlign: "center",
-                }}
-              >
-                {match.p1Score}
-              </Tag>
-            )}
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "4px 6px",
-              borderRadius: 6,
-              background: isP2Winner ? "rgba(22,119,255,0.08)" : "transparent",
-            }}
-          >
-            <Text
-              strong={!!isP2Winner}
-              delete={isP1Winner && !!match.winner}
-              style={{
-                fontSize: 13,
-                fontWeight: isP2Winner ? 700 : 500,
-              }}
-            >
-              {match.p2Name}
-            </Text>
-            {match.p2Score !== undefined && (
-              <Tag
-                color={isP2Winner ? "blue" : "default"}
-                style={{
-                  margin: 0,
-                  fontWeight: 600,
-                  minWidth: 28,
-                  textAlign: "center",
-                }}
-              >
-                {match.p2Score}
-              </Tag>
-            )}
-          </div>
+          <TeamRow name={match.p1Name} score={match.p1Score} winner={isP1Winner} loser={isP2Winner && !!match.winner} />
+          <TeamRow name={match.p2Name} score={match.p2Score} winner={isP2Winner} loser={isP1Winner && !!match.winner} />
         </>
-      )}
-      {isCompleted && match.winner && !isEmpty && (
-        <div style={{ marginTop: 6, textAlign: "center" }}>
-          <Tag
-            color="blue"
-            style={{ fontSize: 11, fontWeight: 600, borderRadius: 6 }}
-          >
-            Winner: {match.winner}
-          </Tag>
-        </div>
-      )}
-      {isWalkover && (
-        <div style={{ marginTop: 6, textAlign: "center" }}>
-          <Tag
-            color="default"
-            style={{ fontSize: 11, fontWeight: 600, borderRadius: 6 }}
-          >
-            Walkover
-          </Tag>
-        </div>
       )}
     </div>
   );
+}
+
+function TeamRow({ name, score, winner, loser }: { name: string; score?: number; winner: boolean; loser: boolean }) {
+  return <div className={`${styles.teamRow} ${winner ? styles.teamWinner : ""} ${loser ? styles.teamLoser : ""}`}>
+    <span className={styles.teamName}>{name}</span>
+    {score !== undefined && <span className={styles.score}>{score}</span>}
+  </div>;
 }
