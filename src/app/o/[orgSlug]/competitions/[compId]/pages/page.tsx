@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Alert, Breadcrumb, Button, Card, Checkbox, Empty, Input, Select, Space, Spin, Typography, message, Modal, Tag, Segmented } from "antd";
+import { Alert, Breadcrumb, Button, Card, Checkbox, Empty, Input, Select, Space, Typography, message, Modal, Tag, Segmented } from "antd";
 import { DeleteOutlined, DesktopOutlined, DownOutlined, EyeOutlined, HolderOutlined, MobileOutlined, PlusOutlined, SaveOutlined, ThunderboltOutlined, UpOutlined } from "@ant-design/icons";
 import { CompetitionService } from "@/domain/services/competition.service";
 import type { Competition } from "@/domain/competition";
@@ -11,6 +11,7 @@ import { canManageCompetition } from "@/lib/permissions";
 import { useApp } from "@/lib/app-context";
 import { createCustomCompetitionPage, ensureRequiredCompetitionPages, validateCompetitionPages, type CompetitionBlockType, type CompetitionPage } from "@/domain/competition-pages";
 import styles from "./pages.module.css";
+import { PageLoader } from "@/components/common/page-loader";
 
 const { Title, Text } = Typography;
 const blockOptions: { value: CompetitionBlockType; label: string }[] = [
@@ -49,6 +50,7 @@ export default function CompetitionPagesEditor() {
     let active = true;
     const load = async () => {
       if (!currentOrg || !currentMember) return;
+      try {
       const [item, allowed] = await Promise.all([
         new CompetitionService().get(params.compId),
         canManageCompetition(currentMember.id, currentOrg.id),
@@ -64,7 +66,9 @@ export default function CompetitionPagesEditor() {
       setPages(normalized);
       setSelectedId(normalized[0]?.id ?? "");
       setAuthorized(allowed);
-      setLoading(false);
+      } catch (error) {
+        if (active) message.error(error instanceof Error ? error.message : "Could not load competition pages");
+      } finally { if (active) setLoading(false); }
     };
     void load();
     return () => { active = false; };
@@ -144,7 +148,7 @@ export default function CompetitionPagesEditor() {
     setAiPrompt("");
   };
 
-  if (loading) return <div className="page-loading"><Spin size="large" /></div>;
+  if (loading) return <PageLoader label="Loading page builder" />;
   if (!competition || !currentOrg) return null;
 
   return (

@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button, Empty, Form, Input, message, Modal, Select, Spin, Tag } from "antd";
+import { Button, Empty, Form, Input, message, Modal, Select, Tag } from "antd";
 import { ArrowRightOutlined, BellOutlined, CalendarOutlined, GlobalOutlined, TeamOutlined, UserOutlined } from "@ant-design/icons";
 import { categoryLabel } from "@/domain/categories";
 import styles from "../workspace.module.css";
+import { PageLoader } from "@/components/common/page-loader";
 
 type Opportunity = { id: string; name: string; description: string; category: string; entryType: "team" | "individual"; eligibility: { region?: string; minRosterSize?: number; maxRosterSize?: number }; dateStart?: string; isNew: boolean; organization?: { name: string; slug: string }; eligibleTeams: { id: string; name: string; rosterSize: number }[]; applications: { status: string; teamId?: string }[] };
 
@@ -15,8 +16,21 @@ export default function OpportunitiesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState("all");
 
-  const load = async () => { const response = await fetch("/api/me/opportunities"); const json = await response.json(); setItems(json.data?.opportunities ?? []); setLoading(false); };
-  useEffect(() => { void load(); }, []);
+  const load = async () => {
+    try { const response = await fetch("/api/me/opportunities"); const json = await response.json(); if (!response.ok) throw new Error(json.error); setItems(json.data?.opportunities ?? []); }
+    catch (error) { message.error(error instanceof Error ? error.message : "Could not load eligible competitions"); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => {
+    let active = true;
+    fetch("/api/me/opportunities").then(async (response) => {
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error);
+      if (active) setItems(json.data?.opportunities ?? []);
+    }).catch((error) => { if (active) message.error(error instanceof Error ? error.message : "Could not load eligible competitions"); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
   const visible = useMemo(() => filter === "all" ? items : items.filter((item) => item.category === filter), [items, filter]);
   const categories = [...new Set(items.map((item) => item.category))];
 
@@ -29,7 +43,7 @@ export default function OpportunitiesPage() {
     message.success("Registration submitted for operator approval"); setSelected(null); await load();
   };
 
-  if (loading) return <div className={styles.loading}><Spin size="large" /></div>;
+  if (loading) return <PageLoader className={styles.loading} label="Finding eligible competitions" />;
   return (
     <>
       <header className="page-header"><div><span className="eyebrow">Competition directory</span><h1 className="page-title">Eligible tournaments</h1><p className="page-subtitle">Newly published competitions that match you or a team you captain. Every application is reviewed by the organizer.</p></div><div className={styles.alertMetric}><BellOutlined /><span><strong>{items.filter((item) => item.isNew && !item.applications.length).length}</strong> new alerts</span></div></header>

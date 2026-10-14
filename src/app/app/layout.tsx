@@ -2,11 +2,12 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Avatar, Button, Dropdown, Layout, Menu, Spin } from "antd";
+import { Avatar, Button, Dropdown, Layout, Menu } from "antd";
 import { AppstoreOutlined, BarChartOutlined, BellOutlined, BookOutlined, LogoutOutlined, TeamOutlined, TrophyOutlined, UserOutlined } from "@ant-design/icons";
 import { AppProvider, useApp } from "@/lib/app-context";
 import { BrandMark } from "@/components/common/brand-mark";
 import styles from "./layout.module.css";
+import { PageLoader } from "@/components/common/page-loader";
 
 const participantItems = [
   { key: "/app", label: "Home", icon: <AppstoreOutlined /> },
@@ -30,7 +31,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     else if (currentMember.accountType === "operator") router.replace(organizations[0] ? `/o/${organizations[0].slug}` : "/login");
   }, [ready, currentMember, organizations, router]);
 
-  if (!ready || !currentMember || currentMember.accountType === "operator") return <div className={styles.loading}><Spin size="large" /></div>;
+  if (!ready || !currentMember || currentMember.accountType === "operator") return <PageLoader className={styles.loading} label="Opening participant workspace" />;
 
   const accountMenu = {
     items: [

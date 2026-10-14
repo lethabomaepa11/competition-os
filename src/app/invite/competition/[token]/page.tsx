@@ -2,15 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, Typography, Button, Spin, message, Layout, Result, Tag, Row, Col, Space, Divider, Input, Form, Collapse, Avatar } from "antd";
+import { Card, Typography, Button, message, Layout, Result, Tag, Row, Col, Space, Input, Form, Collapse, Avatar } from "antd";
 import {
-  TrophyOutlined,
   TeamOutlined,
   LoginOutlined,
   UserAddOutlined,
   RightOutlined,
-  CalendarOutlined,
-  InfoCircleOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import { AppProvider, useApp } from "@/lib/app-context";
@@ -18,13 +15,14 @@ import { CompetitionInviteService } from "@/domain/services/competition-invite.s
 import { CompetitionService } from "@/domain/services/competition.service";
 import { EventService } from "@/domain/services/event.service";
 import { RegistrationService } from "@/domain/services/registration.service";
-import { OrganizationService, MemberService } from "@/domain/services/organization.service";
+import { OrganizationService } from "@/domain/services/organization.service";
 import type { Competition } from "@/domain/competition";
 import type { Event } from "@/domain/event";
 import type { Participant } from "@/domain/participant";
 import { EventStatus } from "@/domain/types";
 import { sendMailEvent } from "@/lib/mail/client";
 import TipTapRenderer from "@/components/editor/tiptap-renderer";
+import { PageLoader } from "@/components/common/page-loader";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -47,6 +45,7 @@ function AcceptCompetitionInviteInner() {
   useEffect(() => {
     const inviteSvc = new CompetitionInviteService();
     (async () => {
+      try {
       const inv = await inviteSvc.getByToken(token);
       if (!inv) {
         setError("Invite not found");
@@ -72,7 +71,9 @@ function AcceptCompetitionInviteInner() {
           setEventsWithParticipants(participantMap);
         }
       }
-      setLoading(false);
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : "Could not load this invitation");
+      } finally { setLoading(false); }
     })();
   }, [token]);
 
@@ -173,7 +174,7 @@ function AcceptCompetitionInviteInner() {
     }
   };
 
-  if (loading) return <Spin style={{ display: "flex", justifyContent: "center", marginTop: 100 }} />;
+  if (loading) return <PageLoader label="Opening competition invitation" />;
 
   if (error) {
     return (
@@ -275,7 +276,7 @@ function AcceptCompetitionInviteInner() {
           {!currentMember ? (
             <div>
               <div style={{ textAlign: "center", marginBottom: 24 }}>
-                <Title level={4}>You're invited!</Title>
+                <Title level={4}>{"You're invited!"}</Title>
                 <Text style={{ display: "block" }}>
                   Enter your name to create an account and join.
                 </Text>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Alert, Breadcrumb, Button, Card, Col, Form, Input, Row, Select, Space, Spin, Typography, message } from "antd";
+import { Alert, Breadcrumb, Button, Card, Col, Form, Input, Row, Select, Space, Typography, message } from "antd";
 import Link from "next/link";
 import { CompetitionService } from "@/domain/services/competition.service";
 import type { Competition } from "@/domain/competition";
@@ -12,6 +12,7 @@ import { useApp } from "@/lib/app-context";
 import { canManageCompetition } from "@/lib/permissions";
 import ImageUpload from "@/components/upload/image-upload";
 import TipTapEditor from "@/components/editor/tiptap-editor";
+import { PageLoader } from "@/components/common/page-loader";
 
 const { Title, Text } = Typography;
 
@@ -29,6 +30,7 @@ export default function CompetitionSettingsPage() {
     let active = true;
     const load = async () => {
       if (!currentOrg || !currentMember) return;
+      try {
       const service = new CompetitionService();
       const [item, allowed] = await Promise.all([
         service.get(params.compId),
@@ -42,7 +44,9 @@ export default function CompetitionSettingsPage() {
       }
       setCompetition(item);
       setAuthorized(allowed);
-      setLoading(false);
+      } catch (error) {
+        if (active) message.error(error instanceof Error ? error.message : "Could not load competition settings");
+      } finally { if (active) setLoading(false); }
     };
     void load();
     return () => { active = false; };
@@ -62,7 +66,7 @@ export default function CompetitionSettingsPage() {
     }
   };
 
-  if (loading) return <div className="page-loading"><Spin size="large" /></div>;
+  if (loading) return <PageLoader label="Loading competition settings" />;
   if (!competition || !currentOrg) return null;
 
   return (

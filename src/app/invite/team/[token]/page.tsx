@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button, Result, Spin, Tag, message } from "antd";
+import { Button, Result, Tag, message } from "antd";
 import { LoginOutlined, TeamOutlined } from "@ant-design/icons";
 import { AppProvider, useApp } from "@/lib/app-context";
 import { AuthShell } from "@/components/common/auth-shell";
 import { categoryLabel, teamTypeLabel } from "@/domain/categories";
+import { PageLoader } from "@/components/common/page-loader";
 
 type Invite = { teamName: string; category: string; teamType: string; status: string; expiresAt: string };
 
@@ -38,7 +39,7 @@ function TeamInviteContent() {
     router.push("/app/teams");
   };
 
-  if (loading || !ready) return <div className="loading-screen"><Spin size="large" /></div>;
+  if (loading || !ready) return <PageLoader className="loading-screen" label="Verifying team invitation" />;
   if (error || !invite || invite.status !== "pending" || new Date(invite.expiresAt) <= new Date()) return <Result status="error" title="Invite unavailable" subTitle={error || "This team invite has expired or has already been used."} extra={<Button onClick={() => router.push("/")}>Return home</Button>} />;
 
   return (

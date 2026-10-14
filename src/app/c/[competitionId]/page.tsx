@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Alert, Progress, Spin, Tag } from "antd";
+import { Alert, Progress, Tag } from "antd";
 import {
   ArrowRightOutlined,
   CalendarOutlined,
@@ -24,6 +24,7 @@ import { EventStatus, MatchStatus, Visibility } from "@/domain/types";
 import { ensureRequiredCompetitionPages, type CompetitionPageBlock } from "@/domain/competition-pages";
 import { PublicCompetitionModule } from "@/components/competition/public-competition-module";
 import styles from "./page.module.css";
+import { PageLoader } from "@/components/common/page-loader";
 
 type PublicEvent = Event & {
   participantCount: number;
@@ -43,6 +44,7 @@ export default function PublicCompetitionPage() {
 
   useEffect(() => {
     (async () => {
+      try {
       const competitionService = new CompetitionService();
       const eventService = new EventService();
       const registrationService = new RegistrationService();
@@ -77,16 +79,13 @@ export default function PublicCompetitionPage() {
           ),
         );
       }
-      setLoading(false);
+      } catch {
+        setAccessError("Competition data could not be loaded. Please try again.");
+      } finally { setLoading(false); }
     })();
   }, [competitionId]);
 
-  if (loading)
-    return (
-      <div className={styles.loading}>
-        <Spin size="large" />
-      </div>
-    );
+  if (loading) return <PageLoader className={styles.loading} label="Loading competition" />;
   if (accessError)
     return <div className={styles.loading}><Alert message="Competition unavailable" description={accessError} type="info" showIcon /></div>;
   if (!competition)

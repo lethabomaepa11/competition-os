@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Avatar, Button, Divider, Form, Input, message, Modal, Select, Spin, Tag } from "antd";
+import { Avatar, Button, Divider, Form, Input, message, Modal, Select, Tag } from "antd";
 import { CopyOutlined, CrownOutlined, EditOutlined, LinkOutlined, TeamOutlined, UserAddOutlined } from "@ant-design/icons";
 import { SPORT_CATEGORIES, TEAM_TYPES, categoryLabel, teamTypeLabel } from "@/domain/categories";
 import styles from "../workspace.module.css";
+import { PageLoader } from "@/components/common/page-loader";
 
 type Team = { id: string; name: string; avatarUrl?: string; category: string; teamType: string; description: string; canManage: boolean; members: { id: string; email?: string; display_name?: string; avatar_url?: string; captain: boolean }[] };
 type TeamValues = { name: string; category: string; teamType: string; description?: string };
@@ -14,9 +15,22 @@ export default function TeamsPage() {
   const [loading, setLoading] = useState(true);
   const [manageTeam, setManageTeam] = useState<Team | null>(null);
   const [inviteUrl, setInviteUrl] = useState("");
-  const load = async () => { const response = await fetch("/api/me/teams"); const json = await response.json(); setTeams(json.data ?? []); setLoading(false); };
+  const load = async () => {
+    try { const response = await fetch("/api/me/teams"); const json = await response.json(); if (!response.ok) throw new Error(json.error); setTeams(json.data ?? []); }
+    catch (error) { message.error(error instanceof Error ? error.message : "Could not load your teams"); }
+    finally { setLoading(false); }
+  };
 
-  useEffect(() => { let active = true; fetch("/api/me/teams").then((response) => response.json()).then((json) => { if (active) { setTeams(json.data ?? []); setLoading(false); } }); return () => { active = false; }; }, []);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/me/teams").then(async (response) => {
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error);
+      if (active) setTeams(json.data ?? []);
+    }).catch((error) => { if (active) message.error(error instanceof Error ? error.message : "Could not load your teams"); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   const update = async (body: Record<string, string | undefined>) => {
     if (!manageTeam) return;
@@ -34,7 +48,7 @@ export default function TeamsPage() {
     setInviteUrl(json.data.shareUrl); message.success(email ? "Invitation sent and link created" : "Share link created");
   };
 
-  if (loading) return <div className={styles.loading}><Spin size="large" /></div>;
+  if (loading) return <PageLoader className={styles.loading} label="Loading team and roster" />;
   return (
     <>
       <header className="page-header"><div><span className="eyebrow">Club administration</span><h1 className="page-title">Team and roster</h1><p className="page-subtitle">Maintain the team created during onboarding, invite players, and register for eligible competitions.</p></div></header>

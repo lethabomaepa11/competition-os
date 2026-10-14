@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { Avatar, Button, Drawer, Dropdown, Grid, Layout, Menu, Spin } from "antd";
+import { Avatar, Button, Drawer, Dropdown, Grid, Layout, Menu } from "antd";
 import {
   ApartmentOutlined,
   AppstoreOutlined,
@@ -20,6 +20,7 @@ import {
 import { AppProvider, useApp } from "@/lib/app-context";
 import { BrandMark } from "@/components/common/brand-mark";
 import styles from "./layout.module.css";
+import { PageLoader } from "@/components/common/page-loader";
 
 const { useBreakpoint } = Grid;
 
@@ -46,7 +47,7 @@ function OrgLayoutInner({ children }: { children: React.ReactNode }) {
     if (ready && currentMember && !org && organizations.length > 0) router.push("/app");
   }, [ready, org, organizations, currentMember, router]);
 
-  if (!ready || (currentMember && !org)) return <div className={styles.loading}><Spin size="large" /></div>;
+  if (!ready || (currentMember && !org)) return <PageLoader className={styles.loading} label="Opening organization workspace" />;
   if (!currentMember || !org) return null;
 
   const base = `/o/${orgSlug}`;

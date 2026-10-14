@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Empty, Progress, Spin, Table, Tag } from "antd";
+import { Empty, Progress, Table, Tag, message } from "antd";
 import {
   ArrowRightOutlined,
   FireOutlined,
@@ -10,6 +10,7 @@ import {
   TrophyOutlined,
 } from "@ant-design/icons";
 import styles from "../workspace.module.css";
+import { PageLoader } from "@/components/common/page-loader";
 
 type Performance = {
   summary: {
@@ -53,15 +54,12 @@ export default function PerformancePage() {
   useEffect(() => {
     fetch("/api/me/performance")
       .then((response) => response.json())
-      .then((json) => setData(json.data ?? null))
+      .then((json) => { if (json.error) throw new Error(json.error); setData(json.data ?? null); })
+      .catch((error) => message.error(error instanceof Error ? error.message : "Could not load performance"))
       .finally(() => setLoading(false));
   }, []);
   if (loading)
-    return (
-      <div className={styles.loading}>
-        <Spin size="large" />
-      </div>
-    );
+    return <PageLoader className={styles.loading} label="Loading your performance" />;
   if (!data || data.entries.length === 0)
     return (
       <>

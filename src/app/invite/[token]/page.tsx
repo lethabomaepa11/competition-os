@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Alert, Button, Card, Descriptions, Result, Spin, Tag } from "antd";
+import { Alert, Button, Card, Descriptions, Result, Tag } from "antd";
 import { ArrowRightOutlined, CheckCircleOutlined, MailOutlined, SafetyCertificateOutlined, TeamOutlined } from "@ant-design/icons";
 import { AppProvider, useApp } from "@/lib/app-context";
 import { AuthShell } from "@/components/common/auth-shell";
+import { PageLoader } from "@/components/common/page-loader";
 
 type OrganizationInvite = {
   organizationId: string;
@@ -60,7 +61,7 @@ function OrganizationInviteContent() {
     }
   };
 
-  if (loading || !ready) return <div className="loading-screen"><Spin size="large" /></div>;
+  if (loading || !ready) return <PageLoader className="loading-screen" label="Verifying organization invitation" />;
   if (error || !invite) return <AuthShell eyebrow="Organization invitation" title="Invitation unavailable." description="We could not verify this invitation. Ask the organization administrator to send a new link."><Result status="error" title="We couldn't open this invitation" subTitle={error || "This invitation may have been revoked."} extra={<Button type="primary" onClick={() => router.push("/")}>Return to CompetitionOS</Button>} /></AuthShell>;
   if (invite.status !== "pending") return <AuthShell eyebrow="Organization invitation" title={invite.status === "accepted" ? "You’re already on the roster." : "This invitation is closed."} description={`Invitation status for ${invite.organizationName}.`}><Result status={invite.status === "accepted" ? "success" : "info"} title={invite.status === "accepted" ? "Invitation already accepted" : `Invitation ${invite.status}`} subTitle={invite.status === "accepted" ? `Your account has already joined ${invite.organizationName}.` : "Ask the organization administrator for a new invitation."} extra={<Button type="primary" onClick={() => router.push(invite.status === "accepted" ? `/o/${invite.organizationSlug}` : "/")}>{invite.status === "accepted" ? "Open organization" : "Return to CompetitionOS"}</Button>} /></AuthShell>;
 

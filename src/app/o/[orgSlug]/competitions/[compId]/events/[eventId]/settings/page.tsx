@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Alert, Breadcrumb, Button, Card, Col, Form, Input, InputNumber, Row, Select, Space, Spin, Typography, message, Switch, Divider } from "antd";
+import { Alert, Breadcrumb, Button, Card, Col, Form, Input, InputNumber, Row, Select, Space, Typography, message, Switch, Divider } from "antd";
 import { EventService } from "@/domain/services/event.service";
 import type { Event } from "@/domain/event";
 import { useApp } from "@/lib/app-context";
@@ -12,6 +12,7 @@ import { CompetitionService } from "@/domain/services/competition.service";
 import ImageUpload from "@/components/upload/image-upload";
 import { EventStatus, RegistrationPolicy, ParticipantType, FormatType } from "@/domain/types";
 import { commentaryStyleLabels, commentaryStyles } from "@/domain/commentary";
+import { PageLoader } from "@/components/common/page-loader";
 
 const { Title, Text } = Typography;
 
@@ -33,6 +34,7 @@ export default function EventSettingsPage() {
     let active = true;
     const load = async () => {
       if (!currentOrg || !currentMember) return;
+      try {
       const [item, competition, allowed, stages] = await Promise.all([
         new EventService().get(params.eventId),
         new CompetitionService().get(params.compId),
@@ -50,7 +52,9 @@ export default function EventSettingsPage() {
       setCompetitionCategory(competition.category);
       setHasFixtures(stages.length > 0);
       setAuthorized(allowed);
-      setLoading(false);
+      } catch (error) {
+        if (active) message.error(error instanceof Error ? error.message : "Could not load event settings");
+      } finally { if (active) setLoading(false); }
     };
     void load();
     return () => { active = false; };
@@ -94,7 +98,7 @@ export default function EventSettingsPage() {
     }
   };
 
-  if (loading) return <div className="page-loading"><Spin size="large" /></div>;
+  if (loading) return <PageLoader label="Loading event settings" />;
   if (!event || !currentOrg) return null;
   const cancel = () => {
     if (dirty && !window.confirm("Discard your unsaved event changes?")) return;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
-import { Card, Typography, Tag, Spin, Space, Row, Col, Empty, Table, Alert, Tabs, Button } from "antd";
+import { Card, Typography, Tag, Space, Row, Col, Empty, Table, Alert, Tabs, Button } from "antd";
 import { TrophyOutlined, ScheduleOutlined, TeamOutlined, NodeIndexOutlined, ReloadOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { CompetitionService } from "@/domain/services/competition.service";
 import { EventService } from "@/domain/services/event.service";
@@ -11,7 +11,7 @@ import type { Competition } from "@/domain/competition";
 import type { Event, Stage, Round } from "@/domain/event";
 import type { Match } from "@/domain/match";
 import type { Participant } from "@/domain/participant";
-import { MatchStatus, FormatType } from "@/domain/types";
+import { MatchStatus } from "@/domain/types";
 import { StandingsService } from "@/domain/services/standings.service";
 import type { StandingsEntry } from "@/domain/formats/interface";
 import { StandingsTable } from "@/components/standings/standings-table";
@@ -20,13 +20,13 @@ import { BracketView } from "@/components/bracket/bracket-view";
 import { AiInsights } from "@/components/ai/ai-insights";
 import { useApp } from "@/lib/app-context";
 import { BetPanel } from "@/components/bet/bet-panel";
+import { PageLoader } from "@/components/common/page-loader";
 
 const { Title, Text } = Typography;
 
 export default function OrgLivePage() {
   const params = useParams();
   const compId = params.compId as string;
-  const orgSlug = params.orgSlug as string;
   const { currentMember } = useApp();
 
   const [competition, setCompetition] = useState<Competition | null>(null);
@@ -72,11 +72,11 @@ export default function OrgLivePage() {
   const refresh = async () => {
     setLoading(true);
     setError(null);
+    try {
     const comp = await compSvc.get(compId);
     setCompetition(comp ?? null);
     if (!comp) {
       setError("Competition not found");
-      setLoading(false);
       return;
     }
     const evts = await evtSvc.list(comp.id);
@@ -87,12 +87,17 @@ export default function OrgLivePage() {
     } else if (activeEventId) {
       await loadEventData(activeEventId);
     }
-    setLoading(false);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not load the live competition");
+    } finally { setLoading(false); }
   };
 
   useEffect(() => {
     if (!compId) return;
+    // Refresh synchronizes the page with the selected persisted competition.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [compId, refreshKey]);
 
   const handleSelectEvent = async (eventId: string) => {
@@ -154,7 +159,7 @@ export default function OrgLivePage() {
   };
 
   if (loading && !competition) {
-    return <Spin style={{ display: "flex", justifyContent: "center", marginTop: 100 }} />;
+    return <PageLoader label="Loading live competition" />;
   }
 
   if (error) {

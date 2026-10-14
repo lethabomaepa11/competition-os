@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import {
   Card,
   Typography,
   Tag,
-  Spin,
   Space,
   Row,
   Col,
@@ -31,6 +30,7 @@ import {
   ShareAltOutlined,
 } from "@ant-design/icons";
 import { CompetitionService } from "@/domain/services/competition.service";
+import { PageLoader } from "@/components/common/page-loader";
 import { EventService } from "@/domain/services/event.service";
 import { RegistrationService } from "@/domain/services/registration.service";
 import { MatchService } from "@/domain/services/match.service";
@@ -38,7 +38,7 @@ import type { Competition } from "@/domain/competition";
 import type { Event, Stage, Round } from "@/domain/event";
 import type { Match } from "@/domain/match";
 import type { Participant } from "@/domain/participant";
-import { MatchStatus, FormatType, Visibility, EventStatus } from "@/domain/types";
+import { MatchStatus, Visibility, EventStatus } from "@/domain/types";
 import { StandingsService } from "@/domain/services/standings.service";
 import type { StandingsEntry } from "@/domain/formats/interface";
 import { StandingsTable } from "@/components/standings/standings-table";
@@ -57,7 +57,6 @@ const { Title, Text } = Typography;
 
 function LiveContent() {
   const params = useParams();
-  const orgSlug = params.orgSlug as string;
   const compId = params.competitionId as string;
   const { currentMember } = useApp();
 
@@ -74,7 +73,6 @@ function LiveContent() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeTabKey, setActiveTabKey] = useState<string>("overview");
   const [detailMatch, setDetailMatch] = useState<Match | null>(null);
-  const commentKeyRef = useRef(0);
 
   const compSvc = new CompetitionService();
   const evtSvc = new EventService();
@@ -115,11 +113,11 @@ function LiveContent() {
   const refresh = async () => {
     setLoading(true);
     setError(null);
+    try {
     const comp = await compSvc.get(compId);
     setCompetition(comp ?? null);
     if (!comp || comp.visibility === Visibility.Private) {
       setError("Competition not found or unavailable");
-      setLoading(false);
       return;
     }
     const evts = (await evtSvc.list(comp.id)).filter((event) => event.status !== EventStatus.Draft && event.status !== EventStatus.Cancelled);
@@ -130,12 +128,17 @@ function LiveContent() {
     } else if (activeEventId) {
       await loadEventData(activeEventId);
     }
-    setLoading(false);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not load the live competition");
+    } finally { setLoading(false); }
   };
 
   useEffect(() => {
     if (!compId) return;
+    // Refresh synchronizes the page with the selected persisted competition.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [compId, refreshKey]);
 
   useEffect(() => {
@@ -148,13 +151,13 @@ function LiveContent() {
         { event: "*", schema: "public", table: "matches" },
         (payload) => {
           if (!payload.new) return;
-          const row = payload.new as any;
+          const row = payload.new as { id?: string; event_id?: string; status?: Match["status"]; started_at?: string; scores?: { participant_id: string; label: string; value: number }[] | null };
           if (row.event_id !== activeEventId) return;
           if (!row.id) return;
 
-          const dbScores = row.scores as any[] | null;
+          const dbScores = row.scores;
           const scores = dbScores
-            ? dbScores.map((s: any) => ({
+            ? dbScores.map((s) => ({
                 participantId: s.participant_id,
                 label: s.label,
                 value: s.value,
@@ -166,7 +169,7 @@ function LiveContent() {
               m.id === row.id
                 ? {
                     ...m,
-                    status: row.status,
+                    status: row.status ?? m.status,
                     startedAt: row.started_at,
                     scores,
                   }
@@ -245,11 +248,7 @@ function LiveContent() {
   }, [isGroupStage, groupConfig]);
 
   if (loading && !competition) {
-    return (
-      <Spin
-        style={{ display: "flex", justifyContent: "center", marginTop: 100 }}
-      />
-    );
+    return <PageLoader label="Loading live competition" />;
   }
 
   if (error) {
@@ -854,7 +853,7 @@ function LiveContent() {
 
         {activeEvent && activeEvent.config?.publicResults === false ? (
           <Alert type="info" showIcon message="Results are private" description="The event operator has not enabled public results for this event." />
-        ) : activeEvent && <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={tabItems as any} />}
+        ) : activeEvent && <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={tabItems} />}
 
         {events.length === 0 && <Empty description="No events found." />}
       </div>

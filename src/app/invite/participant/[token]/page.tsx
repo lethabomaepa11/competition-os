@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, Typography, Button, Spin, message, Layout, Result, Tag, Space } from "antd";
+import { Card, Typography, Button, message, Layout, Result, Space } from "antd";
 import { CheckCircleOutlined, CloseCircleOutlined, UserAddOutlined } from "@ant-design/icons";
 import { AppProvider, useApp } from "@/lib/app-context";
 import { ParticipantInviteService } from "@/domain/services/participant-invite.service";
@@ -10,6 +10,7 @@ import { RegistrationService } from "@/domain/services/registration.service";
 import { MemberService } from "@/domain/services/organization.service";
 import type { ParticipantInvite } from "@/domain/participant-invite";
 import { sendMailEvent } from "@/lib/mail/client";
+import { PageLoader } from "@/components/common/page-loader";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -27,6 +28,7 @@ function AcceptParticipantInviteInner() {
 
   useEffect(() => {
     (async () => {
+      try {
       const svc = new ParticipantInviteService();
       const inv = await svc.getByToken(token);
       if (!inv) {
@@ -36,7 +38,9 @@ function AcceptParticipantInviteInner() {
       } else {
         setInvite(inv);
       }
-      setLoading(false);
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : "Could not load this invitation");
+      } finally { setLoading(false); }
     })();
   }, [token]);
 
@@ -96,7 +100,7 @@ function AcceptParticipantInviteInner() {
     message.success("You're registered!");
   };
 
-  if (loading) return <Spin style={{ display: "flex", justifyContent: "center", marginTop: 100 }} />;
+  if (loading) return <PageLoader label="Opening player invitation" />;
 
   if (error) {
     return (
@@ -138,7 +142,7 @@ function AcceptParticipantInviteInner() {
         </Space>
         <Title level={2} style={{ margin: 0, fontSize: 28 }}>Event Invitation</Title>
         <Text style={{ display: "block", marginTop: 8, fontSize: 15 }}>
-          You've been invited to compete as <strong>{invite?.displayName}</strong>
+          {"You've been invited to compete as "}<strong>{invite?.displayName}</strong>
         </Text>
       </div>
 
@@ -153,7 +157,7 @@ function AcceptParticipantInviteInner() {
           <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 12 }}>
             {!currentMember && (
               <Text style={{ fontSize: 13 }}>
-                You'll be automatically signed up with {invite?.email}
+                {"You'll be automatically signed up with "}{invite?.email}
               </Text>
             )}
             <Button
