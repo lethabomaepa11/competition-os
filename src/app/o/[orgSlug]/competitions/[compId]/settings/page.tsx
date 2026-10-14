@@ -95,7 +95,7 @@ export default function CompetitionSettingsPage() {
             <Form.Item label="Page content" name="content" getValueFromEvent={(value) => value}>
               <TipTapEditor placeholder="Add details participants need before they register." minHeight={220} />
             </Form.Item>
-            <Form.Item label="Public page accent color" name="themeColor" getValueFromEvent={(color) => color?.toHexString()} rules={[{ pattern: /^#[0-9A-Fa-f]{6}$/, message: "Choose a valid six-digit color" }]} extra="Optional. This affects public competition pages only; your operator workspace stays blue."><ColorPicker format="hex" showText allowClear /></Form.Item>
+            <Form.Item label="Competition accent color" name="themeColor" getValueFromEvent={(color) => color?.toHexString()} rules={[{ pattern: /^#[0-9A-Fa-f]{6}$/, message: "Choose a valid six-digit color" }]} extra="Optional. Used on public pages and the competition’s operator workspace. The organization navigation remains blue."><ColorPicker format="hex" showText allowClear /></Form.Item>
           </Card>
           <Card title="Registration and visibility" style={{ marginBottom: 16 }}>
             <Row gutter={16}>

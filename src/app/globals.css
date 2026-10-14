@@ -553,6 +553,9 @@ a {
   background: #fff;
   box-shadow: var(--shadow-sm);
 }
+.detail-page .entity-header {
+  border-top: 3px solid var(--competition-accent, #1c5fd4);
+}
 .entity-heading {
   min-width: 0;
 }

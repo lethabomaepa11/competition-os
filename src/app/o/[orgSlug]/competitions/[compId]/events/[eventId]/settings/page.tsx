@@ -125,7 +125,7 @@ export default function EventSettingsPage() {
               <Col xs={24} md={15}>
                 <Form.Item label="Event name" name="name" rules={[{ required: true }, { min: 2, max: 100 }]} extra="Renaming changes the display label only; registrations and scores remain linked to this event."><Input size="large" maxLength={100} /></Form.Item>
                 <Form.Item label="Event image" name="coverImage"><ImageUpload currentUrl={event.coverImage} onUpload={(url) => form.setFieldValue("coverImage", url)} /></Form.Item>
-                <Form.Item label="Public page accent color" name="themeColor" getValueFromEvent={(color) => color?.toHexString()} rules={[{ pattern: /^#[0-9A-Fa-f]{6}$/, message: "Choose a valid six-digit color" }]} extra="Optional. Applies to this event’s public view and keeps operator navigation unchanged."><ColorPicker format="hex" showText allowClear /></Form.Item>
+                <Form.Item label="Event accent color" name="themeColor" getValueFromEvent={(color) => color?.toHexString()} rules={[{ pattern: /^#[0-9A-Fa-f]{6}$/, message: "Choose a valid six-digit color" }]} extra="Optional. Used on this event’s public view and operator workspace. When unset, the competition color is used."><ColorPicker format="hex" showText allowClear /></Form.Item>
               </Col>
               <Col xs={24} md={9}><Alert type="info" showIcon title="Image uploads live here" description="The event page stays focused on fixtures and operations. Change its cover image from settings." /></Col>
             </Row>

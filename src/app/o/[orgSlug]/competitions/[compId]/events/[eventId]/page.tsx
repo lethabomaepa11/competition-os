@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, type CSSProperties } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Card,
+  ConfigProvider,
   Row,
   Col,
   Typography,
@@ -243,6 +244,7 @@ export default function EventDetailPage() {
   const { currentOrg, currentMember } = useApp();
   const [event, setEvent] = useState<Event | null>(null);
   const [competitionName, setCompetitionName] = useState("");
+  const [competitionThemeColor, setCompetitionThemeColor] = useState<string | undefined>();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
@@ -367,7 +369,10 @@ export default function EventDetailPage() {
 
   useEffect(() => {
     if (!compId) return;
-    void new CompetitionService().get(compId).then((competition) => setCompetitionName(competition?.name ?? "Competition"));
+    void new CompetitionService().get(compId).then((competition) => {
+      setCompetitionName(competition?.name ?? "Competition");
+      setCompetitionThemeColor(competition?.themeColor);
+    });
   }, [compId]);
 
   const handleMatchUpdate = async () => {
@@ -1572,7 +1577,8 @@ export default function EventDetailPage() {
   ];
 
   return (
-    <div>
+    <ConfigProvider theme={{ token: { colorPrimary: event.themeColor || competitionThemeColor || "#1c5fd4" } }}>
+    <div className="detail-page" style={{ "--competition-accent": event.themeColor || competitionThemeColor || "#1c5fd4" } as CSSProperties}>
       {currentOrg && <Breadcrumb style={{ marginBottom: 18 }} items={[
         { title: <Link href={`/o/${currentOrg.slug}`}>{currentOrg.name}</Link> },
         { title: <Link href={`/o/${currentOrg.slug}/competitions`}>Competitions</Link> },
@@ -2032,5 +2038,6 @@ export default function EventDetailPage() {
         />
       </Modal>
     </div>
+    </ConfigProvider>
   );
 }
