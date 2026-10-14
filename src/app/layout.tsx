@@ -10,8 +10,9 @@ export const metadata: Metadata = {
   description: "The competition command center for leagues, federations, tournament operators, and esports.",
   manifest: "/manifest.json",
   icons: [
-    { rel: "icon", url: "/icon-192.png" },
-    { rel: "apple-touch-icon", url: "/icon-192.png" },
+    { rel: "icon", url: "/competitionos-mark.svg", type: "image/svg+xml" },
+    { rel: "icon", url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+    { rel: "apple-touch-icon", url: "/apple-touch-icon.png", sizes: "180x180" },
   ],
   other: {
     "apple-mobile-web-app-capable": "yes",
