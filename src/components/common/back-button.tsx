@@ -17,7 +17,8 @@ export function BackButton({ fallback = "/" }: { fallback?: string }) {
           router.push(fallback);
         }
       }}
-      style={{ position: "fixed", top: 16, left: 16, zIndex: 1000 }}
+      className="back-button"
+      aria-label="Go back"
     >
       Back
     </Button>

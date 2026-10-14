@@ -1,48 +1,53 @@
 # CompetitionOS
 
-CompetitionOS is a Next.js competition manager for organizations, competitions, events, brackets, standings, invites, audit logs, and live views.
+CompetitionOS is a competition operations platform for leagues, federations, tournament organizers, teams, and players. It combines competition setup, event formats, registrations, fixtures, brackets, standings, live control, public coverage, roster management, and personal performance in one workspace.
 
-## Local Development
+## Product areas
+
+- **Organizer command center** — manage organizations, competitions, members, reusable blueprints, audit history, and live operations under `/o/{organization}`.
+- **Competition operations** — create competitions with a clear identity, configure events and formats, manage entrants, publish schedules, record scores, and advance brackets.
+- **Team hub** — captains can create teams, rename them, add registered players by email, and maintain rosters under `/app/teams`.
+- **Player workspace** — participants can see their active events, career record, scoring totals, and recent match history under `/app/performance`.
+- **Public coverage** — share competition pages and live views without exposing the operator workspace.
+
+Workspace links always use the active deployment host, for example `https://your-host.com/o/your-organization`.
+
+## Architecture and data
+
+The app is built with Next.js, React, Ant Design, and Supabase. Authentication, application data, row-level security, and storage are backed by Supabase. Domain services in `src/domain/services` keep UI code separate from persistence.
+
+The redesign works with the existing production schema and does not require a destructive migration. Participant performance and team management read and write the current tables through authenticated server routes.
+
+## Local development
+
+Install dependencies and start the app:
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open [http://localhost:3000](http://localhost:3000).
 
-The app is currently local-first: user, organization, and competition data are stored in browser localStorage through `src/lib/store.ts`. This keeps product work fast while the Supabase schema and migrations are prepared.
+Create `.env.local` with the Supabase project values:
 
-## Supabase Local First
+```bash
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
 
-Supabase scaffolding lives in `supabase/` with the initial schema in `supabase/migrations/20260720000001_initial_schema.sql`.
-
-Start the local Supabase stack:
+For a local Supabase stack:
 
 ```bash
 supabase start
 supabase db reset
 ```
 
-Local services:
+Local Supabase Studio is available at [http://127.0.0.1:54323](http://127.0.0.1:54323).
 
-- API: http://127.0.0.1:54321
-- Studio: http://127.0.0.1:54323
+## Transactional mail
 
-Add the local public URL and anon key to `.env.local`:
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-local-anon-key
-```
-
-The Settings page shows whether those variables are present. The next persistence step is to migrate one repository at a time from localStorage to Supabase while keeping the current domain services stable.
-
-## Mail
-
-Transactional mail is sent through Brevo from `src/app/api/mail/route.ts`. Keep the API key server-side only.
-
-Required env:
+Mail is sent through Brevo from `src/app/api/mail/route.ts`.
 
 ```bash
 BREVO_API_KEY=your-brevo-api-key
@@ -50,12 +55,12 @@ BREVO_FROM_EMAIL=verified-sender@example.com
 BREVO_FROM_NAME=CompetitionOS
 ```
 
-Current mail events cover organization invites, participant invites, registration confirmations, competition status changes, event start/completion, bracket generation, standings updates, match scheduling, match starts, match results, and match disputes.
-
-## Scripts
+## Verification
 
 ```bash
-npm run dev
 npm run build
 npm run lint
+npm run test:e2e
 ```
+
+The Playwright suite covers the public story, authentication, participant performance, team roster controls, current-host organization links, and required competition descriptions on desktop and mobile Chromium.

@@ -7,6 +7,7 @@ import { LockOutlined, CameraOutlined, ArrowLeftOutlined } from "@ant-design/ico
 import { BackButton } from "@/components/common/back-button";
 import { AppProvider, useApp } from "@/lib/app-context";
 import { createClient } from "@/lib/supabase/client";
+import { MemberService } from "@/domain/services/organization.service";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -101,6 +102,16 @@ function ProfileInner() {
     }
   };
 
+  const updateProfile = async (values: { displayName: string }) => {
+    try {
+      await new MemberService().update(currentMember.id, { displayName: values.displayName.trim() });
+      message.success("Profile details updated");
+      router.refresh();
+    } catch (err: unknown) {
+      message.error(err instanceof Error ? err.message : "Could not update profile");
+    }
+  };
+
   const initial = currentMember.displayName?.charAt(0).toUpperCase() ?? "?";
 
   return (
@@ -145,6 +156,17 @@ function ProfileInner() {
             <Title level={3} style={{ margin: "8px 0 0", fontSize: 20, fontWeight: 700 }}>{currentMember.displayName}</Title>
             <Text style={{ fontSize: 14, marginTop: 2, display: "block" }}>{currentMember.email}</Text>
           </div>
+
+          <Divider />
+          <Title level={5} style={{ marginTop: 0 }}>Profile details</Title>
+          <Form layout="vertical" onFinish={updateProfile} initialValues={{ displayName: currentMember.displayName }} requiredMark={false}>
+            <Form.Item label="Display name" name="displayName" rules={[{ required: true, min: 2, message: "Enter your display name" }]}>
+              <Input placeholder="Your public competition name" size="large" />
+            </Form.Item>
+            <Form.Item style={{ marginBottom: 0 }}>
+              <Button htmlType="submit" block size="large">Save profile details</Button>
+            </Form.Item>
+          </Form>
 
           <Divider />
           <Title level={5} style={{ marginTop: 0 }}>Change Password</Title>

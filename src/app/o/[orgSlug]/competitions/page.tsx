@@ -2,63 +2,37 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Table, Button, Typography, Space, Tag, Card } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { Button, Empty, Table, Tag } from "antd";
+import { ArrowRightOutlined, PlusOutlined, TrophyOutlined } from "@ant-design/icons";
 import { useApp } from "@/lib/app-context";
 import { CompetitionService } from "@/domain/services/competition.service";
 import type { Competition } from "@/domain/competition";
 import { CompetitionStatus } from "@/domain/types";
+import styles from "../command.module.css";
 
-const { Title } = Typography;
+const statusColors: Record<string, string> = { draft: "default", published: "blue", in_progress: "green", completed: "purple", archived: "red" };
 
 export default function CompetitionsPage() {
   const router = useRouter();
   const { currentOrg } = useApp();
   const [competitions, setCompetitions] = useState<Competition[]>([]);
-
-  useEffect(() => {
-    if (!currentOrg) return;
-    (async () => {
-      const svc = new CompetitionService();
-      setCompetitions(await svc.list(currentOrg.id));
-    })();
-  }, [currentOrg]);
-
+  useEffect(() => { if (currentOrg) new CompetitionService().list(currentOrg.id).then(setCompetitions); }, [currentOrg]);
   if (!currentOrg) return null;
-
-  const statusColors: Record<string, string> = {
-    [CompetitionStatus.Draft]: "default",
-    [CompetitionStatus.Published]: "blue",
-    [CompetitionStatus.InProgress]: "green",
-    [CompetitionStatus.Completed]: "purple",
-    [CompetitionStatus.Archived]: "red",
-  };
+  const createPath = `/o/${currentOrg.slug}/competitions/new`;
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <Title level={3} style={{ margin: 0 }}>Competitions</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => router.push(`/o/${currentOrg.slug}/competitions/new`)}>
-          New Competition
-        </Button>
-      </div>
-      <Table
-        dataSource={competitions}
-        rowKey="id"
-        onRow={(record) => ({
-          onClick: () => router.push(`/o/${currentOrg.slug}/competitions/${record.id}`),
-          style: { cursor: "pointer" },
-        })}
-        columns={[
-          { title: "Name", dataIndex: "name", key: "name" },
-          { title: "Description", dataIndex: "description", key: "description", ellipsis: true },
-          {
-            title: "Status", dataIndex: "status", key: "status",
-            render: (s: CompetitionStatus) => <Tag color={statusColors[s]}>{s}</Tag>,
-          },
-          { title: "Created", dataIndex: "createdAt", key: "createdAt", render: (d: string) => new Date(d).toLocaleDateString() },
-        ]}
-      />
-    </div>
+    <>
+      <header className="page-header"><div><span className="eyebrow">Competition portfolio</span><h1 className="page-title">Every arena, one view.</h1><p className="page-subtitle">Move from concept to registration, matchday, final result, and archive with the full lifecycle visible.</p></div><div className="page-actions"><Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => router.push(createPath)}>New competition</Button></div></header>
+      <div className={styles.listMeta}><span>{String(competitions.length).padStart(2,"0")} total</span><span>{competitions.filter((item) => item.status === CompetitionStatus.InProgress).length} live</span><span>{competitions.filter((item) => item.status === CompetitionStatus.Draft).length} drafts</span></div>
+      {competitions.length === 0 ? <div className={styles.emptyState}><TrophyOutlined /><h2>No competitions yet.</h2><p>Build a league, cup, tournament, or championship from scratch.</p><Button type="primary" onClick={() => router.push(createPath)}>Create the first competition</Button></div> : (
+        <Table dataSource={competitions} rowKey="id" pagination={{ pageSize: 10 }} scroll={{ x: 760 }} onRow={(record) => ({ onClick: () => router.push(`/o/${currentOrg.slug}/competitions/${record.id}`), style: { cursor: "pointer" } })} columns={[
+          { title: "Competition", dataIndex: "name", key: "name", render: (name: string, record) => <div className={styles.competitionName}><span>{name}</span><small>{record.description || "No description"}</small></div> },
+          { title: "Status", dataIndex: "status", key: "status", width: 150, render: (status: CompetitionStatus) => <Tag color={statusColors[status]}>{status.replace(/_/g," ")}</Tag> },
+          { title: "Start", dataIndex: "dateStart", key: "dateStart", width: 140, render: (date?: string) => date ? new Date(date).toLocaleDateString() : "TBC" },
+          { title: "Created", dataIndex: "createdAt", key: "createdAt", width: 140, render: (date: string) => new Date(date).toLocaleDateString() },
+          { title: "", key: "open", width: 48, render: () => <ArrowRightOutlined /> },
+        ]} locale={{ emptyText: <Empty description="No competitions" /> }} />
+      )}
+    </>
   );
 }
