@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Alert, Breadcrumb, Button, Card, Checkbox, Empty, Input, Select, Space, Spin, Typography, message, Modal, Tag } from "antd";
-import { DeleteOutlined, DownOutlined, HolderOutlined, PlusOutlined, SaveOutlined, ThunderboltOutlined, UpOutlined } from "@ant-design/icons";
+import { Alert, Breadcrumb, Button, Card, Checkbox, Empty, Input, Select, Space, Spin, Typography, message, Modal, Tag, Segmented } from "antd";
+import { DeleteOutlined, DesktopOutlined, DownOutlined, EyeOutlined, HolderOutlined, MobileOutlined, PlusOutlined, SaveOutlined, ThunderboltOutlined, UpOutlined } from "@ant-design/icons";
 import { CompetitionService } from "@/domain/services/competition.service";
 import type { Competition } from "@/domain/competition";
 import { canManageCompetition } from "@/lib/permissions";
 import { useApp } from "@/lib/app-context";
-import { createCustomCompetitionPage, ensureRequiredCompetitionPages, type CompetitionBlockType, type CompetitionPage } from "@/domain/competition-pages";
+import { createCustomCompetitionPage, ensureRequiredCompetitionPages, validateCompetitionPages, type CompetitionBlockType, type CompetitionPage } from "@/domain/competition-pages";
 import styles from "./pages.module.css";
 
 const { Title, Text } = Typography;
@@ -42,6 +42,8 @@ export default function CompetitionPagesEditor() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiDraft, setAiDraft] = useState<CompetitionPage["blocks"]>([]);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewViewport, setPreviewViewport] = useState<"desktop" | "phone">("desktop");
 
   useEffect(() => {
     let active = true;
@@ -101,32 +103,15 @@ export default function CompetitionPagesEditor() {
   };
   const save = async () => {
     if (!competition || !currentMember || !authorized) return;
-    const invitePage = pages.find((page) => page.kind === "invite");
-    if (invitePage?.enabled && !invitePage.blocks.some((block) => block.type === "call_to_action")) {
-      message.error("The published Invite page needs at least one registration link");
-      return;
-    }
-    const slugs = pages.map((page) => page.slug.trim().toLowerCase());
-    if (slugs.some((slug) => !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) || new Set(slugs).size !== slugs.length) {
-      message.error("Page links must use unique lowercase letters, numbers, and hyphens");
-      return;
-    }
-    for (const page of pages) {
-      for (const block of page.blocks.filter((item) => item.type === "call_to_action" && item.href)) {
-        const href = block.href!.trim();
-        if (href.startsWith("page:")) {
-          const target = pages.find((item) => item.slug === href.slice(5) && item.enabled);
-          if (!target) { message.error(`The link in ${page.name} points to a page that is missing or unpublished`); return; }
-        } else if (!(/^https:\/\//i.test(href) || (href.startsWith("/") && !href.startsWith("//")))) {
-          message.error(`Use an https:// URL, a local path, or choose a competition page for the link in ${page.name}`);
-          return;
-        }
-      }
-    }
+    const validation = validateCompetitionPages(pages);
+    if (!validation.pages) { message.error(validation.errors[0]); return; }
     setSaving(true);
     try {
-      const updated = await new CompetitionService().update(competition.id, { pages }, currentMember.id);
-      if (updated) setCompetition(updated);
+      const response = await fetch(`/api/competitions/${competition.id}/pages`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pages: validation.pages }) });
+      const json = await response.json() as { data?: { pages: CompetitionPage[] }; error?: string };
+      if (!response.ok || !json.data) throw new Error(json.error ?? "Could not save page changes");
+      setPages(json.data.pages);
+      setCompetition({ ...competition, pages: json.data.pages });
       message.success("Competition pages saved");
     } catch (error) {
       message.error(error instanceof Error ? error.message : "Could not save page changes");
@@ -171,7 +156,7 @@ export default function CompetitionPagesEditor() {
       ]} />
       <div style={{ display: "flex", alignItems: "end", justifyContent: "space-between", gap: 20, flexWrap: "wrap", margin: "20px 0" }}>
         <div><Text type="secondary">Public experience · {competition.name}</Text><Title level={2} style={{ margin: "4px 0" }}>Build competition pages</Title><Text type="secondary">Arrange sections, control navigation and preview the public address.</Text></div>
-        <Space wrap>{authorized && <Button icon={<ThunderboltOutlined />} onClick={() => { setAiDraft([]); setAiOpen(true); }}>Draft with AI</Button>}<Button onClick={() => window.open(`/c/${competition.id}`, "_blank")}>Preview page</Button><Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={save}>Save pages</Button></Space>
+        <Space wrap>{authorized && <Button icon={<ThunderboltOutlined />} onClick={() => { setAiDraft([]); setAiOpen(true); }}>Draft with AI</Button>}<Button icon={<EyeOutlined />} onClick={() => setPreviewOpen(true)}>Preview changes</Button><Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={save}>Save pages</Button></Space>
       </div>
       {!authorized ? <Alert type="error" showIcon title="Owner or admin access required to edit public pages." /> : (
         <div className={styles.layout}>
@@ -220,6 +205,18 @@ export default function CompetitionPagesEditor() {
       )}
       <Modal title={aiDraft.length ? "Review AI page draft" : "Draft page sections with AI"} open={aiOpen} onCancel={() => { if (!aiLoading) setAiOpen(false); }} onOk={aiDraft.length ? applyAiDraft : generateDraft} okText={aiDraft.length ? "Use this draft" : "Generate draft"} confirmLoading={aiLoading} okButtonProps={{ disabled: !aiDraft.length && aiPrompt.trim().length < 4 }}>
         {aiDraft.length ? <><Alert type="info" showIcon message="This draft is not saved or published." description="Review every section and check factual details. You can edit the result before saving the page." /><Space orientation="vertical" style={{ width: "100%", marginTop: 16 }}>{aiDraft.map((block, index) => <Card key={block.id} size="small" title={`${index + 1}. ${block.title || block.type.replaceAll("_", " ")}`}><Typography.Paragraph>{block.body || "No supporting copy generated."}</Typography.Paragraph><Tag color="blue">{block.type.replaceAll("_", " ")}</Tag></Card>)}</Space></> : <><p>Tell the AI what this page should help a participant or audience member understand. It uses your competition description and event names as context.</p><Input.TextArea aria-label="AI page direction" value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} rows={5} maxLength={1000} placeholder="For example: Explain how clubs qualify, what captains should prepare, and where matchday updates appear." showCount /><Text type="secondary">Generated copy is a starting point. It will never publish automatically, and the AI must not invent results or eligibility rules.</Text></>}
+      </Modal>
+      <Modal title="Unsaved page preview" open={previewOpen} onCancel={() => setPreviewOpen(false)} footer={<Button type="primary" onClick={() => setPreviewOpen(false)}>Back to editor</Button>} width={1180} centered>
+        <div className={styles.previewToolbar}><Text type="secondary">This preview uses the sections currently in your editor.</Text><Segmented value={previewViewport} onChange={(value) => setPreviewViewport(value as "desktop" | "phone")} options={[{ value: "desktop", label: "Desktop", icon: <DesktopOutlined /> }, { value: "phone", label: "Phone", icon: <MobileOutlined /> }]} /></div>
+        <div className={`${styles.previewShell} ${previewViewport === "phone" ? styles.previewPhone : ""}`} style={{ "--preview-accent": competition.themeColor ?? "#1c5fd4" } as React.CSSProperties}>
+          <nav className={styles.previewNav}><strong>{competition.name}</strong><span>{pages.filter((page) => page.enabled).map((page) => <button type="button" key={page.id} className={page.id === selected?.id ? styles.previewActive : ""} onClick={() => setSelectedId(page.id)}>{page.name}</button>)}</span></nav>
+          <header className={styles.previewHero}><small>{selected?.kind === "live" ? "Live competition centre" : "Official competition page"}</small><h2>{selected?.kind === "home" ? competition.name : selected?.name}</h2><p>{selected?.kind === "home" ? competition.description : `${competition.name} · ${selected?.name}`}</p></header>
+          <div className={styles.previewCanvas}>{selected?.blocks.map((block) => <section key={block.id} className={styles.previewBlock} data-type={block.type}>
+            <small>{block.type.replaceAll("_", " ")}</small><h3>{block.title || blockOptions.find((option) => option.value === block.type)?.label}</h3>{block.body && <p>{block.body}</p>}
+            {["standings", "schedule", "results", "roster", "bracket", "statistics", "event_list"].includes(block.type) && <div className={styles.previewRows}><i /><i /><i /></div>}
+            {block.type === "call_to_action" && <button type="button">{block.title || "Continue"}</button>}
+          </section>)}</div>
+        </div>
       </Modal>
     </div>
   );

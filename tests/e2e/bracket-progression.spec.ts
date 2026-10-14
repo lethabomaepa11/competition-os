@@ -3,7 +3,7 @@ import { DoubleEliminationFormat } from "../../src/domain/formats/double-elimina
 import { LeagueFormat } from "../../src/domain/formats/league";
 import { GroupStageFormat } from "../../src/domain/formats/group-stage";
 import { SingleEliminationFormat } from "../../src/domain/formats/single-elimination";
-import { ensureRequiredCompetitionPages } from "../../src/domain/competition-pages";
+import { ensureRequiredCompetitionPages, validateCompetitionPages } from "../../src/domain/competition-pages";
 import { calculatePredictionOdds } from "../../src/domain/prediction-odds";
 import { resolveEventChampion } from "../../src/domain/champion";
 import { normalizeCompetitionBlueprint } from "../../src/domain/blueprints";
@@ -30,6 +30,18 @@ function participants(count: number): Participant[] {
 }
 
 test.describe("competition structure integrity", () => {
+  test("rejects unsafe and broken page links before publishing", () => {
+    const pages = ensureRequiredCompetitionPages();
+    const invite = pages.find((page) => page.kind === "invite")!;
+    invite.enabled = true;
+    invite.blocks[0].href = "http://unsafe.example.com";
+    expect(validateCompetitionPages(pages).errors[0]).toContain("https://");
+    invite.blocks[0].href = "page:missing";
+    expect(validateCompetitionPages(pages).errors[0]).toContain("missing");
+    invite.blocks[0].href = "/app/opportunities";
+    expect(validateCompetitionPages(pages)).toMatchObject({ errors: [] });
+  });
+
   test("derives analyst form and score averages from completed persisted results only", () => {
     const entrants = participants(3);
     const results: Match[] = [

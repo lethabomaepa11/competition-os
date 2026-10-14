@@ -106,7 +106,7 @@ export default function PublicCompetitionPage() {
   const pages = ensureRequiredCompetitionPages(competition.pages ?? []);
   const activePage = pages.find((page) => page.slug === pageSlug && page.enabled) ?? pages.find((page) => page.kind === "home")!;
   const liveUrl = `/live/${orgSlug}/${competition.id}`;
-  const safeHref = (href?: string) => href && (/^https?:\/\//i.test(href) || (href.startsWith("/") && !href.startsWith("//"))) ? href : "/register";
+  const safeHref = (href?: string) => href && (/^https:\/\//i.test(href) || (href.startsWith("/") && !href.startsWith("//"))) ? href : "/register";
   const renderBlock = (block: CompetitionPageBlock) => {
     if (block.type === "hero") return null;
     if (block.type === "statistics" && activePage.kind === "live") return <PublicCompetitionModule key={block.id} kind="statistics" title={block.title || "Statistics"} events={events} />;
