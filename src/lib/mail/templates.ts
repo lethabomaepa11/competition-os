@@ -71,7 +71,7 @@ const subjects: Record<MailEventKind, string> = {
 
 const descriptions: Record<MailEventKind, string> = {
   account_created: "Your account has been created. Your temporary password is: {{password}}. Sign in and change your password right away.",
-  organization_invite: "You have been invited to join {{organizationName}} as {{role}}.",
+  organization_invite: "{{inviterName}} invited you to join {{organizationName}} as {{role}}. Review the organization and your access before accepting.",
   competition_invite_created: "A shareable competition invite link was created for {{competitionName}}.",
   participant_invite: "{{inviterName}} invited you to participate in {{eventName}}.",
   team_invite: "{{inviterName}} invited you to join the {{teamName}} roster.",
@@ -126,23 +126,26 @@ export function renderMailEvent(payload: MailEventPayload): RenderedMail {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(subject)}</title>
   </head>
-  <body style="margin:0;background:#f8fafc;color:#0f172a;font-family:Arial,sans-serif;">
+  <body style="margin:0;background:#eef3fa;color:#14243a;font-family:Arial,Helvetica,sans-serif;">
     <div style="display:none;max-height:0;overflow:hidden;">${preheader}</div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;padding:24px;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eef3fa;padding:32px 16px;">
       <tr>
         <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border:1px solid #dce5f1;border-radius:16px;overflow:hidden;">
             <tr>
-              <td style="padding:24px 24px 12px;">
-                <div style="font-size:13px;font-weight:700;color:#1e3a8a;text-transform:uppercase;letter-spacing:.04em;">CompetitionOS</div>
-                <h1 style="font-size:24px;line-height:1.25;margin:10px 0 0;color:#0f172a;">${escapeHtml(subject)}</h1>
+              <td style="padding:24px 28px;background:#102744;border-bottom:4px solid #2878f0;">
+                <div style="font-size:13px;font-weight:700;color:#ffffff;letter-spacing:.08em;">COMPETITION<span style="color:#79aaff;">OS</span></div>
+                <div style="font-size:12px;color:#b9c9df;margin-top:20px;text-transform:uppercase;letter-spacing:.12em;">Competition operations</div>
               </td>
             </tr>
             <tr>
-              <td style="padding:8px 24px 24px;">
-                <p style="font-size:15px;line-height:1.6;margin:0 0 20px;color:#334155;">${description}</p>
-                ${actionUrl ? `<a href="${actionUrl}" style="display:inline-block;background:#1e3a8a;color:#ffffff;text-decoration:none;font-weight:700;padding:11px 16px;border-radius:8px;">${actionLabel}</a>` : ""}
-                <p style="font-size:12px;line-height:1.5;margin:24px 0 0;color:#64748b;">This is an automated transactional email from CompetitionOS.</p>
+              <td style="padding:30px 28px 28px;">
+                <h1 style="font-size:26px;line-height:1.2;margin:0 0 14px;color:#14243a;">${escapeHtml(subject)}</h1>
+                <p style="font-size:15px;line-height:1.7;margin:0 0 24px;color:#52627a;">${description}</p>
+                ${payload.kind === "organization_invite" && payload.params.role ? `<div style="margin:0 0 24px;padding:14px 16px;background:#f4f8ff;border:1px solid #d6e4ff;border-radius:10px;"><div style="font-size:11px;color:#667992;text-transform:uppercase;letter-spacing:.08em;">Organization access</div><div style="margin-top:5px;color:#155eef;font-size:16px;font-weight:700;">${escapeHtml(payload.params.role)} · ${escapeHtml(payload.params.organizationName ?? "Organization")}</div></div>` : ""}
+                ${actionUrl ? `<a href="${actionUrl}" style="display:inline-block;background:#155eef;color:#ffffff;text-decoration:none;font-weight:700;padding:13px 20px;border-radius:9px;">${actionLabel}</a>` : ""}
+                ${actionUrl ? `<p style="font-size:12px;line-height:1.6;margin:22px 0 0;color:#667992;">If the button doesn’t open, copy this secure link:<br /><a href="${actionUrl}" style="color:#155eef;word-break:break-all;">${actionUrl}</a></p>` : ""}
+                <p style="font-size:12px;line-height:1.5;margin:25px 0 0;padding-top:18px;border-top:1px solid #e7edf5;color:#7b8aa0;">This is an automated transactional email from CompetitionOS. If you weren’t expecting this invitation, you can ignore it.</p>
               </td>
             </tr>
           </table>

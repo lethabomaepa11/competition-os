@@ -69,7 +69,6 @@ const TABLE_MAP: Record<string, string> = {
   rulesets: "rule_sets",
   bets: "bets",
   better_profiles: "better_profiles",
-  invites: "invites",
   competition_invites: "competition_invites",
   participant_invites: "participant_invites",
   audit_entries: "audit_entries",
