@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Alert, Progress, Spin, Tag } from "antd";
 import {
   ArrowRightOutlined,
@@ -128,7 +129,7 @@ export default function PublicCompetitionPage() {
         </div>
       </section>
     );
-    if (["standings", "bracket", "results"].includes(block.type)) return <PublicCompetitionModule key={block.id} kind={block.type as "standings" | "bracket" | "results"} title={block.title || block.type} events={events} />;
+    if (["standings", "bracket", "results", "schedule", "roster"].includes(block.type)) return <PublicCompetitionModule key={block.id} kind={block.type as "standings" | "bracket" | "results" | "schedule" | "roster"} title={block.title || block.type} events={events} />;
     if (block.type === "call_to_action") {
       const pageLink = block.href?.startsWith("page:") ? pages.find((page) => page.slug === block.href?.slice(5) && page.enabled) : undefined;
       const href = pageLink ? `/c/${competition.id}?page=${encodeURIComponent(pageLink.slug)}` : block.id === "live-link" ? liveUrl : safeHref(block.href);
@@ -146,7 +147,7 @@ export default function PublicCompetitionPage() {
         <small>CompetitionOS broadcast</small>
       </nav>
       <header className={styles.hero}>
-        {competition.coverImage && <img src={competition.coverImage} alt="" />}
+        {competition.coverImage && <Image src={competition.coverImage} alt="" fill sizes="100vw" priority unoptimized />}
         <div className={styles.heroShade} />
         <div className={styles.heroContent}>
           <div className={styles.tags}>

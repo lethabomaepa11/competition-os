@@ -17,6 +17,8 @@ const blockOptions: { value: CompetitionBlockType; label: string }[] = [
   { value: "hero", label: "Hero and identity" },
   { value: "rich_text", label: "Text and details" },
   { value: "event_list", label: "Event programme" },
+  { value: "schedule", label: "Fixture schedule" },
+  { value: "roster", label: "Entrants and roster" },
   { value: "standings", label: "Standings" },
   { value: "bracket", label: "Bracket" },
   { value: "results", label: "Fixtures and results" },

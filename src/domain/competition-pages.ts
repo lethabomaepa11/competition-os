@@ -4,6 +4,8 @@ export type CompetitionBlockType =
   | "hero"
   | "rich_text"
   | "event_list"
+  | "schedule"
+  | "roster"
   | "standings"
   | "bracket"
   | "results"

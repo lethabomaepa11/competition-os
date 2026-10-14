@@ -17,7 +17,7 @@ import { BracketView } from "@/components/bracket/bracket-view";
 import { PlayerStats } from "@/components/stats/player-stats";
 
 const { Text } = Typography;
-type ModuleKind = "standings" | "bracket" | "results" | "statistics";
+type ModuleKind = "standings" | "bracket" | "results" | "statistics" | "schedule" | "roster";
 
 export function PublicCompetitionModule({ kind, title, events }: { kind: ModuleKind; title: string; events: Event[] }) {
   const [eventId, setEventId] = useState(events[0]?.id);
@@ -78,13 +78,26 @@ export function PublicCompetitionModule({ kind, title, events }: { kind: ModuleK
         <div><Text type="secondary">Live competition data</Text><Typography.Title level={3} style={{ margin: "4px 0" }}>{title}</Typography.Title></div>
         {events.length > 1 && <Select aria-label="Select event" value={eventId} onChange={setEventId} style={{ minWidth: 220 }} options={events.map((item) => ({ value: item.id, label: item.name }))} />}
       </div>
-      {loading ? <Skeleton active paragraph={{ rows: 4 }} /> : error ? <Alert type="error" showIcon message="Competition data unavailable" description={error} /> : event?.config?.publicResults === false ? <Alert type="info" showIcon message="Results are private" description="The event operator has not enabled public results for this event." /> : !event ? <Empty description="No event selected" /> : kind === "standings" ? (groupConfig ? <GroupStandingsView standings={standings} event={event} groupNames={groupNames} /> : <StandingsTable standings={standings} event={event} />) : kind === "bracket" ? <BracketView matches={bracketMatches} participants={participants} rounds={bracketRounds} /> : kind === "statistics" ? <PlayerStats matches={matches} participants={participants} /> : <Table<Match>
-        dataSource={matches.filter((match) => match.status === MatchStatus.Completed || match.status === MatchStatus.Walkover).slice().reverse()}
+      {loading ? <Skeleton active paragraph={{ rows: 4 }} /> : error ? <Alert type="error" showIcon message="Competition data unavailable" description={error} /> : event?.config?.publicResults === false ? <Alert type="info" showIcon message="Results are private" description="The event operator has not enabled public results for this event." /> : !event ? <Empty description="No event selected" /> : kind === "standings" ? (groupConfig ? <GroupStandingsView standings={standings} event={event} groupNames={groupNames} /> : <StandingsTable standings={standings} event={event} />) : kind === "bracket" ? <BracketView matches={bracketMatches} participants={participants} rounds={bracketRounds} /> : kind === "statistics" ? <PlayerStats matches={matches} participants={participants} /> : kind === "roster" ? <Table<Participant>
+        dataSource={participants.filter((participant) => participant.status !== "disqualified")}
         rowKey="id"
-        locale={{ emptyText: "Results will appear after matches are completed." }}
+        locale={{ emptyText: "Approved entrants will appear here." }}
+        pagination={{ pageSize: 10, showSizeChanger: true }}
+        scroll={{ x: 420 }}
+        columns={[
+          { title: "Entrant", dataIndex: "displayName", key: "name" },
+          { title: "Seed", dataIndex: "seed", key: "seed", render: (seed?: number) => seed ?? "—" },
+        ]}
+      /> : <Table<Match>
+        dataSource={(kind === "schedule" ? matches : matches.filter((match) => match.status === MatchStatus.Completed || match.status === MatchStatus.Walkover).slice().reverse())}
+        rowKey="id"
+        locale={{ emptyText: kind === "schedule" ? "Fixtures will appear when the event schedule is set." : "Results will appear after matches are completed." }}
+        pagination={{ pageSize: 10, showSizeChanger: true }}
         scroll={{ x: 560 }}
         columns={[
+          ...(kind === "schedule" ? [{ title: "Scheduled", key: "scheduled", render: (_: unknown, match: Match) => match.scheduledAt ? new Date(match.scheduledAt).toLocaleString() : "Time to be confirmed" }] : []),
           { title: "Fixture", key: "fixture", render: (_: unknown, match) => (match.participants ?? []).map((entry) => participants.find((participant) => participant.id === entry.participantId)?.displayName ?? "To be confirmed").join(" vs ") },
+          ...(kind === "schedule" ? [{ title: "Status", dataIndex: "status", key: "status", render: (status: string) => <Tag color="blue">{status.replace(/_/g, " ")}</Tag> }] : []),
           { title: "Score", key: "score", render: (_: unknown, match) => match.result?.scores?.map((score) => `${participants.find((participant) => participant.id === score.participantId)?.displayName ?? "Entrant"} ${score.value}`).join(" · ") ?? "-" },
           { title: "Winner", key: "winner", render: (_: unknown, match) => match.result?.winnerId ? <Tag color="blue">{participants.find((participant) => participant.id === match.result?.winnerId)?.displayName ?? "Winner"}</Tag> : <Tag>Draw</Tag> },
         ]}
