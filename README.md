@@ -4,10 +4,11 @@ CompetitionOS is a competition operations platform for leagues, federations, tou
 
 ## Product areas
 
-- **Organizer command center** — manage organizations, competitions, members, reusable blueprints, audit history, and live operations under `/o/{organization}`.
+- **Organizer command center** — operator onboarding provisions one organization, then the operator manages competitions, members, blueprints, audit history, registration approvals, and live operations under `/o/{organization}`.
 - **Competition operations** — create competitions with a clear identity, configure events and formats, manage entrants, publish schedules, record scores, and advance brackets.
-- **Team hub** — captains can create teams, rename them, add registered players by email, and maintain rosters under `/app/teams`.
-- **Player workspace** — participants can see their active events, career record, scoring totals, and recent match history under `/app/performance`.
+- **Team hub** — team onboarding provisions the named club or organization; captains update its identity, invite players by email or share link, maintain the roster, and apply to eligible tournaments.
+- **Player workspace** — player accounts can apply to individual tournaments and see active events, career records, scoring totals, and recent match history.
+- **How to center** — `/how-to` provides role based walkthroughs with product screenshots for setup, registrations, formats, scoring, brackets, rosters, publishing, and access control.
 - **Public coverage** — share competition pages and live views without exposing the operator workspace.
 
 Workspace links always use the active deployment host, for example `https://your-host.com/o/your-organization`.
@@ -16,7 +17,9 @@ Workspace links always use the active deployment host, for example `https://your
 
 The app is built with Next.js, React, Ant Design, and Supabase. Authentication, application data, row-level security, and storage are backed by Supabase. Domain services in `src/domain/services` keep UI code separate from persistence.
 
-The redesign works with the existing production schema and does not require a destructive migration. Participant performance and team management read and write the current tables through authenticated server routes.
+The redesign uses an additive migration for account roles, team identity, registration approvals, and invite links. Existing organization members are backfilled as operators, existing captains as team accounts, and remaining accounts as players.
+
+The PWA caches public product guidance and static assets. Authenticated workspaces, APIs, live scores, and private competition data always use the network and fall back to a dedicated offline screen instead of stale cached data.
 
 ## Local development
 
@@ -63,4 +66,4 @@ npm run lint
 npm run test:e2e
 ```
 
-The Playwright suite covers the public story, authentication, participant performance, team roster controls, current-host organization links, and required competition descriptions on desktop and mobile Chromium.
+The Playwright suite covers the public story, role specific onboarding, the illustrated how to center, participant performance, team roster controls, required competition descriptions, and deterministic bracket progression on desktop and mobile Chromium.
