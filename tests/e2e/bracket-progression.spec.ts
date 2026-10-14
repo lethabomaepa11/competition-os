@@ -140,6 +140,28 @@ test.describe("competition structure integrity", () => {
     expect(target?.participants.find((item) => item.position === 2)?.participantId).toBe(expected.get(2));
   });
 
+  test("double elimination finals create a reset only when the losers-bracket champion wins", () => {
+    const entrants = participants(4);
+    const format = new DoubleEliminationFormat();
+    const [{ rounds, matches }] = format.createStages("event-1", entrants, [{ key: "bracket_reset", value: true }]);
+    const final = matches.find((match) => match.config.bracketType === "grand_final")!;
+    const reset = matches.find((match) => match.config.bracketType === "grand_final_reset")!;
+    const finalWithEntrants: Match = {
+      ...final,
+      participantIds: [entrants[0].id, entrants[1].id],
+      participants: [{ matchId: final.id, participantId: entrants[0].id, position: 1 }, { matchId: final.id, participantId: entrants[1].id, position: 2 }],
+      status: MatchStatus.Completed,
+      result: { winnerId: entrants[1].id, scores: [], isWalkover: false },
+    };
+    const resetNeeded = format.propagateResults([reset, finalWithEntrants], rounds).find((match) => match.id === reset.id)!;
+    expect(resetNeeded.status).toBe(MatchStatus.Scheduled);
+    expect(resetNeeded.participantIds).toEqual([entrants[0].id, entrants[1].id]);
+
+    const noReset = format.propagateResults([reset, { ...finalWithEntrants, result: { winnerId: entrants[0].id, scores: [], isWalkover: false } }], rounds).find((match) => match.id === reset.id)!;
+    expect(noReset.status).toBe(MatchStatus.Cancelled);
+    expect(noReset.participantIds).toEqual([]);
+  });
+
   test("league generation schedules every pairing exactly once", () => {
     const [{ matches }] = new LeagueFormat().createStages("event-1", participants(6), []);
     const pairings = matches.map((match) => [...match.participantIds].sort().join(":"));

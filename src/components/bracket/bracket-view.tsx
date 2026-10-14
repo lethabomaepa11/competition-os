@@ -28,6 +28,7 @@ interface BracketMatchData {
   status: MatchStatus;
   fixtureNumber?: number;
   bracketGroup?: string;
+  bracketType?: string;
   winnerTarget?: string;
   loserTarget?: string;
 }
@@ -92,6 +93,7 @@ export function BracketView({ matches, participants, rounds }: Props) {
           ? m.config.matchIndex
           : typeof m.config.engineMatchIndex === "number" ? m.config.engineMatchIndex + 1 : undefined,
         bracketGroup: m.bracketGroup,
+        bracketType: typeof m.config.bracketType === "string" ? m.config.bracketType : undefined,
         winnerTarget: typeof m.config.nextMatchKey === "string" ? targetLabels.get(m.config.nextMatchKey) : undefined,
         loserTarget: typeof m.config.loserNextMatchKey === "string" ? targetLabels.get(m.config.loserNextMatchKey) : undefined,
       };
@@ -238,6 +240,10 @@ function MatchCard({ match, onClick }: { match: BracketMatchData; onClick: () =>
       ? "Live now"
       : match.status === MatchStatus.Walkover
         ? "Walkover"
+        : match.status === MatchStatus.Cancelled && match.bracketType === "grand_final_reset"
+          ? "Reset not needed"
+          : match.status === MatchStatus.Cancelled
+            ? "Cancelled"
         : "Upcoming";
 
   return (

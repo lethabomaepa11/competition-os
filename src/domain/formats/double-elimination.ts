@@ -8,7 +8,7 @@ import { generateId } from "../../lib/id";
 import { generateDoubleElimination } from "@kurovu146/bracket-engine";
 import type { MatchSeed } from "@kurovu146/bracket-engine";
 
-const BRACKET_TYPE_ORDER = ["winners", "losers", "grand_final"];
+const BRACKET_TYPE_ORDER = ["winners", "losers", "grand_final", "grand_final_reset"];
 
 export class DoubleEliminationFormat implements FormatStrategy {
   readonly type = "double_elimination";
@@ -22,7 +22,7 @@ export class DoubleEliminationFormat implements FormatStrategy {
     }
 
     const participantIds = seeded.map(p => p.id);
-    const seeds = generateDoubleElimination(participantIds, { grandFinalReset: false });
+    const seeds = generateDoubleElimination(participantIds, { grandFinalReset: getBoolRule(rules, "bracket_reset", FormatType.DoubleElimination) });
 
     const stage: Stage = {
       id: generateId(),
@@ -106,6 +106,7 @@ export class DoubleEliminationFormat implements FormatStrategy {
           loserNextMatchKey: seed.loser_next_match_index === null ? null : seeds[seed.loser_next_match_index]?.match_id,
           loserNextMatchSlot: seed.loser_next_match_slot,
           bracketGroup,
+          bracketType: seed.bracket_type,
         },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -136,6 +137,23 @@ export class DoubleEliminationFormat implements FormatStrategy {
 
     for (const match of updated) {
       if ((match.status !== MatchStatus.Completed && match.status !== MatchStatus.Walkover) || !match.result?.winnerId) continue;
+
+      if (match.config?.bracketType === "grand_final") {
+        const resetKey = match.config?.nextMatchKey as string | undefined;
+        const reset = resetKey ? updated.find((candidate) => candidate.config?.engineMatchKey === resetKey) : undefined;
+        if (!reset) continue;
+        const loserBracketWinner = match.participants.find((entry) => entry.position === 2)?.participantId;
+        if (match.result.winnerId === loserBracketWinner) {
+          reset.status = MatchStatus.Scheduled;
+          reset.participants = match.participants.map((entry) => ({ ...entry, matchId: reset.id }));
+          reset.participantIds = reset.participants.map((entry) => entry.participantId);
+        } else {
+          reset.status = MatchStatus.Cancelled;
+          reset.participants = [];
+          reset.participantIds = [];
+        }
+        continue;
+      }
 
       const nextIdx = match.config?.nextMatchIndex as number | undefined;
       const nextKey = match.config?.nextMatchKey as string | undefined;
