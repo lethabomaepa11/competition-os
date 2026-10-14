@@ -12,21 +12,23 @@
   background: #07111f;
   color: #fff;
 }
-.nav > span {
+.pageNav {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  color: #1c5fd4;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
-.nav > span i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #2d7ff9;
+.pageNav a {
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, .64);
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.pageNav a[aria-current="page"], .pageNav a:hover {
+  background: rgba(255, 255, 255, .09);
+  color: #fff;
 }
 .nav small {
   justify-self: end;
@@ -41,7 +43,7 @@
   min-height: 560px;
   overflow: hidden;
   align-items: flex-end;
-  border-bottom: 6px solid #1c5fd4;
+  border-bottom: 6px solid var(--competition-accent, #1c5fd4);
   background:
     radial-gradient(
       circle at 78% 32%,
@@ -83,7 +85,7 @@
   margin-bottom: 26px;
 }
 .organizer {
-  color: #1c5fd4;
+  color: var(--competition-accent, #1c5fd4);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -120,6 +122,53 @@
   align-items: center;
   gap: 7px;
 }
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+.heroActions a, .actionLink {
+  display: inline-flex;
+  min-height: 42px;
+  padding: 0 16px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, .28);
+  border-radius: 8px;
+  background: var(--competition-accent, #1c5fd4);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+}
+.pageSection { margin-top: 44px; }
+.pageSection .overview { margin-top: 0; }
+.pageSection .sectionHeading { margin-top: 52px; }
+.customBlock {
+  display: flex;
+  min-height: 150px;
+  margin: 16px 0;
+  padding: 28px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border: 1px solid #d9dfdc;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(7, 17, 31, .04);
+}
+.customBlock > div > span {
+  color: #6d7973;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.customBlock h2 { margin: 8px 0; font-size: clamp(24px, 4vw, 38px); letter-spacing: -.045em; }
+.customBlock p { max-width: 620px; margin: 0; color: #66727d; line-height: 1.6; }
+.customBlock .actionLink { flex-shrink: 0; }
 .content {
   width: min(100% - 36px, 1400px);
   margin: 0 auto;
@@ -280,7 +329,20 @@
   .nav {
     grid-template-columns: 1fr auto;
   }
-  .nav > span {
+  .nav {
+    min-height: 58px;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+  }
+  .pageNav {
+    justify-content: flex-end;
+    gap: 0;
+  }
+  .pageNav a {
+    padding: 8px;
+    font-size: 10px;
+  }
+  .nav small {
     display: none;
   }
   .hero {
@@ -297,6 +359,7 @@
   .eventGrid {
     grid-template-columns: 1fr;
   }
+  .customBlock { align-items: flex-start; flex-direction: column; }
   .footer {
     grid-template-columns: 1fr auto;
   }

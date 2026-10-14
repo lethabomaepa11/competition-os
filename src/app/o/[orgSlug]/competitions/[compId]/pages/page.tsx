@@ -99,6 +99,11 @@ export default function CompetitionPagesEditor() {
   };
   const save = async () => {
     if (!competition || !currentMember || !authorized) return;
+    const invitePage = pages.find((page) => page.kind === "invite");
+    if (invitePage?.enabled && !invitePage.blocks.some((block) => block.type === "call_to_action")) {
+      message.error("The published Invite page needs at least one registration link");
+      return;
+    }
     const slugs = pages.map((page) => page.slug.trim().toLowerCase());
     if (slugs.some((slug) => !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) || new Set(slugs).size !== slugs.length) {
       message.error("Page links must use unique lowercase letters, numbers, and hyphens");

@@ -1,0 +1,22 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(210px, 260px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.layout > * { min-width: 0; }
+
+.pageFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.pageFields label { display: block; min-width: 0; }
+
+@media (max-width: 760px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .pageFields { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .layout :global(.ant-card) { min-width: 0; }
+}

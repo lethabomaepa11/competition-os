@@ -302,7 +302,7 @@ test.describe("competition and event administration", () => {
     await expect(page.getByRole("navigation", { name: "Competition pages" }).getByRole("link")).toHaveCount(3);
     await page.getByRole("navigation", { name: "Competition pages" }).getByRole("link", { name: "Invite" }).click();
     await expect(page).toHaveURL(/page=invite/);
-    await expect(page.getByRole("heading", { name: "Find your place in the field." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Join", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Continue to registration" })).toHaveAttribute("href", "/register");
   });
 

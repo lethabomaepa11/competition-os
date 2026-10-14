@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { Alert, Progress, Spin, Tag } from "antd";
 import {
   ArrowRightOutlined,
@@ -18,7 +19,9 @@ import { OrganizationService } from "@/domain/services/organization.service";
 import type { Competition } from "@/domain/competition";
 import type { Event } from "@/domain/event";
 import type { Match } from "@/domain/match";
-import { MatchStatus } from "@/domain/types";
+import { EventStatus, MatchStatus, Visibility } from "@/domain/types";
+import { ensureRequiredCompetitionPages, type CompetitionPageBlock } from "@/domain/competition-pages";
+import { PublicCompetitionModule } from "@/components/competition/public-competition-module";
 import styles from "./page.module.css";
 
 type PublicEvent = Event & {
@@ -31,8 +34,11 @@ export default function PublicCompetitionPage() {
   const competitionId = useParams().competitionId as string;
   const [competition, setCompetition] = useState<Competition | null>(null);
   const [orgName, setOrgName] = useState("");
+  const [orgSlug, setOrgSlug] = useState("");
+  const [pageSlug, setPageSlug] = useState("home");
   const [events, setEvents] = useState<PublicEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [accessError, setAccessError] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -41,15 +47,19 @@ export default function PublicCompetitionPage() {
       const registrationService = new RegistrationService();
       const record = await competitionService.get(competitionId);
       setCompetition(record ?? null);
-      if (record) {
+      setPageSlug(new URLSearchParams(window.location.search).get("page") ?? "home");
+      if (record?.visibility === Visibility.Private) {
+        setAccessError("This competition is private.");
+      } else if (record) {
         const [organization, eventRecords] = await Promise.all([
           new OrganizationService().get(record.organizationId),
           eventService.list(record.id),
         ]);
         setOrgName(organization?.name ?? "");
+        setOrgSlug(organization?.slug ?? "");
         setEvents(
           await Promise.all(
-            eventRecords.map(async (event) => {
+            eventRecords.filter((event) => event.status !== EventStatus.Draft && event.status !== EventStatus.Cancelled).map(async (event) => {
               const [participants, matches] = await Promise.all([
                 registrationService.getParticipants(event.id),
                 eventService.getMatches(event.id),
@@ -76,6 +86,8 @@ export default function PublicCompetitionPage() {
         <Spin size="large" />
       </div>
     );
+  if (accessError)
+    return <div className={styles.loading}><Alert message="Competition unavailable" description={accessError} type="info" showIcon /></div>;
   if (!competition)
     return (
       <div className={styles.loading}>
@@ -90,14 +102,47 @@ export default function PublicCompetitionPage() {
   const completion = totalMatches
     ? Math.round((completedMatches / totalMatches) * 100)
     : 0;
+  const pages = ensureRequiredCompetitionPages(competition.pages ?? []);
+  const activePage = pages.find((page) => page.slug === pageSlug && page.enabled) ?? pages.find((page) => page.kind === "home")!;
+  const liveUrl = `/live/${orgSlug}/${competition.id}`;
+  const safeHref = (href?: string) => href && (/^https?:\/\//i.test(href) || (href.startsWith("/") && !href.startsWith("//"))) ? href : "/register";
+  const renderBlock = (block: CompetitionPageBlock) => {
+    if (block.type === "hero") return null;
+    if (block.type === "statistics" && activePage.kind === "live") return <PublicCompetitionModule key={block.id} kind="statistics" title={block.title || "Statistics"} events={events} />;
+    if (block.type === "statistics") return (
+      <div className={styles.overview} key={block.id}>
+        <div><span>{block.title || "Competition progress"}</span><strong>{completion}%</strong><Progress percent={completion} showInfo={false} strokeColor={competition.themeColor ?? "#1c5fd4"} railColor="#DDE3E0" /></div>
+        <div><span>Total fixtures</span><strong>{String(totalMatches).padStart(2, "0")}</strong><small>Across {events.length} events</small></div>
+        <div><span>Competitors</span><strong>{String(events.reduce((sum, event) => sum + event.participantCount, 0)).padStart(2, "0")}</strong><small>Registered entries</small></div>
+      </div>
+    );
+    if (block.type === "event_list") return (
+      <section className={styles.pageSection} key={block.id}>
+        <div className={styles.sectionHeading}><div><span>Competition programme</span><h2>{block.title || "Events and progress"}</h2></div><p>Follow every format from opening fixture to final result.</p></div>
+        <div className={styles.eventGrid}>
+          {events.map((event, index) => {
+            const percent = event.matchCount ? Math.round((event.completedCount / event.matchCount) * 100) : 0;
+            return <article key={event.id} className={styles.eventCard}><div className={styles.eventTop}><span>{String(index + 1).padStart(2, "0")}</span><Tag color={event.status === "in_progress" ? "blue" : "default"}>{event.status.replace(/_/g, " ")}</Tag></div><h3>{event.name}</h3><p>{event.format.replace(/_/g, " ")}</p><div className={styles.eventStats}><span><TeamOutlined /> {event.participantCount} entries</span><span><ScheduleOutlined /> {event.completedCount}/{event.matchCount} complete</span></div><Progress percent={percent} showInfo={false} strokeColor={competition.themeColor ?? "#1c5fd4"} railColor="#E3E8E5" /><footer><span>{event.dateStart ? new Date(event.dateStart).toLocaleDateString() : "Date TBC"}</span><ArrowRightOutlined /></footer></article>;
+          })}
+          {events.length === 0 && <div className={styles.empty}>The competition programme will appear here when events are published.</div>}
+        </div>
+      </section>
+    );
+    if (["standings", "bracket", "results"].includes(block.type)) return <PublicCompetitionModule key={block.id} kind={block.type as "standings" | "bracket" | "results"} title={block.title || block.type} events={events} />;
+    if (block.type === "call_to_action") {
+      const pageLink = block.href?.startsWith("page:") ? pages.find((page) => page.slug === block.href?.slice(5) && page.enabled) : undefined;
+      const href = pageLink ? `/c/${competition.id}?page=${encodeURIComponent(pageLink.slug)}` : block.id === "live-link" ? liveUrl : safeHref(block.href);
+      const linkLabel = activePage.kind === "invite" ? "Continue to registration" : block.title?.toLowerCase().includes("join") ? "Join this competition" : pageLink?.name ?? (block.id === "live-link" ? "Open live view" : block.title || "Continue");
+      return <section className={styles.customBlock} key={block.id}><div><span>{block.type.replace(/_/g, " ")}</span><h2>{block.title || "Continue to the competition"}</h2>{block.body && <p>{block.body}</p>}</div><Link className={styles.actionLink} href={href}>{linkLabel} <ArrowRightOutlined /></Link></section>;
+    }
+    return <section className={styles.customBlock} key={block.id}><div><span>{block.type.replace(/_/g, " ")}</span><h2>{block.title || "Competition information"}</h2>{block.body && <p>{block.body}</p>}</div></section>;
+  };
 
   return (
-    <main className={styles.page}>
-      <nav className={styles.nav}>
+    <main className={styles.page} style={{ "--competition-accent": competition.themeColor ?? "#1c5fd4" } as React.CSSProperties}>
+      <nav className={styles.nav} aria-label="Competition pages">
         <BrandMark dark />
-        <span>
-          <i /> Official competition page
-        </span>
+        <div className={styles.pageNav}>{pages.filter((page) => page.enabled).map((page) => <a key={page.id} href={`/c/${competition.id}?page=${encodeURIComponent(page.slug)}`} aria-current={page.id === activePage.id ? "page" : undefined}>{page.name}</a>)}</div>
         <small>CompetitionOS broadcast</small>
       </nav>
       <header className={styles.hero}>
@@ -105,14 +150,22 @@ export default function PublicCompetitionPage() {
         <div className={styles.heroShade} />
         <div className={styles.heroContent}>
           <div className={styles.tags}>
-            <Tag color="lime">{competition.status.replace(/_/g, " ")}</Tag>
+            <Tag color="blue">{competition.status.replace(/_/g, " ")}</Tag>
             <Tag>{competition.game?.name ?? "Open competition"}</Tag>
           </div>
           <span className={styles.organizer}>
             Presented by {orgName || "Competition organizer"}
           </span>
-          <h1>{competition.name}</h1>
-          {competition.description && <p>{competition.description}</p>}
+          <h1>{activePage.kind === "home" ? competition.name : activePage.name}</h1>
+          {activePage.kind === "home" && competition.description && <p>{competition.description}</p>}
+          {activePage.kind === "invite" && <p>Choose the event that fits your team or player profile, then complete your registration.</p>}
+          {activePage.kind === "live" && <p>Follow fixtures, results, standings, brackets and qualification as they happen.</p>}
+          {activePage.kind === "custom" && <p>{competition.name} · Official competition information</p>}
+          <div className={styles.heroActions}>
+            {activePage.kind === "home" && pages.find((page) => page.kind === "invite")?.enabled && <Link href={`/c/${competition.id}?page=invite`}>Join <ArrowRightOutlined /></Link>}
+            {activePage.kind !== "live" && pages.find((page) => page.kind === "live")?.enabled && <Link href={liveUrl}>Live view <ArrowRightOutlined /></Link>}
+            {activePage.kind === "live" && <Link href={liveUrl}>Open live competition centre <ArrowRightOutlined /></Link>}
+          </div>
           <div className={styles.heroMeta}>
             <span>
               <TrophyOutlined /> {events.length} events
@@ -131,92 +184,10 @@ export default function PublicCompetitionPage() {
       </header>
 
       <section className={styles.content}>
-        <div className={styles.overview}>
-          <div>
-            <span>Competition progress</span>
-            <strong>{completion}%</strong>
-            <Progress
-              percent={completion}
-              showInfo={false}
-              strokeColor="#1c5fd4"
-              railColor="#DDE3E0"
-            />
-          </div>
-          <div>
-            <span>Total fixtures</span>
-            <strong>{String(totalMatches).padStart(2, "0")}</strong>
-            <small>
-              Across {events.length} event{events.length === 1 ? "" : "s"}
-            </small>
-          </div>
-          <div>
-            <span>Competitors</span>
-            <strong>
-              {String(
-                events.reduce((sum, event) => sum + event.participantCount, 0),
-              ).padStart(2, "0")}
-            </strong>
-            <small>Registered entries</small>
-          </div>
-        </div>
-
-        <div className={styles.sectionHeading}>
-          <div>
-            <span>Competition programme</span>
-            <h2>Events and progress.</h2>
-          </div>
-          <p>Follow every format from opening fixture to final result.</p>
-        </div>
-        <div className={styles.eventGrid}>
-          {events.map((event, index) => {
-            const percent = event.matchCount
-              ? Math.round((event.completedCount / event.matchCount) * 100)
-              : 0;
-            return (
-              <article key={event.id} className={styles.eventCard}>
-                <div className={styles.eventTop}>
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                  <Tag
-                    color={event.status === "in_progress" ? "green" : "default"}
-                  >
-                    {event.status.replace(/_/g, " ")}
-                  </Tag>
-                </div>
-                <h3>{event.name}</h3>
-                <p>{event.format.replace(/_/g, " ")}</p>
-                <div className={styles.eventStats}>
-                  <span>
-                    <TeamOutlined /> {event.participantCount} entries
-                  </span>
-                  <span>
-                    <ScheduleOutlined /> {event.completedCount}/
-                    {event.matchCount} complete
-                  </span>
-                </div>
-                <Progress
-                  percent={percent}
-                  showInfo={false}
-                  strokeColor="#1c5fd4"
-                  railColor="#E3E8E5"
-                />
-                <footer>
-                  <span>
-                    {event.dateStart
-                      ? new Date(event.dateStart).toLocaleDateString()
-                      : "Date TBC"}
-                  </span>
-                  <ArrowRightOutlined />
-                </footer>
-              </article>
-            );
-          })}
-          {events.length === 0 && (
-            <div className={styles.empty}>
-              The competition programme will appear here when events are
-              published.
-            </div>
-          )}
-        </div>
+        {activePage.kind === "invite" ? activePage.blocks.map(renderBlock)
+          : activePage.kind === "live" ? activePage.blocks.map(renderBlock)
+            : activePage.kind === "custom" ? activePage.blocks.map(renderBlock)
+              : activePage.blocks.map(renderBlock)}
       </section>
       <footer className={styles.footer}>
         <BrandMark dark />

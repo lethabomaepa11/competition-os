@@ -31,4 +31,5 @@ export interface Event extends Timestamps {
   dateStart?: string;
   dateEnd?: string;
   coverImage?: string;
+  themeColor?: string;
 }

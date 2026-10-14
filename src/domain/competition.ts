@@ -1,4 +1,5 @@
 import { type ID, type Timestamps, CompetitionStatus, ParticipantType, Visibility } from "./types";
+import type { CompetitionPage } from "./competition-pages";
 
 export interface Competition extends Timestamps {
   id: ID;
@@ -8,6 +9,8 @@ export interface Competition extends Timestamps {
   description: string;
   logoUrl?: string;
   coverImage?: string;
+  themeColor?: string;
+  pages?: CompetitionPage[];
   content?: Record<string, unknown>;
   category: string;
   entryType: ParticipantType;
