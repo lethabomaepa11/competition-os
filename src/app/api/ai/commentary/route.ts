@@ -4,7 +4,6 @@ import type { Database } from "@/lib/supabase/types";
 import { commentaryStyleDirection, groundedScoreSummary, isCommentaryStyle, type CommentaryStyle } from "@/domain/commentary";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-type Score = { participantId: string; label?: string; value: number };
 
 export async function POST(request: NextRequest) {
   try {

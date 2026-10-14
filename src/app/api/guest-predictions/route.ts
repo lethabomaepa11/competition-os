@@ -1,5 +1,6 @@
 ﻿import { createHash, randomBytes } from "node:crypto";
 import { createServerClient } from "@supabase/ssr";
+import { createHmac } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import type { Database } from "@/lib/supabase/types";
 import { calculatePredictionOdds } from "@/domain/prediction-odds";
@@ -52,6 +53,17 @@ export async function POST(request: NextRequest) {
       newIdentity = true;
     }
     const tokenHash = createHash("sha256").update(token).digest("hex");
+    const forwardedIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip")?.trim();
+    const rateSecret = process.env.PREDICTION_RATE_LIMIT_SECRET ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "competitionos-local";
+    const ipHash = forwardedIp ? createHmac("sha256", rateSecret).update(forwardedIp.slice(0, 100)).digest("hex") : null;
+    // This RPC uses a transaction-level advisory lock, so limits hold across serverless instances.
+    const rateClient = supabase as unknown as { rpc: (name: string, values: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> };
+    const { data: allowed, error: rateError } = await rateClient.rpc("consume_guest_prediction_rate_limit", { p_token_hash: tokenHash, p_ip_hash: ipHash });
+    if (rateError) {
+      console.error("Prediction rate limit unavailable", rateError.message);
+      return NextResponse.json({ error: "Predictions are temporarily unavailable. Please try again shortly." }, { status: 503 });
+    }
+    if (allowed !== true) return NextResponse.json({ error: "Prediction limit reached. Try again later." }, { status: 429, headers: { "Retry-After": "3600" } });
     const { error: insertError } = await supabase.from("bets").insert({
       match_id: matchId,
       event_id: match.event_id,
