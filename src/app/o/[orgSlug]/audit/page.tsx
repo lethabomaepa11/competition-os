@@ -1,21 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, message, Table, Tag } from "antd";
+import { Button, message, Tag } from "antd";
 import { AuditOutlined, UndoOutlined } from "@ant-design/icons";
 import { useApp } from "@/lib/app-context";
 import { getAuditLog, undoAudit } from "@/domain/audit";
 import type { AuditEntry } from "@/domain/types";
 import styles from "../command.module.css";
+import { SystemTable } from "@/components/common/system-table";
 
 export default function AuditPage() {
   const { currentOrg } = useApp();
   const [entries, setEntries] = useState<AuditEntry[]>([]);
-  const refresh = async () => { if (currentOrg) setEntries(await getAuditLog(currentOrg.id, { limit: 50 })); };
+  const [loading, setLoading] = useState(true);
+  const refresh = async () => { if (currentOrg) { setLoading(true); setEntries(await getAuditLog(currentOrg.id, { limit: 50 })); setLoading(false); } };
   useEffect(() => {
     if (!currentOrg) return;
     let active = true;
-    getAuditLog(currentOrg.id, { limit: 50 }).then((items) => { if (active) setEntries(items); });
+    getAuditLog(currentOrg.id, { limit: 50 }).then((items) => { if (active) { setEntries(items); setLoading(false); } });
     return () => { active = false; };
   }, [currentOrg]);
   if (!currentOrg) return null;
@@ -25,7 +27,7 @@ export default function AuditPage() {
     <>
       <header className="page-header"><div><span className="eyebrow">Governance and recovery</span><h1 className="page-title">Nothing happens in the dark.</h1><p className="page-subtitle">Review the latest organization changes, understand their scope, and reverse supported actions.</p></div></header>
       <div className={styles.auditBanner}><AuditOutlined /><div><strong>Traceable by design</strong><span>The latest 50 mutations are shown below. Undo is available where a valid snapshot exists.</span></div><b>{entries.length} entries</b></div>
-      <Table dataSource={entries} rowKey="id" scroll={{ x: 850 }} columns={[
+      <SystemTable dataSource={entries} rowKey="id" loading={loading} searchText={(entry) => `${entry.action} ${entry.resourceType} ${entry.resourceId} ${Object.keys(entry.diff).join(" ")}`} scroll={{ x: 850 }} columns={[
         { title: "Action", dataIndex: "action", key: "action", render: (value: string) => <Tag>{value}</Tag> },
         { title: "Resource", dataIndex: "resourceType", key: "resourceType" },
         { title: "ID", dataIndex: "resourceId", key: "resourceId", ellipsis: true, width: 180 },

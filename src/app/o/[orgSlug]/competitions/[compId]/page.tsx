@@ -17,13 +17,14 @@ import {
   Select,
   Descriptions,
   Popconfirm,
-  Table,
   InputNumber,
   Divider,
   Collapse,
   Statistic,
   Progress,
   Alert,
+  Checkbox,
+  Breadcrumb,
 } from "antd";
 import {
   PlusOutlined,
@@ -55,17 +56,21 @@ import {
   FormatType,
   Visibility,
   EventStatus,
-  ParticipantType,
   RuleValueType,
+  ParticipantType,
+  RegistrationPolicy,
 } from "@/domain/types";
-import { SPORT_CATEGORIES } from "@/domain/categories";
 import { FormatRuleDefinitions } from "@/domain/rules";
-import type { ProgressionPlan, PhaseConfig } from "@/domain/progression";
+import type { PhaseConfig } from "@/domain/progression";
 import { autoQualifierCount } from "@/domain/progression";
 import { canManageCompetition } from "@/lib/permissions";
 import { sendMailEvent } from "@/lib/mail/client";
-import ImageUpload from "@/components/upload/image-upload";
-import TipTapEditor from "@/components/editor/tiptap-editor";
+import { SystemTable } from "@/components/common/system-table";
+import { GetWhere, create } from "@/lib/store";
+import { generateId } from "@/lib/id";
+import type { BlueprintRecord, EventBlueprintConfig } from "@/domain/blueprints";
+import { isBlueprintCompatible, isEventBlueprint, normalizeEventBlueprint } from "@/domain/blueprints";
+import Link from "next/link";
 
 const { Title, Text } = Typography;
 
@@ -76,11 +81,13 @@ export default function CompetitionDetailPage() {
   const [competition, setCompetition] = useState<Competition | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [eventModalOpen, setEventModalOpen] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [invites, setInvites] = useState<CompetitionInvite[]>([]);
+  const [invitesLoading, setInvitesLoading] = useState(false);
+  const [eventBlueprints, setEventBlueprints] = useState<BlueprintRecord[]>([]);
+  const [selectedEventBlueprint, setSelectedEventBlueprint] = useState<string>();
+  const [saveEventAsBlueprint, setSaveEventAsBlueprint] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [deleteEventModalOpen, setDeleteEventModalOpen] = useState(false);
   const [deleteEventTarget, setDeleteEventTarget] = useState<Event | null>(
     null,
@@ -89,13 +96,13 @@ export default function CompetitionDetailPage() {
   const [createFormat, setCreateFormat] = useState<FormatType>(
     FormatType.League,
   );
+  const [eventForm] = Form.useForm<{ name: string; participantType?: ParticipantType; registrationPolicy?: RegistrationPolicy; minParticipants?: number; maxParticipants?: number }>();
   const [createRules, setCreateRules] = useState<Record<string, unknown>>({});
   const [createPhases, setCreatePhases] = useState<PhaseConfig[]>([]);
   const [newPhaseFormat, setNewPhaseFormat] = useState<FormatType>(
     FormatType.SingleElimination,
   );
   const [newPhaseQualifiers, setNewPhaseQualifiers] = useState(4);
-  const [editForm] = Form.useForm();
   const [isAdmin, setIsAdmin] = useState(false);
 
   const compId = params.compId as string;
@@ -108,8 +115,14 @@ export default function CompetitionDetailPage() {
     if (comp) {
       const evtSvc = new EventService();
       setEvents(await evtSvc.list(comp.id));
-      setInvites(await inviteSvc.listByCompetition(comp.id));
+      setInvitesLoading(true);
+      try {
+        setInvites(await inviteSvc.listByCompetition(comp.id));
+      } finally {
+        setInvitesLoading(false);
+      }
     }
+    if (currentOrg) setEventBlueprints((await GetWhere<BlueprintRecord>("blueprints", { organizationId: currentOrg.id })).filter(isEventBlueprint));
     if (currentMember && currentOrg) {
       setIsAdmin(await canManageCompetition(currentMember.id, currentOrg.id));
     }
@@ -117,7 +130,7 @@ export default function CompetitionDetailPage() {
 
   useEffect(() => {
     if (!compId) return;
-    refresh();
+    void Promise.resolve().then(refresh);
   }, [compId]);
 
   if (!currentOrg || !competition) return null;
@@ -125,37 +138,53 @@ export default function CompetitionDetailPage() {
   const statusColors: Record<string, string> = {
     [CompetitionStatus.Draft]: "default",
     [CompetitionStatus.Published]: "blue",
-    [CompetitionStatus.InProgress]: "green",
-    [CompetitionStatus.Completed]: "purple",
-    [CompetitionStatus.Archived]: "red",
+    [CompetitionStatus.InProgress]: "blue",
+    [CompetitionStatus.Completed]: "blue",
+    [CompetitionStatus.Archived]: "default",
   };
 
-  const handleCreateEvent = async (values: { name: string }) => {
+  const handleCreateEvent = async (values: { name: string; participantType?: ParticipantType; registrationPolicy?: RegistrationPolicy; minParticipants?: number; maxParticipants?: number }) => {
     if (!currentMember) return;
     setLoading(true);
     try {
       const evtSvc = new EventService();
+      const blueprint = eventBlueprints.find((item) => item.id === selectedEventBlueprint);
+      const blueprintConfig = blueprint && isEventBlueprint(blueprint) ? normalizeEventBlueprint(blueprint.config) : undefined;
+      const eventConfig = blueprintConfig?.event;
+      const format = eventConfig?.format ?? createFormat;
       const event = await evtSvc.create(
         {
           competitionId: competition.id,
-          name: values.name,
-          format: createFormat,
+          name: values.name.trim() || eventConfig?.name || "New event",
+          format,
+          participantType: values.participantType ?? eventConfig?.participantType ?? competition.entryType,
+          registrationPolicy: values.registrationPolicy ?? eventConfig?.registrationPolicy,
+          minParticipants: values.minParticipants ?? eventConfig?.minParticipants,
+          maxParticipants: values.maxParticipants ?? eventConfig?.maxParticipants,
+          config: eventConfig?.config,
         },
         currentMember.id,
       );
 
-      const allRules = FormatRuleDefinitions[createFormat].map((d) => ({
+      const allRules = blueprintConfig?.rules ?? FormatRuleDefinitions[format].map((d) => ({
         key: d.key,
         value:
           createRules[d.key] !== undefined
             ? createRules[d.key]
-            : d.defaultValue,
+            : blueprintConfig?.rules?.find((rule) => rule.key === d.key)?.value ?? d.defaultValue,
       }));
       await evtSvc.saveRuleSet(event.id, allRules);
 
-      if (createPhases.length > 0) {
+      const phases = blueprintConfig?.progression ?? createPhases;
+      if (phases.length > 0) {
         const progSvc = new ProgressionService();
-        await progSvc.saveProgressionPlan(event.id, { phases: createPhases });
+        await progSvc.saveProgressionPlan(event.id, { phases });
+      }
+
+      if (saveEventAsBlueprint && currentOrg) {
+        const config: EventBlueprintConfig = { type: "event", event: { name: values.name.trim(), format, participantType: values.participantType ?? eventConfig?.participantType ?? competition.entryType, registrationPolicy: values.registrationPolicy ?? eventConfig?.registrationPolicy ?? RegistrationPolicy.Open, minParticipants: values.minParticipants ?? eventConfig?.minParticipants, maxParticipants: values.maxParticipants ?? eventConfig?.maxParticipants, config: eventConfig?.config ?? {} }, rules: allRules, progression: phases };
+        const now = new Date().toISOString();
+        await create("blueprints", { id: generateId(), organizationId: currentOrg.id, name: values.name.trim(), description: "Reusable event format and rules", config, version: 1, isPublic: false, createdAt: now, updatedAt: now });
       }
 
       message.success("Event created!");
@@ -166,42 +195,6 @@ export default function CompetitionDetailPage() {
       message.error("Failed to create event");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleEditCompetition = async (values: {
-    name: string;
-    description: string;
-    category: string;
-    entryType: ParticipantType;
-    visibility: Visibility;
-    coverImage?: string;
-    content?: Record<string, unknown>;
-  }) => {
-    if (!currentMember) return;
-    setSaving(true);
-    try {
-      const svc = new CompetitionService();
-      await svc.update(
-        competition.id,
-        {
-          name: values.name,
-          description: values.description,
-          category: values.category,
-          entryType: values.entryType,
-          visibility: values.visibility,
-          coverImage: values.coverImage,
-          content: values.content,
-        },
-        currentMember.id,
-      );
-      message.success("Competition updated!");
-      setEditModalOpen(false);
-      refresh();
-    } catch {
-      message.error("Failed to update competition");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -249,8 +242,11 @@ export default function CompetitionDetailPage() {
   };
 
   const resetCreateForm = () => {
+    eventForm.resetFields();
     setCreateFormat(FormatType.League);
     setCreateRules({});
+    setSelectedEventBlueprint(undefined);
+    setSaveEventAsBlueprint(false);
     setCreatePhases([]);
     setNewPhaseFormat(FormatType.SingleElimination);
     setNewPhaseQualifiers(4);
@@ -320,6 +316,11 @@ export default function CompetitionDetailPage() {
 
   return (
     <div className="detail-page">
+      <Breadcrumb style={{ marginBottom: 18 }} items={[
+        { title: <Link href={`/o/${currentOrg.slug}`}>{currentOrg.name}</Link> },
+        { title: <Link href={`/o/${currentOrg.slug}/competitions`}>Competitions</Link> },
+        { title: competition.name },
+      ]} />
       <div
         className="entity-header"
         style={{
@@ -369,14 +370,12 @@ export default function CompetitionDetailPage() {
           {isAdmin && (
             <Button
               icon={<EditOutlined />}
-              onClick={() => {
-                editForm.setFieldsValue(competition);
-                setEditModalOpen(true);
-              }}
+              onClick={() => router.push(`/o/${currentOrg.slug}/competitions/${competition.id}/settings`)}
             >
-              Edit
+              Settings
             </Button>
           )}
+          {isAdmin && <Button icon={<GlobalOutlined />} onClick={() => router.push(`/o/${currentOrg.slug}/competitions/${competition.id}/pages`)}>Public pages</Button>}
           {isAdmin && (
             <Button
               icon={<CopyOutlined />}
@@ -633,10 +632,25 @@ export default function CompetitionDetailPage() {
         width={680}
       >
         <Form
+          form={eventForm}
           layout="vertical"
           onFinish={handleCreateEvent}
+          initialValues={{ participantType: competition.entryType, registrationPolicy: RegistrationPolicy.Open }}
           requiredMark={false}
         >
+          <Form.Item label="Start from an event blueprint">
+            <Select allowClear value={selectedEventBlueprint} placeholder="Start from scratch" options={eventBlueprints.map((blueprint) => ({ value: blueprint.id, label: isBlueprintCompatible(blueprint) ? blueprint.name : `${blueprint.name} (version unavailable)`, disabled: !isBlueprintCompatible(blueprint) }))} onChange={(id) => {
+              setSelectedEventBlueprint(id);
+              const blueprint = eventBlueprints.find((item) => item.id === id);
+              if (!blueprint || !isEventBlueprint(blueprint)) return;
+              const config = normalizeEventBlueprint(blueprint.config);
+              if (!config) return;
+              setCreateFormat(config.event.format);
+              setCreateRules(Object.fromEntries((config.rules ?? []).map((rule) => [rule.key, rule.value])));
+              setCreatePhases(config.progression ?? []);
+              eventForm.setFieldsValue({ name: config.event.name, participantType: config.event.participantType, registrationPolicy: config.event.registrationPolicy, minParticipants: config.event.minParticipants, maxParticipants: config.event.maxParticipants });
+            }} />
+          </Form.Item>
           <Form.Item
             label="Event Name"
             name="name"
@@ -644,11 +658,20 @@ export default function CompetitionDetailPage() {
           >
             <Input placeholder="e.g., EA FC League" size="large" />
           </Form.Item>
+          <Row gutter={16}>
+            <Col xs={24} sm={12}><Form.Item label="Entry type" name="participantType" rules={[{ required: true }]}><Select options={[{ value: ParticipantType.Team, label: "Teams" }, { value: ParticipantType.Individual, label: "Players" }]} /></Form.Item></Col>
+            <Col xs={24} sm={12}><Form.Item label="Registration policy" name="registrationPolicy" rules={[{ required: true }]}><Select options={Object.values(RegistrationPolicy).map((policy) => ({ value: policy, label: policy.replaceAll("_", " ") }))} /></Form.Item></Col>
+          </Row>
+          <Row gutter={16}>
+            <Col xs={24} sm={12}><Form.Item label="Minimum entrants" name="minParticipants"><InputNumber min={2} style={{ width: "100%" }} /></Form.Item></Col>
+            <Col xs={24} sm={12}><Form.Item label="Maximum entrants" name="maxParticipants"><InputNumber min={2} style={{ width: "100%" }} /></Form.Item></Col>
+          </Row>
           <Form.Item label="Format" required>
             <Select
               size="large"
               value={createFormat}
               onChange={(v) => {
+                setSelectedEventBlueprint(undefined);
                 setCreateFormat(v);
                 setCreateRules({});
                 setNewPhaseFormat(FormatType.SingleElimination);
@@ -828,6 +851,10 @@ export default function CompetitionDetailPage() {
             </Button>
           </Space>
 
+          <Form.Item style={{ marginBottom: 16 }}>
+            <Checkbox checked={saveEventAsBlueprint} onChange={(event) => setSaveEventAsBlueprint(event.target.checked)}>Create event and save as blueprint</Checkbox>
+          </Form.Item>
+
           <Form.Item style={{ marginBottom: 0 }}>
             <Button
               type="primary"
@@ -837,75 +864,6 @@ export default function CompetitionDetailPage() {
               block
             >
               Create Event
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title="Edit Competition"
-        open={editModalOpen}
-        onCancel={() => setEditModalOpen(false)}
-        footer={null}
-      >
-        <Form
-          form={editForm}
-          layout="vertical"
-          onFinish={handleEditCompetition}
-          requiredMark={false}
-        >
-          <Form.Item
-            label="Name"
-            name="name"
-            rules={[{ required: true, message: "Enter competition name" }]}
-          >
-            <Input placeholder="Competition name" size="large" />
-          </Form.Item>
-          <Form.Item label="Cover Image" name="coverImage">
-            <ImageUpload
-              currentUrl={competition?.coverImage}
-              onUpload={(url) => editForm.setFieldValue("coverImage", url)}
-            />
-          </Form.Item>
-          <Form.Item label="Description" name="description" rules={[{ required: true, message: "Describe the competition" }, { min: 20, message: "Use at least 20 characters so participants understand the competition" }, { max: 600, message: "Keep the description under 600 characters" }]} extra="Explain who it is for, what is being contested, and what makes this competition distinct.">
-            <Input.TextArea rows={4} showCount maxLength={600} placeholder="Describe the competition, its audience, and what competitors are playing for." />
-          </Form.Item>
-          <Row gutter={12}>
-            <Col span={12}><Form.Item label="Sport or category" name="category" rules={[{ required: true }]}><Select size="large" options={SPORT_CATEGORIES.map((item) => ({ ...item }))} /></Form.Item></Col>
-            <Col span={12}><Form.Item label="Registration type" name="entryType" rules={[{ required: true }]}><Select size="large" options={[{ value: ParticipantType.Team, label: "Teams" }, { value: ParticipantType.Individual, label: "Individual players" }]} /></Form.Item></Col>
-          </Row>
-          <Form.Item
-            label="Content"
-            name={["content"]}
-            getValueFromEvent={(val) => val}
-          >
-            <TipTapEditor
-              placeholder="Rich content for your competition page..."
-              minHeight={250}
-            />
-          </Form.Item>
-          <Form.Item
-            label="Visibility"
-            name="visibility"
-            rules={[{ required: true }]}
-          >
-            <Select size="large">
-              <Select.Option value={Visibility.Public}>Public</Select.Option>
-              <Select.Option value={Visibility.Private}>Private</Select.Option>
-              <Select.Option value={Visibility.Hidden}>
-                Hidden (by link)
-              </Select.Option>
-            </Select>
-          </Form.Item>
-          <Form.Item style={{ marginBottom: 0 }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={saving}
-              size="large"
-              block
-            >
-              Save Changes
             </Button>
           </Form.Item>
         </Form>
@@ -926,7 +884,7 @@ export default function CompetitionDetailPage() {
         }
         width={520}
       >
-        {invites.length === 0 ? (
+        {invites.length === 0 && !invitesLoading ? (
           <Text
             type="secondary"
             style={{ display: "block", textAlign: "center", padding: 24 }}
@@ -935,10 +893,12 @@ export default function CompetitionDetailPage() {
             competition.
           </Text>
         ) : (
-          <Table
+          <SystemTable
             dataSource={invites}
             rowKey="id"
-            pagination={false}
+            loading={invitesLoading}
+            searchText={(record) => `${record.token} ${record.status} ${record.createdAt}`}
+            locale={{ emptyText: "No invite links match this search." }}
             columns={[
               {
                 title: "Link",
@@ -957,7 +917,7 @@ export default function CompetitionDetailPage() {
                 dataIndex: "status",
                 key: "status",
                 render: (s: string) => (
-                  <Tag color={s === "active" ? "green" : "default"}>{s}</Tag>
+                  <Tag color={s === "active" ? "blue" : "default"}>{s}</Tag>
                 ),
               },
               {

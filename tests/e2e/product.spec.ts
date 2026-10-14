@@ -227,6 +227,22 @@ test.describe("authenticated participant workspace", () => {
 });
 
 test.describe("competition and event administration", () => {
+  test("searches and paginates the competition system table", async ({ page }) => {
+    await mockApp(page, true, "operator");
+    await page.route("**/api/competitions/crud/GetWhere", (route) => json(route, { data: Array.from({ length: 14 }, (_, index) => ({
+      id: `competition-${index + 1}`, organizationId: organization.id, name: `Continental League ${index + 1}`, description: `Season ${index + 1} competition`, category: "football", entryType: "team", visibility: "public", eligibility: {}, status: index % 2 ? "published" : "draft", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
+    })) }));
+    await page.goto(`/o/${organization.slug}/competitions`);
+    await expect(page.getByLabel("Search table")).toBeVisible();
+    await expect(page.getByText("14 records")).toBeVisible();
+    await expect(page.getByText("Continental League 11")).toHaveCount(0);
+    await page.getByRole("listitem", { name: "Next Page" }).click();
+    await expect(page.getByText("Continental League 11")).toBeVisible();
+    await page.getByLabel("Search table").fill("League 14");
+    await expect(page.getByText("1 record")).toBeVisible();
+    await expect(page.getByText("Continental League 14")).toBeVisible();
+  });
+
   test.beforeEach(async ({ page }) => { await mockApp(page, true, "operator"); });
 
   test("edits a competition on its own settings page with image controls in settings", async ({ page }) => {
