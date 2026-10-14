@@ -38,6 +38,16 @@ test.describe("public product story", () => {
     expect(overflow).toBeLessThanOrEqual(1);
   });
 
+  test("uses the CompetitionOS crest in animated workspace loaders", async ({ page }) => {
+    await mockApp(page, false);
+    await page.goto("/loader-preview");
+    await expect(page.locator(".competition-loader-indicator")).toHaveCount(2);
+    await expect(page.locator(".competition-loader-orbit--outer")).toHaveCount(2);
+    const animation = await page.locator(".competition-loader-bounce").first().evaluate((element) => getComputedStyle(element).animationName);
+    expect(animation).toContain("competition-bounce");
+    await expect(page.getByRole("heading", { name: "Tournament crest" })).toBeVisible();
+  });
+
   test("presents a focused sign in path", async ({ page }) => {
     await mockApp(page, false);
     await page.goto("/login");
