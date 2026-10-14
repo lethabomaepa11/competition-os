@@ -1,39 +1,36 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter, usePathname } from "next/navigation";
-import { Layout, Menu, Typography, Button, Avatar, Space, Spin, Dropdown, Drawer, Grid } from "antd";
+import { useParams, usePathname, useRouter } from "next/navigation";
+import { Avatar, Button, Drawer, Dropdown, Grid, Layout, Menu, Spin } from "antd";
 import {
-  DashboardOutlined,
-  TrophyOutlined,
-  TeamOutlined,
-  FileTextOutlined,
-  SettingOutlined,
+  ApartmentOutlined,
+  AppstoreOutlined,
   AuditOutlined,
   LogoutOutlined,
   MenuOutlined,
+  SettingOutlined,
+  TeamOutlined,
+  TrophyOutlined,
   UserOutlined,
-  ArrowLeftOutlined,
 } from "@ant-design/icons";
 import { AppProvider, useApp } from "@/lib/app-context";
+import { BrandMark } from "@/components/common/brand-mark";
+import styles from "./layout.module.css";
 
-const { Header, Content } = Layout;
-const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
 
 function OrgLayoutInner({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const pathname = usePathname();
   const router = useRouter();
+  const screens = useBreakpoint();
   const { currentMember, organizations, ready, logout, selectOrg } = useApp();
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const screens = useBreakpoint();
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const orgSlug = params.orgSlug as string;
-
-  const isMobile = !screens.md;
-
-  const org = organizations.find((o) => o.slug === orgSlug);
+  const org = organizations.find((item) => item.slug === orgSlug);
+  const mobile = !screens.lg;
 
   useEffect(() => {
     if (!ready) return;
@@ -42,170 +39,63 @@ function OrgLayoutInner({ children }: { children: React.ReactNode }) {
   }, [ready, currentMember, org, selectOrg, router]);
 
   useEffect(() => {
-    if (!ready) return;
-    if (!currentMember) return;
-    if (!org && organizations.length > 0) {
-      router.push("/app");
-    }
+    if (ready && currentMember && !org && organizations.length > 0) router.push("/app");
   }, [ready, org, organizations, currentMember, router]);
 
-  if (!ready) return <Spin style={{ display: "flex", justifyContent: "center", marginTop: 100 }} />;
-  if (!currentMember) return null;
-  if (!org) return <Spin style={{ display: "flex", justifyContent: "center", marginTop: 100 }} />;
+  if (!ready || (currentMember && !org)) return <div className={styles.loading}><Spin size="large" /></div>;
+  if (!currentMember || !org) return null;
 
-  const basePath = `/o/${orgSlug}`;
-
+  const base = `/o/${orgSlug}`;
   const menuItems = [
-    { key: basePath, icon: <DashboardOutlined />, label: "Dashboard" },
-    { key: `${basePath}/competitions`, icon: <TrophyOutlined />, label: "Competitions" },
-    { key: `${basePath}/members`, icon: <TeamOutlined />, label: "Members" },
-    { key: `${basePath}/blueprints`, icon: <FileTextOutlined />, label: "Blueprints" },
-    { key: `${basePath}/settings`, icon: <SettingOutlined />, label: "Settings" },
-    { key: `${basePath}/audit`, icon: <AuditOutlined />, label: "Audit Log" },
+    { key: base, icon: <AppstoreOutlined />, label: "Command center" },
+    { key: `${base}/competitions`, icon: <TrophyOutlined />, label: "Competitions" },
+    { key: `${base}/members`, icon: <TeamOutlined />, label: "People" },
+    { key: `${base}/blueprints`, icon: <ApartmentOutlined />, label: "Blueprints" },
+    { key: `${base}/audit`, icon: <AuditOutlined />, label: "Audit trail" },
+    { key: `${base}/settings`, icon: <SettingOutlined />, label: "Settings" },
   ];
+  const selected = [...menuItems].sort((a, b) => b.key.length - a.key.length).find((item) => pathname === item.key || pathname.startsWith(`${item.key}/`))?.key ?? base;
+  const go = (key: string) => { router.push(key); setDrawerOpen(false); };
 
-  const selectedKey = menuItems.find((item) => {
-    if (item.key === basePath) return pathname === basePath;
-    return pathname === item.key || pathname.startsWith(item.key + "/");
-  })?.key || basePath;
-
-  const handleMenuClick = (key: string) => {
-    router.push(key);
-    if (isMobile) {
-      setMobileDrawerOpen(false);
-    }
-  };
-
-  const sidebarContent = (
-    <>
-      <div style={{
-        height: 64,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        padding: "0 16px",
-      }}>
-        <img src="/logo.jpg" alt="CompetitionOS" style={{ height: 36 }} />
-        {!isMobile && <Title level={4} style={{ margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{org.name}</Title>}
+  const navigation = (
+    <div className={styles.navigation}>
+      <div className={styles.sideBrand}><BrandMark compact={collapsed && !mobile} dark /></div>
+      <div className={styles.orgIdentity}>
+        <span>Organization</span>
+        {(!collapsed || mobile) && <strong>{org.name}</strong>}
       </div>
-      <Menu
-        mode="inline"
-        selectedKeys={[selectedKey]}
-        items={menuItems}
-        onClick={({ key }) => handleMenuClick(key)}
-        style={{ borderInlineEnd: "none" }}
-        inlineCollapsed={!isMobile && collapsed}
-      />
-    </>
+      <Menu theme="dark" mode="inline" inlineCollapsed={collapsed && !mobile} selectedKeys={[selected]} items={menuItems} onClick={({ key }) => go(key)} className={styles.sideMenu} />
+      {(!collapsed || mobile) && <div className={styles.systemCard}><span><i /> Live systems ready</span><p>Scores, brackets, tables, and public views are connected.</p></div>}
+    </div>
   );
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      {/* Desktop sidebar */}
-      {!isMobile && (
-        <Layout.Sider
-          collapsible
-          collapsed={collapsed}
-          onCollapse={setCollapsed}
-          theme="light"
-          width={240}
-          className="org-layout-sider"
-        >
-          {sidebarContent}
-        </Layout.Sider>
-      )}
-
-      {/* Mobile drawer */}
-      {isMobile && (
-        <>
-          <Drawer
-            title={
-              <Space>
-                <img src="/logo.jpg" alt="CompetitionOS" style={{ height: 32 }} />
-                <Text strong>{org.name}</Text>
-              </Space>
-            }
-            placement="left"
-            onClose={() => setMobileDrawerOpen(false)}
-            open={mobileDrawerOpen}
-            width={260}
-            styles={{ body: { padding: 0 } }}
-          >
-            <Menu
-              mode="inline"
-              selectedKeys={[selectedKey]}
-              items={menuItems}
-              onClick={({ key }) => handleMenuClick(key)}
-              style={{ borderInlineEnd: "none" }}
-            />
-          </Drawer>
-        </>
-      )}
-
+    <Layout className={styles.shell}>
+      {!mobile && <Layout.Sider width={270} collapsedWidth={84} collapsible collapsed={collapsed} onCollapse={setCollapsed} theme="dark" className={`org-layout-sider ${styles.sider}`}>{navigation}</Layout.Sider>}
+      {mobile && <Drawer placement="left" width={286} open={drawerOpen} onClose={() => setDrawerOpen(false)} styles={{ body: { padding: 0, background: "#07111f" }, header: { display: "none" } }}>{navigation}</Drawer>}
       <Layout>
-        <Header className="org-layout-header" style={{
-          padding: "0 16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}>
-          <Space>
-            <Button
-              type="text"
-              icon={<ArrowLeftOutlined />}
-              onClick={() => {
-                if (window.history.length > 1) {
-                  router.back();
-                } else {
-                  router.push("/app");
-                }
-              }}
-            >
-              Back
-            </Button>
-            {isMobile && (
-              <Button
-                type="text"
-                icon={<MenuOutlined />}
-                onClick={() => setMobileDrawerOpen(true)}
-              />
-            )}
-          </Space>
-          <Dropdown
-            menu={{
-              items: [
-                ...organizations.filter((o) => o.id !== org.id).map((o) => ({
-                  key: o.slug,
-                  label: o.name,
-                  onClick: () => router.push(`/o/${o.slug}`),
-                })),
-                { type: "divider" },
-                { key: "profile", icon: <UserOutlined />, label: "Profile", onClick: () => router.push("/profile") },
-                { key: "logout", icon: <LogoutOutlined />, label: "Logout", onClick: () => { logout(); router.push("/login"); } },
-              ],
-            }}
-          >
-            <Space style={{ cursor: "pointer" }}>
-              <Avatar style={{ fontSize: 14, fontWeight: 600 }}>
-                {currentMember.displayName.charAt(0).toUpperCase()}
-              </Avatar>
-              <Text>{currentMember.displayName}</Text>
-            </Space>
+        <header className={`org-layout-header ${styles.header}`}>
+          <div className={styles.headerLead}>
+            {mobile && <Button type="text" icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)} aria-label="Open navigation" />}
+            <div><span>Competition operations</span><strong>{menuItems.find((item) => item.key === selected)?.label}</strong></div>
+          </div>
+          <div className={styles.headerStatus}><span><i /> Platform live</span><b>All systems nominal</b></div>
+          <Dropdown placement="bottomRight" menu={{ items: [
+            ...organizations.filter((item) => item.id !== org.id).map((item) => ({ key: item.slug, label: item.name, onClick: () => router.push(`/o/${item.slug}`) })),
+            { type: "divider" },
+            { key: "workspace", icon: <AppstoreOutlined />, label: "All organizations", onClick: () => router.push("/app") },
+            { key: "profile", icon: <UserOutlined />, label: "Profile", onClick: () => router.push("/profile") },
+            { key: "logout", icon: <LogoutOutlined />, label: "Sign out", onClick: async () => { await logout(); router.push("/login"); } },
+          ] }}>
+            <Button type="text" className={styles.account}><Avatar size={34}>{currentMember.displayName.charAt(0).toUpperCase()}</Avatar><span>{currentMember.displayName}</span></Button>
           </Dropdown>
-        </Header>
-        <Content style={{ padding: 24, overflow: "auto" }}>
-          {children}
-        </Content>
+        </header>
+        <main className="org-content">{children}</main>
       </Layout>
     </Layout>
   );
 }
 
 export default function OrgLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AppProvider>
-      <OrgLayoutInner>{children}</OrgLayoutInner>
-    </AppProvider>
-  );
+  return <AppProvider><OrgLayoutInner>{children}</OrgLayoutInner></AppProvider>;
 }
