@@ -46,6 +46,21 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.orgSwitcherTrigger {
+  display: flex !important;
+  width: 100%;
+  height: auto !important;
+  margin-top: 5px;
+  padding: 4px 0 !important;
+  align-items: center;
+  justify-content: space-between;
+  color: #fff !important;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+}
+.orgSwitcherTrigger:hover { color: #fff !important; background: transparent !important; }
+.orgSwitcherTrigger :global(.anticon) { color: rgba(255,255,255,.55); font-size: 10px; }
 .sideMenu {
   flex: 1;
   border: 0 !important;

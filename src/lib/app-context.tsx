@@ -58,7 +58,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               orgSvc.list(),
             ]);
             setState({
-              currentMember: { ...existing, accountType: existing.accountType ?? accountType ?? "player" },
+              currentMember: { ...existing, accountType: accountType ?? existing.accountType ?? "player" },
               currentOrg: null,
               members,
               organizations,

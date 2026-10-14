@@ -12,6 +12,7 @@ import {
   FormOutlined,
   SettingOutlined,
   BookOutlined,
+  DownOutlined,
   TeamOutlined,
   TrophyOutlined,
   UserOutlined,
@@ -67,7 +68,9 @@ function OrgLayoutInner({ children }: { children: React.ReactNode }) {
       <div className={styles.sideBrand}><BrandMark compact={collapsed && !mobile} dark /></div>
       <div className={styles.orgIdentity}>
         <span>Organization</span>
-        {(!collapsed || mobile) && <strong>{org.name}</strong>}
+        {(!collapsed || mobile) && (organizations.length > 1 ? <Dropdown placement="bottomLeft" menu={{ items: organizations.map((item) => ({ key: item.slug, label: item.name, disabled: item.slug === orgSlug })) , onClick: ({ key }) => { router.push(`/o/${key}`); setDrawerOpen(false); } }}>
+          <Button type="text" className={styles.orgSwitcherTrigger}>{org.name}<DownOutlined /></Button>
+        </Dropdown> : <strong>{org.name}</strong>)}
       </div>
       <Menu theme="dark" mode="inline" inlineCollapsed={collapsed && !mobile} selectedKeys={[selected]} items={menuItems} onClick={({ key }) => go(key)} className={styles.sideMenu} />
       {(!collapsed || mobile) && <div className={styles.systemCard}><span><i /> Live systems ready</span><p>Scores, brackets, tables, and public views are connected.</p></div>}
@@ -85,7 +88,9 @@ function OrgLayoutInner({ children }: { children: React.ReactNode }) {
             <div><span>Competition operations</span><strong>{menuItems.find((item) => item.key === selected)?.label}</strong></div>
           </div>
           <div className={styles.headerStatus}><span><i /> Platform live</span><b>All systems nominal</b></div>
-          <Dropdown placement="bottomRight" menu={{ items: [
+          <Dropdown placement="bottomRight" menu={{ onClick: ({ key }) => {
+            if (key.startsWith("org:")) router.push(`/o/${key.slice(4)}`);
+          }, items: [
             { key: "guide", icon: <BookOutlined />, label: "How to use CompetitionOS", onClick: () => router.push("/how-to") },
             { type: "divider" },
             { key: "profile", icon: <UserOutlined />, label: "Profile", onClick: () => router.push("/profile") },

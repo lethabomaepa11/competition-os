@@ -20,11 +20,12 @@ export async function GET(request: NextRequest) {
       ? await supabase.from("profiles").select("account_type").eq("id", user.id).maybeSingle()
       : { data: null };
     const profile = profileData as unknown as { account_type: "operator" | "team" | "player" } | null;
-    const { data: membership } = user && profile?.account_type === "operator"
-      ? await supabase.from("organization_members").select("organizations(slug)").eq("member_id", user.id).limit(1).maybeSingle()
+    const { data: membership } = user
+      ? await supabase.from("organization_members").select("organizations(slug)").eq("member_id", user.id).order("joined_at", { ascending: true }).limit(1).maybeSingle()
       : { data: null };
     const membershipRecord = membership as unknown as { organizations?: { slug?: string } | null } | null;
     const organization = membershipRecord?.organizations;
+    const accountType = membershipRecord ? "operator" : profile?.account_type ?? "player";
 
     return NextResponse.json({
       data: error || !user ? null : {
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
           id: user.id,
           email: user.email,
           displayName: (user.user_metadata?.display_name as string | undefined) ?? null,
-          accountType: profile?.account_type ?? "player",
+          accountType,
           organizationSlug: organization?.slug ?? null,
         },
       },

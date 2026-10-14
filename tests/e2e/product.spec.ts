@@ -7,7 +7,7 @@ async function json(route: Route, data: unknown, status = 200) {
   await route.fulfill({ status, contentType: "application/json", body: JSON.stringify(data) });
 }
 
-async function mockApp(page: Page, authenticated = true, accountType: "operator" | "team" | "player" = "team") {
+async function mockApp(page: Page, authenticated = true, accountType: "operator" | "team" | "player" = "team", profileAccountType: "operator" | "team" | "player" = accountType, availableOrganizations = [organization]) {
   await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());
     const path = url.pathname;
@@ -15,9 +15,9 @@ async function mockApp(page: Page, authenticated = true, accountType: "operator"
     if (path === "/api/me/events") return json(route, { data: [{ participantId: "part-1", eventId: "evt-1", eventName: "Champions Cup", eventStatus: "in_progress", eventFormat: "group_stage", competitionId: "comp-1", competitionName: "2026 Continental Cup", organizationId: organization.id, organizationName: organization.name, organizationSlug: organization.slug, registeredAt: "2026-09-02T12:00:00.000Z" }] });
     if (path === "/api/me/performance") return json(route, { data: { summary: { events: 2, played: 19, wins: 14, draws: 2, losses: 3, winRate: 74, scored: 38, conceded: 17 }, entries: [{ participantId: "part-1", displayName: "Alex Morgan", status: "active", seed: 3, eventName: "Champions Cup", eventStatus: "in_progress", competitionName: "2026 Continental Cup" }], recentMatches: [{ id: "match-1", eventName: "Champions Cup", competitionName: "2026 Continental Cup", organizationName: organization.name, organizationSlug: organization.slug, competitionId: "comp-1", scheduledAt: "2026-10-12T18:00:00.000Z", status: "completed", ownScore: 3, otherScore: 1, result: "win" }] } });
     if (path === "/api/me/teams") return json(route, { data: [{ id: "team-1", name: "Jozi Titans", category: "football", teamType: "club", description: "Premier division club", canManage: true, members: [{ id: member.id, email: member.email, display_name: member.displayName, captain: true }, { id: "member-2", email: "lee@league.com", display_name: "Jordan Lee", captain: false }] }] });
-    if (path.includes("/members/crud/GetWhere")) return json(route, { data: [{ ...member, accountType }] });
-    if (path.includes("/members/crud/GetAll")) return json(route, { data: [{ ...member, accountType }] });
-    if (path.includes("/organizations/crud/GetAll")) return json(route, { data: [organization] });
+    if (path.includes("/members/crud/GetWhere")) return json(route, { data: [{ ...member, accountType: profileAccountType }] });
+    if (path.includes("/members/crud/GetAll")) return json(route, { data: [{ ...member, accountType: profileAccountType }] });
+    if (path.includes("/organizations/crud/GetAll")) return json(route, { data: availableOrganizations });
     if (path.includes("/competitions/crud/GetWhere")) return json(route, { data: [] });
     if (path.includes("/org_members/crud/GetWhere")) return json(route, { data: [{ id: "om-1", organizationId: organization.id, memberId: member.id, role: "owner", permissions: [], joinedAt: "2026-01-01T00:00:00.000Z" }] });
     if (path.includes("/members/crud/Get")) return json(route, { data: member });
@@ -114,6 +114,26 @@ test.describe("authenticated participant workspace", () => {
     await page.getByRole("button", { name: "Manage" }).click();
     await expect(page.getByText("Jordan Lee")).toBeVisible();
     await expect(page.getByPlaceholder("player@email.com")).toBeVisible();
+  });
+
+  test("keeps an existing organization owner in the operator workspace when profile role is stale", async ({ page }) => {
+    await page.unrouteAll();
+    await mockApp(page, true, "operator", "player");
+    await page.goto(`/o/${organization.slug}`);
+    await expect(page.getByRole("heading", { name: organization.name })).toBeVisible();
+    await expect(page.getByText("Command center", { exact: true }).first()).toBeVisible();
+  });
+
+  test("keeps legacy access to multiple organizations and allows switching between them", async ({ page }) => {
+    await page.unrouteAll();
+    await mockApp(page, true, "operator", "operator", [organization, { ...organization, id: "org-2", name: "Regional League", slug: "regional-league" }]);
+    await page.goto(`/o/${organization.slug}`);
+    await expect(page.getByRole("heading", { name: organization.name })).toBeVisible();
+    if (test.info().project.name.startsWith("mobile")) await page.getByRole("button", { name: "Open navigation" }).click();
+    await page.getByRole("button", { name: organization.name }).click();
+    await page.getByRole("menuitem", { name: "Regional League" }).click();
+    await expect(page).toHaveURL(new RegExp(`/o/regional-league$`));
+    await expect(page.getByRole("heading", { name: "Regional League" })).toBeVisible();
   });
 
   test("requires a meaningful competition description", async ({ page }) => {
