@@ -178,6 +178,7 @@ export async function POST(
       }
 
       case "update": {
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         if (tb === "match_comments") return NextResponse.json({ error: "Match commentary is read-only." }, { status: 403 });
         const converted = mapKeys(updates, camelToSnake) as Record<string, unknown>;
         const payload = sanitizePayload(converted as Record<string, unknown>) as never;
