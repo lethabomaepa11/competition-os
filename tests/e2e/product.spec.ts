@@ -64,6 +64,20 @@ test.describe("public product story", () => {
     await page.getByRole("radio", { name: /Individual player/ }).click();
     await expect(page.getByLabel("Team name")).toHaveCount(0);
     await expect(page.getByLabel("Company or organization name")).toHaveCount(0);
+    await page.getByRole("radio", { name: /Competition operator/ }).click();
+    await page.getByLabel("Company or organization name").fill("Operator Test");
+    let registrationBody: Record<string, unknown> | undefined;
+    page.on("request", (request) => {
+      if (request.url().endsWith("/api/auth/register")) registrationBody = request.postDataJSON();
+    });
+    await page.getByRole("button", { name: /Create account/ }).click();
+    await expect.poll(() => registrationBody).toMatchObject({
+      displayName: "Alex Morgan",
+      email: "alex@league.com",
+      password: "competition2026",
+      accountType: "operator",
+      organizationName: "Operator Test",
+    });
   });
 
   test("uses an invitation redirect instead of asking for a role", async ({ page }) => {

@@ -23,6 +23,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState<1 | 2>(1);
   const [accountType, setAccountType] = useState<AccountType | null>(null);
   const [inviteRedirect, setInviteRedirect] = useState<string | null>(null);
+  const [accountDetails, setAccountDetails] = useState<Pick<RegistrationValues, "displayName" | "email" | "password"> | null>(null);
 
   useEffect(() => {
     const queryRedirect = safeInviteRedirect(new URLSearchParams(window.location.search).get("redirect"));
@@ -49,6 +50,7 @@ export default function RegisterPage() {
 
   const onFinish = async (values: RegistrationValues) => {
     if (step === 1 && !inviteRedirect) {
+      setAccountDetails({ displayName: values.displayName, email: values.email, password: values.password });
       setStep(2);
       return;
     }
@@ -57,7 +59,7 @@ export default function RegisterPage() {
       message.error("Choose the workspace that matches your role");
       return;
     }
-    await createAccount(values, selectedType);
+    await createAccount({ ...accountDetails, ...values }, selectedType);
   };
 
   return (
