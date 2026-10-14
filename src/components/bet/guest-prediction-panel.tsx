@@ -52,7 +52,7 @@ export function GuestPredictionPanel({ matches, participants, eventId }: { match
     }
   };
 
-  return <Card title={<Space><ThunderboltOutlined style={{ color: "#1c5fd4" }} /> Match predictions</Space>} style={{ marginTop: 16 }}>
+  return <Card title={<Space><ThunderboltOutlined style={{ color: "var(--competition-accent, #1c5fd4)" }} /> Match predictions</Space>} style={{ marginTop: 16 }}>
     <Alert type="info" showIcon title="For the love of the game" description="Pick a winner and leave your name. No account, money or points required. Odds are illustrative event-form estimates, never a guarantee." />
     {error && <Alert style={{ marginTop: 12 }} type="error" showIcon title={error} />}
     {success && <Alert style={{ marginTop: 12 }} type="success" showIcon title={success} />}

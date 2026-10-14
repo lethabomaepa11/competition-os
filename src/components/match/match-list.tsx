@@ -601,11 +601,11 @@ export function MatchListView({
                           flex: scoreModal.participants.length === 2 ? 1 : undefined,
                           padding: 20,
                           border: isSelected
-                            ? "3px solid #1677ff"
+                            ? "3px solid var(--competition-accent, #1677ff)"
                             : "1px solid #d9d9d9",
                           borderRadius: 12,
                           cursor: "pointer",
-                          background: isSelected ? "#f0f5ff" : "#fafafa",
+                          background: isSelected ? "color-mix(in srgb, var(--competition-accent, #1c5fd4) 7%, white)" : "#fafafa",
                           textAlign: "center",
                           transition: "all 0.2s",
                         }}
@@ -664,7 +664,7 @@ export function MatchListView({
                   );
                   const isAutoWinner = winnerId === p.participantId;
                   const isAutoDraw = participantIds.length === 2 && isDraw;
-                  const borderColor = isAutoWinner ? "#1677ff" : isAutoDraw ? "#faad14" : "#e8e8e8";
+                  const borderColor = isAutoWinner ? "var(--competition-accent, #1677ff)" : isAutoDraw ? "#faad14" : "#e8e8e8";
                   return (
                     <div
                       key={p.participantId}
@@ -673,7 +673,7 @@ export function MatchListView({
                         padding: "24px 16px",
                         border: `${isAutoWinner || isAutoDraw ? 3 : 1}px solid ${borderColor}`,
                         borderRadius: 12,
-                        background: isAutoWinner ? "#f0f5ff" : isAutoDraw ? "#fffbe6" : "#fafafa",
+                        background: isAutoWinner ? "color-mix(in srgb, var(--competition-accent, #1c5fd4) 7%, white)" : isAutoDraw ? "#fffbe6" : "#fafafa",
                         textAlign: "center",
                       }}
                     >
@@ -710,7 +710,7 @@ export function MatchListView({
                           fontWeight: 700,
                           lineHeight: 1.2,
                           marginBottom: 20,
-                          color: isAutoWinner ? "#1677ff" : isAutoDraw ? "#faad14" : "#262626",
+                          color: isAutoWinner ? "var(--competition-accent, #1677ff)" : isAutoDraw ? "#faad14" : "#262626",
                         }}
                       >
                         {scores[p.participantId] ?? 0}

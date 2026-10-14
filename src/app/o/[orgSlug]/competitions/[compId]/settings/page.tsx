@@ -57,7 +57,10 @@ export default function CompetitionSettingsPage() {
     setSaving(true);
     try {
       const updated = await new CompetitionService().update(competition.id, values, currentMember.id);
-      if (updated) setCompetition(updated);
+      if (updated) {
+        setCompetition(updated);
+        window.dispatchEvent(new Event("competition-theme-updated"));
+      }
       message.success("Competition settings saved");
     } catch (error) {
       message.error(error instanceof Error ? error.message : "Could not save competition settings");

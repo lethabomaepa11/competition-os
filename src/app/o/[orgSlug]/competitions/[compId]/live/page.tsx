@@ -349,7 +349,7 @@ export default function OrgLivePage() {
 function StatisticLike({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
   return (
     <div style={{ textAlign: "center" }}>
-      <div style={{ fontSize: 24, color: "#1677ff" }}>{icon}</div>
+      <div style={{ fontSize: 24, color: "var(--competition-accent, #1677ff)" }}>{icon}</div>
       <div style={{ fontSize: 24, fontWeight: 600 }}>{value}</div>
       <div style={{ fontSize: 13, color: "#888" }}>{label}</div>
     </div>

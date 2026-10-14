@@ -103,7 +103,7 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
 
   return (
     <Card
-      title={<Space><DollarOutlined style={{ color: "#1c5fd4" }} /> Match predictions</Space>}
+      title={<Space><DollarOutlined style={{ color: "var(--competition-accent, #1c5fd4)" }} /> Match predictions</Space>}
       size="small"
       style={{ marginTop: 16 }}
       extra={
@@ -115,7 +115,7 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
         </Space>
       }
     >
-      <div style={{ textAlign: "center", marginBottom: 12, background: "#f1f6ff", padding: "6px 12px", borderRadius: 6 }}>
+      <div style={{ textAlign: "center", marginBottom: 12, background: "color-mix(in srgb, var(--competition-accent, #1c5fd4) 7%, white)", padding: "6px 12px", borderRadius: 6 }}>
         <Text type="secondary" style={{ fontSize: 12 }}>
           <ThunderboltOutlined style={{ marginRight: 4 }} />
           Just for fun — no real money. Bragging rights only!
@@ -124,28 +124,28 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
       {/* Profile Stats */}
       <Row gutter={[8, 8]} style={{ marginBottom: 12 }}>
         <Col span={6}>
-          <Card size="small" style={{ textAlign: "center", background: "#f3f7ff" }}>
+          <Card size="small" style={{ textAlign: "center", background: "color-mix(in srgb, var(--competition-accent, #1c5fd4) 5%, white)" }}>
             <Text style={{ fontSize: 11, color: "#888" }}>Points</Text>
-            <div><Text strong style={{ fontSize: 18, color: "#2457b8" }}>{profile.totalPoints}</Text></div>
+            <div><Text strong style={{ fontSize: 18, color: "var(--competition-accent, #2457b8)" }}>{profile.totalPoints}</Text></div>
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small" style={{ textAlign: "center", background: "#f3f7ff" }}>
+          <Card size="small" style={{ textAlign: "center", background: "color-mix(in srgb, var(--competition-accent, #1c5fd4) 5%, white)" }}>
             <Text style={{ fontSize: 11, color: "#888" }}>Won</Text>
-            <div><Text strong style={{ fontSize: 18, color: "#2457b8" }}>{profile.betsWon}</Text></div>
+            <div><Text strong style={{ fontSize: 18, color: "var(--competition-accent, #2457b8)" }}>{profile.betsWon}</Text></div>
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small" style={{ textAlign: "center", background: "#f3f7ff" }}>
+          <Card size="small" style={{ textAlign: "center", background: "color-mix(in srgb, var(--competition-accent, #1c5fd4) 5%, white)" }}>
             <Text style={{ fontSize: 11, color: "#888" }}>Lost</Text>
             <div><Text strong style={{ fontSize: 18, color: "#486179" }}>{profile.betsLost}</Text></div>
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small" style={{ textAlign: "center", background: "#f3f7ff" }}>
+          <Card size="small" style={{ textAlign: "center", background: "color-mix(in srgb, var(--competition-accent, #1c5fd4) 5%, white)" }}>
             <Text style={{ fontSize: 11, color: "#888" }}>Net</Text>
             <div>
-              <Text strong style={{ fontSize: 18, color: profile.netPoints >= 0 ? "#2457b8" : "#486179" }}>
+              <Text strong style={{ fontSize: 18, color: profile.netPoints >= 0 ? "var(--competition-accent, #2457b8)" : "#486179" }}>
                 {profile.netPoints >= 0 ? "+" : ""}{profile.netPoints}
               </Text>
             </div>
@@ -206,7 +206,7 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
 
               if (myExistingBet) {
                 return (
-                  <Card key={m.id} size="small" style={{ background: "#eef4ff" }}>
+                  <Card key={m.id} size="small" style={{ background: "color-mix(in srgb, var(--competition-accent, #1c5fd4) 7%, white)" }}>
                     <Space>
                       <Text style={{ fontSize: 12 }}>{p1Name} vs {p2Name}</Text>
                       <Tag color="blue">Predicted {participantMap.get(myExistingBet.participantId)} ({myExistingBet.pointsWagered} pts)</Tag>
@@ -259,13 +259,13 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
               {
                 title: "#", key: "rank", width: 30,
                 render: (_: unknown, __: unknown, i: number) => {
-                  return <TrophyOutlined style={{ color: i === 0 ? "#2457b8" : "#94a7c5" }} />;
+                  return <TrophyOutlined style={{ color: i === 0 ? "var(--competition-accent, #2457b8)" : "#94a7c5" }} />;
                 },
               },
               { title: "Better", dataIndex: "name", key: "name", render: (v: string) => <Text style={{ fontSize: 12 }}>{v}</Text> },
               {
                 title: "Points", dataIndex: "totalPoints", key: "points",
-                render: (v: number) => <Text strong style={{ color: "#2457b8" }}>{v}</Text>,
+                render: (v: number) => <Text strong style={{ color: "var(--competition-accent, #2457b8)" }}>{v}</Text>,
               },
               {
                 title: "W/L", key: "wl",
@@ -307,7 +307,7 @@ export function BetPanel({ matches, participants, currentUserId, currentUserName
                     style={{
                       width: 140,
                       textAlign: "center",
-                      border: betTargetId === p.participantId ? "2px solid #1c5fd4" : "1px solid #d9d9d9",
+                      border: betTargetId === p.participantId ? "2px solid var(--competition-accent, #1c5fd4)" : "1px solid #d9d9d9",
                     }}
                     onClick={() => setBetTargetId(p.participantId)}
                   >

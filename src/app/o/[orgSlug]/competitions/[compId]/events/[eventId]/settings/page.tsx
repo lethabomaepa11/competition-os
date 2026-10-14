@@ -88,6 +88,7 @@ export default function EventSettingsPage() {
       if (updated) {
         setEvent(updated);
         form.setFieldsValue({ ...updated, dateStart: updated.dateStart?.slice(0, 16), dateEnd: updated.dateEnd?.slice(0, 16) });
+        window.dispatchEvent(new Event("competition-theme-updated"));
       }
       setDirty(false);
       message.success("Event settings saved");

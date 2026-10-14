@@ -87,7 +87,7 @@ export default function LiveMatchCard({
           </Space>
           <LiveTimer startedAt={match.startedAt} />
         </Space>
-        <ThunderboltOutlined style={{ color: "#60a5fa", fontSize: 20, opacity: 0.8 }} />
+        <ThunderboltOutlined style={{ color: "var(--competition-accent, #60a5fa)", fontSize: 20, opacity: 0.8 }} />
       </div>
 
       <div>

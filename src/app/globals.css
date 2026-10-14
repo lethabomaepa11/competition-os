@@ -399,6 +399,54 @@ a {
   margin: 0 auto;
   padding: 34px clamp(18px, 3vw, 48px) 64px;
 }
+.org-content:has(> .competition-theme-shell) {
+  max-width: none;
+  padding: 0;
+  background: var(--canvas);
+}
+.competition-theme-shell {
+  --competition-accent-soft: color-mix(in srgb, var(--competition-accent) 7%, white);
+  min-height: calc(100vh - 72px);
+  padding: 34px clamp(18px, 3vw, 48px) 64px;
+  background:
+    radial-gradient(ellipse at 4% 0%, color-mix(in srgb, var(--competition-accent) 11%, transparent), transparent 38rem),
+    linear-gradient(180deg, var(--competition-accent-soft), var(--canvas) 460px);
+  transition: background 220ms ease;
+}
+.competition-theme-shell .ant-card,
+.competition-theme-shell .ant-table-wrapper,
+.competition-theme-shell .entity-header {
+  border-color: color-mix(in srgb, var(--competition-accent) 18%, var(--line));
+}
+.competition-theme-shell .ant-card-head,
+.competition-theme-shell .ant-table-wrapper .ant-table-thead > tr > th {
+  background: color-mix(in srgb, var(--competition-accent) 5%, white);
+}
+.competition-theme-shell .entity-header {
+  background: color-mix(in srgb, var(--competition-accent) 3%, white);
+}
+.competition-theme-shell .ant-btn-primary {
+  color: var(--competition-accent-foreground) !important;
+}
+.competition-theme-shell .ant-tag-blue,
+.competition-theme-shell .ant-tag-processing {
+  color: var(--competition-accent) !important;
+  border-color: color-mix(in srgb, var(--competition-accent) 22%, white) !important;
+  background: color-mix(in srgb, var(--competition-accent) 9%, white) !important;
+}
+.competition-theme-shell .ant-progress-bg,
+.competition-theme-shell .ant-progress-circle-path {
+  stroke: var(--competition-accent);
+  background: var(--competition-accent);
+}
+.competition-theme-shell .ant-tabs-ink-bar {
+  background: var(--competition-accent);
+}
+.competition-theme-shell .ant-btn-default:hover,
+.competition-theme-shell .ant-btn-link:hover {
+  color: var(--competition-accent) !important;
+  border-color: var(--competition-accent) !important;
+}
 
 .auth-shell {
   display: grid;

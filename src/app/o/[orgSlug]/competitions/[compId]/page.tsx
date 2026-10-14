@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Card,
-  ConfigProvider,
   Row,
   Col,
   Typography,
@@ -316,8 +315,7 @@ export default function CompetitionDetailPage() {
   );
 
   return (
-    <ConfigProvider theme={{ token: { colorPrimary: competition.themeColor || "#1c5fd4" } }}>
-    <div className="detail-page" style={{ "--competition-accent": competition.themeColor || "#1c5fd4" } as React.CSSProperties}>
+    <div className="detail-page">
       <Breadcrumb style={{ marginBottom: 18 }} items={[
         { title: <Link href={`/o/${currentOrg.slug}`}>{currentOrg.name}</Link> },
         { title: <Link href={`/o/${currentOrg.slug}/competitions`}>Competitions</Link> },
@@ -994,6 +992,5 @@ export default function CompetitionDetailPage() {
         />
       </Modal>
     </div>
-    </ConfigProvider>
   );
 }
