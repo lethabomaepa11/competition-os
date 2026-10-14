@@ -49,13 +49,29 @@ test.describe("public product story", () => {
   test("separates operator, team, and player onboarding", async ({ page }) => {
     await mockApp(page, false);
     await page.goto("/register");
+    await expect(page.getByRole("heading", { name: "Create your account." })).toBeVisible();
+    await expect(page.getByRole("radio")).toHaveCount(0);
+    await page.getByLabel("Your name").fill("Alex Morgan");
+    await page.getByLabel("Email address").fill("alex@league.com");
+    await page.getByLabel("Password").fill("competition2026");
+    await page.getByRole("button", { name: /Continue/ }).click();
+    await expect(page.getByRole("heading", { name: "How will you use CompetitionOS?" })).toBeVisible();
+    await page.getByRole("radio", { name: /Competition operator/ }).click();
     await expect(page.getByLabel("Company or organization name")).toBeVisible();
-    await page.getByText("Team", { exact: true }).click();
+    await page.getByRole("radio", { name: /Team owner or captain/ }).click();
     await expect(page.getByLabel("Team name")).toBeVisible();
     await expect(page.getByLabel("Sport or category")).toBeVisible();
-    await page.getByText("Player", { exact: true }).click();
+    await page.getByRole("radio", { name: /Individual player/ }).click();
     await expect(page.getByLabel("Team name")).toHaveCount(0);
     await expect(page.getByLabel("Company or organization name")).toHaveCount(0);
+  });
+
+  test("uses an invitation redirect instead of asking for a role", async ({ page }) => {
+    await mockApp(page, false);
+    await page.goto("/register?redirect=%2Finvite%2Fteam%2Fabc123");
+    await expect(page.getByText("Invitation access")).toBeVisible();
+    await expect(page.getByRole("radio")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Create account and continue/ })).toBeVisible();
   });
 
   test("publishes complete task guides", async ({ page }) => {

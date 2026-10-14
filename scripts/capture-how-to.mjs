@@ -2,6 +2,7 @@ import { chromium } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 
 const baseURL = process.env.CAPTURE_BASE_URL ?? "http://127.0.0.1:3101";
+const captureOnly = process.env.CAPTURE_ONLY;
 const output = new URL("../public/how-to/", import.meta.url);
 const member = { id: "00000000-0000-4000-8000-000000000001", email: "captain@competitionos.io", displayName: "Alex Morgan", accountType: "team", createdAt: "2026-01-01T00:00:00.000Z" };
 const organization = { id: "00000000-0000-4000-8000-000000000010", name: "Continental League", slug: "continental-league", settings: {}, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" };
@@ -38,10 +39,18 @@ async function capture(name, path, accountType, prepare) {
   await page.close();
 }
 
-await capture("account-onboarding", "/register", null, async (page) => page.getByText("Team", { exact: true }).click());
-await capture("create-competition", `/o/${organization.slug}/competitions/new`, "operator");
-await capture("registration-review", `/o/${organization.slug}/registrations`, "operator");
-await capture("team-roster", "/app/teams", "team");
-await capture("tournament-directory", "/app/opportunities", "team");
+if (!captureOnly || captureOnly === "account") await capture("account-onboarding", "/register", null, async (page) => {
+  await page.getByLabel("Your name").fill("Alex Morgan");
+  await page.getByLabel("Email address").fill("alex@league.com");
+  await page.getByLabel("Password").fill("competition2026");
+  await page.getByRole("button", { name: /Continue/ }).click();
+  await page.getByRole("radio", { name: /Team owner or captain/ }).click();
+});
+if (!captureOnly) {
+  await capture("create-competition", `/o/${organization.slug}/competitions/new`, "operator");
+  await capture("registration-review", `/o/${organization.slug}/registrations`, "operator");
+  await capture("team-roster", "/app/teams", "team");
+  await capture("tournament-directory", "/app/opportunities", "team");
+}
 
 await browser.close();

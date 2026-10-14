@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Divider, Form, Input, message } from "antd";
 import { ArrowRightOutlined, LockOutlined, MailOutlined } from "@ant-design/icons";
@@ -10,6 +10,11 @@ export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("redirect");
+    if (requested?.startsWith("/invite/") && !requested.startsWith("//")) sessionStorage.setItem("competitionos_auth_redirect", requested);
+  }, []);
+
   const onFinish = async (values: { email: string; password: string }) => {
     setLoading(true);
     try {
@@ -18,7 +23,9 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(json.error ?? "Could not sign in");
       message.success("Welcome back");
       const requested = new URLSearchParams(window.location.search).get("redirect");
-      router.push(requested?.startsWith("/") && !requested.startsWith("//") ? requested : (json.nextPath ?? "/app"));
+      const destination = requested?.startsWith("/") && !requested.startsWith("//") ? requested : (json.nextPath ?? "/app");
+      if (destination.startsWith("/invite/")) sessionStorage.removeItem("competitionos_auth_redirect");
+      router.push(destination);
       router.refresh();
     } catch (err: unknown) {
       message.error(err instanceof Error ? err.message : "Could not sign in");
@@ -35,7 +42,10 @@ export default function LoginPage() {
         <Button type="primary" htmlType="submit" block loading={loading} size="large">Sign in <ArrowRightOutlined /></Button>
       </Form>
       <Divider plain>New to CompetitionOS?</Divider>
-      <Button block size="large" onClick={() => router.push("/register")}>Create an account</Button>
+      <Button block size="large" onClick={() => {
+        const requested = new URLSearchParams(window.location.search).get("redirect");
+        router.push(requested?.startsWith("/invite/") && !requested.startsWith("//") ? `/register?redirect=${encodeURIComponent(requested)}` : "/register");
+      }}>Create an account</Button>
     </AuthShell>
   );
 }
