@@ -119,7 +119,7 @@ export class SwissFormat implements FormatStrategy {
         continue;
       }
 
-      let p1 = sorted[i];
+      const p1 = sorted[i];
       let p2 = sorted[i + 1];
 
       if (this.havePlayed(p1.participantId, p2.participantId, allMatches)) {

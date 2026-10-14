@@ -37,7 +37,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const supabase = client(request);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sign in to accept this invitation" }, { status: 401 });
-  let { data, error } = await (supabase.rpc as any)("accept_organization_invite", { invite_token: token });
+  const { data, error } = await (supabase.rpc as any)("accept_organization_invite", { invite_token: token });
   if (error && missingRpc(error)) {
     const { data: invite, error: inviteError } = await (supabase.from("invites") as any).select("id,organization_id,email,role,status").eq("token", token).maybeSingle();
     if (inviteError || !invite) return NextResponse.json({ error: "This invitation could not be found" }, { status: 404 });

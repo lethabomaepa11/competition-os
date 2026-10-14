@@ -359,7 +359,10 @@ export default function EventDetailPage() {
 
   useEffect(() => {
     if (!eventId) return;
+    // Load the event selected by the route when this screen mounts or changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
   useEffect(() => {

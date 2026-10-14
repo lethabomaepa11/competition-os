@@ -31,7 +31,7 @@ export default function TipTapRenderer({ content }: { content: Record<string, un
   const html = useMemo(() => {
     if (!content) return "";
     try {
-      return generateHTML(content as any, extensions);
+      return generateHTML(content as Parameters<typeof generateHTML>[0], extensions);
     } catch {
       return "";
     }

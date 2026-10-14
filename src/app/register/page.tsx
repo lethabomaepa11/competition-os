@@ -31,6 +31,8 @@ export default function RegisterPage() {
     const redirect = queryRedirect ?? storedRedirect;
     if (redirect) {
       sessionStorage.setItem(REDIRECT_KEY, redirect);
+      // Restore navigation state that is only available in the browser.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInviteRedirect(redirect);
     }
   }, []);

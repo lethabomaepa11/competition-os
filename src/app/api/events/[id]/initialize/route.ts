@@ -123,7 +123,7 @@ export async function POST(
         if (newRoundId) match.roundId = newRoundId;
 
         const { participantIds: mpIds, participants: mps, result: matchResult, ...cleanMatch } = match as unknown as Record<string, unknown>;
-        let matchPayload = mapKeys(cleanMatch, camelToSnake) as Record<string, unknown>;
+        const matchPayload = mapKeys(cleanMatch, camelToSnake) as Record<string, unknown>;
         delete matchPayload.id;
 
         if (matchResult) {

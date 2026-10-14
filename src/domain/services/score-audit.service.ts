@@ -110,8 +110,8 @@ export class ScoreAuditService {
     let wins = 0, losses = 0, draws = 0;
     let totalScoreFor = 0, totalScoreAgainst = 0;
     let highestScore = 0, lowestScore = Infinity;
-    let comebackWins = 0, dominantWins = 0, closeWins = 0;
-    let totalDurationMs = 0, durationCount = 0;
+    const comebackWins = 0, dominantWins = 0, closeWins = 0;
+    const totalDurationMs = 0, durationCount = 0;
 
     for (const m of participantMatches) {
       const r = m.result!;
@@ -133,7 +133,7 @@ export class ScoreAuditService {
     if (lowestScore === Infinity) lowestScore = 0;
 
     const results = this.getParticipantResults(eventId, participantId, matches);
-    let currentWinStreak = 0, currentLossStreak = 0;
+    const currentWinStreak = 0, currentLossStreak = 0;
     let longestWinStreak = 0, longestLossStreak = 0;
     let tempStreak = 0;
     let currentStreakType: "win" | "loss" | null = null;
