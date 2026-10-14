@@ -54,6 +54,7 @@ export class EventService {
     registrationPolicy?: RegistrationPolicy;
     maxParticipants?: number;
     minParticipants?: number;
+    config?: Record<string, unknown>;
   }, actorId: ID): Promise<Event> {
     const now = new Date().toISOString();
     const event: Event = {
@@ -66,7 +67,7 @@ export class EventService {
       maxParticipants: data.maxParticipants,
       minParticipants: data.minParticipants,
       status: EventStatus.Draft,
-      config: {},
+      config: data.config ?? {},
       createdAt: now,
       updatedAt: now,
     };
