@@ -172,6 +172,46 @@ a {
 .ant-spin-large .competition-loader-indicator {
   transform: scale(1.12);
 }
+.route-progress {
+  position: fixed;
+  z-index: 2000;
+  inset: 0 0 auto;
+  height: 4px;
+  pointer-events: none;
+}
+.route-progress__bar {
+  position: absolute;
+  inset: 0;
+  transform-origin: left;
+  background: linear-gradient(90deg, #2868dc, #8cb8ff, #2868dc);
+  box-shadow: 0 0 18px rgba(52, 116, 239, .75);
+  transition: transform 180ms ease-out;
+}
+.route-progress__glow {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 74, 168, .18);
+  box-shadow: 0 0 22px 8px rgba(44, 105, 220, .14);
+}
+.route-progress__crest {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(12, 30, 63, .92), rgba(12, 30, 63, .42) 66%, transparent 70%);
+  filter: drop-shadow(0 5px 14px rgba(20, 75, 170, .36));
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-progress__bar { transition: none; }
+  .route-progress__crest .competition-loader-indicator::before,
+  .route-progress__crest .competition-loader-indicator::after,
+  .route-progress__crest .competition-loader-orbit--outer,
+  .route-progress__crest .competition-loader-orbit--inner,
+  .route-progress__crest .competition-loader-bounce,
+  .route-progress__crest .competition-loader-spin { animation: none; }
+}
 @keyframes competition-orbit {
   to { transform: rotate(360deg); }
 }
@@ -553,7 +593,7 @@ a {
   display: flex;
   align-items: center;
   gap: 9px;
-  color: #1c5fd4;
+  color: var(--competition-accent, #1c5fd4);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -568,7 +608,7 @@ a {
 }
 .live-hero {
   min-height: 390px !important;
-  border-bottom: 5px solid #1c5fd4;
+  border-bottom: 5px solid var(--competition-accent, #1c5fd4);
   background:
     radial-gradient(
       circle at 75% 35%,
