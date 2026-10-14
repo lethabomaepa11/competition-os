@@ -7,7 +7,8 @@ import { ensureRequiredCompetitionPages, validateCompetitionPages } from "../../
 import { calculatePredictionOdds } from "../../src/domain/prediction-odds";
 import { resolveEventChampion } from "../../src/domain/champion";
 import { normalizeCompetitionBlueprint } from "../../src/domain/blueprints";
-import { computeEventAnalystMetrics } from "../../src/domain/analyst";
+import { computeEventAnalystContext, computeEventAnalystMetrics } from "../../src/domain/analyst";
+import { groundedScoreSummary } from "../../src/domain/commentary";
 import { createGroupStageBracketPreview } from "../../src/domain/formats/group-stage-preview";
 import { EventStatus, FormatType, MatchStatus, ParticipantType, RegistrationPolicy } from "../../src/domain/types";
 import type { Participant } from "../../src/domain/participant";
@@ -52,6 +53,36 @@ test.describe("competition structure integrity", () => {
     const metrics = computeEventAnalystMetrics(results, entrants);
     expect(metrics.find((metric) => metric.id === entrants[0].id)).toMatchObject({ wins: 1, losses: 0, matches: 1, averageFor: 2, averageAgainst: 0, form: ["W"] });
     expect(metrics.find((metric) => metric.id === entrants[1].id)).toMatchObject({ wins: 1, losses: 1, matches: 2, averageFor: 1.5, averageAgainst: 1.5, form: ["L", "W"] });
+  });
+
+  test("derives movement, head-to-head and qualification ranges from persisted fixtures", () => {
+    const entrants = participants(4);
+    const result = (id: string, first: number, second: number, winner: number, updatedAt: string): Match => ({
+      id, eventId: "event-1", roundId: "round-1", status: MatchStatus.Completed,
+      participantIds: [entrants[first].id, entrants[second].id], participants: [], config: {},
+      result: { winnerId: entrants[winner].id, scores: [{ participantId: entrants[first].id, label: "Goals", value: winner === first ? 2 : 0 }, { participantId: entrants[second].id, label: "Goals", value: winner === second ? 2 : 0 }], isWalkover: false, finalizedAt: updatedAt },
+      createdAt: updatedAt, updatedAt,
+    });
+    const matches = [
+      result("one", 0, 1, 0, "2026-10-14T10:00:00.000Z"),
+      result("two", 2, 3, 2, "2026-10-14T11:00:00.000Z"),
+      result("three", 1, 0, 1, "2026-10-14T12:00:00.000Z"),
+      { id: "remaining", eventId: "event-1", roundId: "round-2", status: MatchStatus.Scheduled, participantIds: [entrants[1].id, entrants[2].id], participants: [], config: {}, createdAt: "2026-10-14T13:00:00.000Z", updatedAt: "2026-10-14T13:00:00.000Z" } as Match,
+    ];
+    const context = computeEventAnalystContext(matches, entrants, 2);
+    expect(context.headToHead.find((pair) => pair.participants.includes(entrants[0].id))).toMatchObject({ meetings: 2, wins: [1, 1] });
+    expect(context.standingsMovement.length).toBeGreaterThan(0);
+    expect(context.qualification).toHaveLength(4);
+    expect(context.qualification.find((row) => row.participantId === entrants[1].id)?.remaining).toBe(1);
+  });
+
+  test("keeps every commentary style grounded in the supplied score", () => {
+    const names = new Map([["a", "Alpha"], ["b", "Bravo"]]);
+    for (const style of ["professional", "energetic", "tactical", "playful"] as const) {
+      const summary = groundedScoreSummary(names, [{ participantId: "a", value: 3 }, { participantId: "b", value: 1 }], style);
+      expect(summary).toContain("Alpha");
+      expect(summary).toContain("3–1");
+    }
   });
 
   test("prices predictions from completed results and withholds estimates without enough form", () => {

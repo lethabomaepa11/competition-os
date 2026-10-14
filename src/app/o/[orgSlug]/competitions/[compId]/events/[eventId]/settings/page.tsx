@@ -11,6 +11,7 @@ import { canManageCompetition } from "@/lib/permissions";
 import { CompetitionService } from "@/domain/services/competition.service";
 import ImageUpload from "@/components/upload/image-upload";
 import { EventStatus, RegistrationPolicy, ParticipantType, FormatType } from "@/domain/types";
+import { commentaryStyleLabels, commentaryStyles } from "@/domain/commentary";
 
 const { Title, Text } = Typography;
 
@@ -152,6 +153,13 @@ export default function EventSettingsPage() {
                 <Form.Item label="Scoring instructions" name={["config", "scoringInstructions"]}><Input.TextArea rows={3} maxLength={500} placeholder="Explain tie-breaks or scoring conventions for this event" /></Form.Item>
               </Col>
             </Row>
+          </Card>
+          <Card title="Broadcast commentary" style={{ marginBottom: 16 }}>
+            <Row gutter={16}>
+              <Col xs={24} md={10}><Form.Item label="Default commentary style" name={["config", "commentaryStyle"]} extra="Operators can temporarily change this inside a live fixture."><Select options={commentaryStyles.map((style) => ({ value: style, label: commentaryStyleLabels[style] }))} /></Form.Item></Col>
+              <Col xs={24} md={14}><Form.Item label="Event voice" name={["config", "commentaryTone"]} extra="A short editorial cue, such as formal club broadcast or energetic esports desk."><Input maxLength={160} showCount placeholder="Formal, concise, and suitable for a family audience" /></Form.Item></Col>
+            </Row>
+            <Alert type="info" showIcon message="Commentary uses recorded names and scores" description="Game, score label, and scoring instructions provide vocabulary. The generator cannot invent match actions, timing, or statistics." />
           </Card>
           {competitionCategory === "esports" && <Card title="Game identity and integrations" style={{ marginBottom: 16 }}>
             <Alert type="info" showIcon title="Game metadata is optional" description="Choose the game and add official references to help teams understand eligibility and follow the event." style={{ marginBottom: 16 }} />

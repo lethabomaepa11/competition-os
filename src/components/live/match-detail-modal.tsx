@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Modal, Typography, Tag, Space } from "antd";
+import { Modal, Typography, Tag, Space, Select } from "antd";
 import { TrophyOutlined, CommentOutlined, MinusCircleOutlined } from "@ant-design/icons";
 import type { Match, MatchComment, MatchScore } from "@/domain/match";
 import type { Participant } from "@/domain/participant";
 import { GetWhere } from "@/lib/store";
 import LiveTimer from "./live-timer";
 import CommentaryFeed from "./commentary-feed";
+import { commentaryStyleLabels, commentaryStyles, type CommentaryStyle } from "@/domain/commentary";
 
 const { Text } = Typography;
 
@@ -30,6 +31,7 @@ export default function MatchDetailModal({
   const [commentLoading, setCommentLoading] = useState(false);
   const [commentGenerating, setCommentGenerating] = useState(false);
   const [commentError, setCommentError] = useState("");
+  const [commentaryStyle, setCommentaryStyle] = useState<"event" | CommentaryStyle>("event");
   const lastCommentKey = useRef("");
 
   const isLive = match.status === "in_progress";
@@ -65,7 +67,7 @@ export default function MatchDetailModal({
         const res = await fetch("/api/ai/commentary", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ matchId: match.id }),
+          body: JSON.stringify({ matchId: match.id, style: commentaryStyle === "event" ? undefined : commentaryStyle }),
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "Could not generate commentary.");
@@ -85,7 +87,7 @@ export default function MatchDetailModal({
     }, 3000);
 
     return () => clearTimeout(timeout);
-  }, [commentKey, isLive, open, match.id, matchScores.length]);
+  }, [commentKey, commentaryStyle, isLive, open, match.id, matchScores.length]);
 
   return (
     <Modal
@@ -200,9 +202,10 @@ export default function MatchDetailModal({
       </div>
 
       <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: 12 }}>
-        <Text strong style={{ fontSize: 13, display: "block", marginBottom: 8 }}>
-          <CommentOutlined style={{ marginRight: 6 }} />AI Commentary
-        </Text>
+        <Space style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }} wrap>
+          <Text strong style={{ fontSize: 13 }}><CommentOutlined style={{ marginRight: 6 }} />AI Commentary</Text>
+          <Select aria-label="Commentary style" size="small" value={commentaryStyle} onChange={setCommentaryStyle} options={[{ value: "event", label: "Event default" }, ...commentaryStyles.map((style) => ({ value: style, label: commentaryStyleLabels[style] }))]} style={{ minWidth: 170 }} />
+        </Space>
         <CommentaryFeed comments={comments} loading={commentLoading || commentGenerating} />
         {commentError && <Text type="danger" style={{ display: "block", marginTop: 8 }}>{commentError}</Text>}
       </div>
