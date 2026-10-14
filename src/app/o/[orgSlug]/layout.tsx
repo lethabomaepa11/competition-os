@@ -72,7 +72,7 @@ function OrgLayoutInner({ children }: { children: React.ReactNode }) {
   return (
     <Layout className={styles.shell}>
       {!mobile && <Layout.Sider width={270} collapsedWidth={84} collapsible collapsed={collapsed} onCollapse={setCollapsed} theme="dark" className={`org-layout-sider ${styles.sider}`}>{navigation}</Layout.Sider>}
-      {mobile && <Drawer placement="left" width={286} open={drawerOpen} onClose={() => setDrawerOpen(false)} styles={{ body: { padding: 0, background: "#07111f" }, header: { display: "none" } }}>{navigation}</Drawer>}
+      {mobile && <Drawer placement="left" open={drawerOpen} onClose={() => setDrawerOpen(false)} styles={{ wrapper: { width: 286 }, body: { padding: 0, background: "#07111f" }, header: { display: "none" } }}>{navigation}</Drawer>}
       <Layout>
         <header className={`org-layout-header ${styles.header}`}>
           <div className={styles.headerLead}>

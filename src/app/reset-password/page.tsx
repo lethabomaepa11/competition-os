@@ -12,7 +12,10 @@ export default function ResetPasswordPage() {
   const [done, setDone] = useState(false);
   const [hasToken, setHasToken] = useState(false);
 
-  useEffect(() => { setHasToken(window.location.hash.includes("type=recovery")); }, []);
+  useEffect(() => {
+    const task = window.setTimeout(() => setHasToken(window.location.hash.includes("type=recovery")), 0);
+    return () => window.clearTimeout(task);
+  }, []);
 
   const onFinish = async (values: { password: string }) => {
     setLoading(true);

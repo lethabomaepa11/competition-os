@@ -12,7 +12,12 @@ export default function AuditPage() {
   const { currentOrg } = useApp();
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const refresh = async () => { if (currentOrg) setEntries(await getAuditLog(currentOrg.id, { limit: 50 })); };
-  useEffect(() => { void refresh(); }, [currentOrg]);
+  useEffect(() => {
+    if (!currentOrg) return;
+    let active = true;
+    getAuditLog(currentOrg.id, { limit: 50 }).then((items) => { if (active) setEntries(items); });
+    return () => { active = false; };
+  }, [currentOrg]);
   if (!currentOrg) return null;
   const undo = async (id: string) => { if (await undoAudit(id)) { message.success("Action reversed"); await refresh(); } else message.error("This action could not be reversed"); };
 

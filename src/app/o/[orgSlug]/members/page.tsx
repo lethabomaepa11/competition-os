@@ -24,7 +24,14 @@ export default function MembersPage() {
   const memberService = new MemberService();
   const inviteService = new InviteService();
   const refresh = async () => { if (currentOrg) { const [people, pending] = await Promise.all([orgService.getMembers(currentOrg.id), inviteService.listByOrg(currentOrg.id)]); setMembers(people); setInvites(pending); } };
-  useEffect(() => { void refresh(); }, [currentOrg]);
+  useEffect(() => {
+    if (!currentOrg) return;
+    let active = true;
+    Promise.all([new OrganizationService().getMembers(currentOrg.id), new InviteService().listByOrg(currentOrg.id)]).then(([people, pending]) => {
+      if (active) { setMembers(people); setInvites(pending); }
+    });
+    return () => { active = false; };
+  }, [currentOrg]);
   if (!currentOrg) return null;
 
   const invite = async (values: { email: string; displayName: string; role: Role }) => {

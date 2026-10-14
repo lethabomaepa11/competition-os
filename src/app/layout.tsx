@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
@@ -13,12 +13,16 @@ export const metadata: Metadata = {
     { rel: "icon", url: "/icon-192.png" },
     { rel: "apple-touch-icon", url: "/icon-192.png" },
   ],
-  viewport: "width=device-width, initial-scale=1",
   other: {
-    "theme-color": "#07111F",
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-title": "CompOS",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#07111F",
 };
 
 export default function RootLayout({

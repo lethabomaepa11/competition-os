@@ -22,7 +22,14 @@ export default function BlueprintsPage() {
   const [selected, setSelected] = useState<string>();
   const [name, setName] = useState("");
   const refresh = async () => { if (currentOrg) { const [items, comps] = await Promise.all([GetWhere<Blueprint>("blueprints", { organizationId: currentOrg.id }), new CompetitionService().list(currentOrg.id)]); setBlueprints(items); setCompetitions(comps); } };
-  useEffect(() => { void refresh(); }, [currentOrg]);
+  useEffect(() => {
+    if (!currentOrg) return;
+    let active = true;
+    Promise.all([GetWhere<Blueprint>("blueprints", { organizationId: currentOrg.id }), new CompetitionService().list(currentOrg.id)]).then(([items, comps]) => {
+      if (active) { setBlueprints(items); setCompetitions(comps); }
+    });
+    return () => { active = false; };
+  }, [currentOrg]);
   if (!currentOrg) return null;
 
   const save = async () => {
