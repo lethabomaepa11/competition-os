@@ -16,7 +16,7 @@ export class DoubleEliminationFormat implements FormatStrategy {
   createStages(eventId: string, participants: Participant[], rules: RuleOverride[]): StageResult[] {
     const useSeeding = getBoolRule(rules, "seeding", FormatType.DoubleElimination);
 
-    let seeded = [...participants];
+    const seeded = [...participants];
     if (useSeeding) {
       seeded.sort((a, b) => (a.seed ?? 999) - (b.seed ?? 999));
     }
@@ -98,9 +98,12 @@ export class DoubleEliminationFormat implements FormatStrategy {
         participants: [],
         config: {
           engineMatchIndex: seed.match_number - 1,
+          engineMatchKey: seed.match_id,
           nextMatchIndex: seed.next_match_index,
+          nextMatchKey: seed.next_match_index === null ? null : seeds[seed.next_match_index]?.match_id,
           nextMatchSlot: seed.next_match_slot,
           loserNextMatchIndex: seed.loser_next_match_index,
+          loserNextMatchKey: seed.loser_next_match_index === null ? null : seeds[seed.loser_next_match_index]?.match_id,
           loserNextMatchSlot: seed.loser_next_match_slot,
           bracketGroup,
         },
@@ -135,32 +138,44 @@ export class DoubleEliminationFormat implements FormatStrategy {
       if ((match.status !== MatchStatus.Completed && match.status !== MatchStatus.Walkover) || !match.result?.winnerId) continue;
 
       const nextIdx = match.config?.nextMatchIndex as number | undefined;
+      const nextKey = match.config?.nextMatchKey as string | undefined;
       const nextSlot = match.config?.nextMatchSlot as string | undefined;
-      if (nextIdx !== undefined && nextIdx >= 0 && nextIdx < updated.length) {
-        const target = updated[nextIdx];
+      if (nextKey || (nextIdx !== undefined && nextIdx >= 0)) {
+        const target = nextKey
+          ? updated.find((candidate) => candidate.config?.engineMatchKey === nextKey)
+          : updated.find((candidate) => candidate.config?.engineMatchIndex === nextIdx);
         if (target && !target.participantIds.includes(match.result.winnerId)) {
-          target.participantIds.push(match.result.winnerId);
+          const position = nextSlot === "player2" ? 2 : 1;
+          target.participants = target.participants.filter((participant) => participant.position !== position);
           target.participants.push({
             matchId: target.id,
             participantId: match.result.winnerId,
-            position: nextSlot === "player2" ? 2 : target.participants.length + 1,
+            position,
           });
+          target.participants.sort((a, b) => a.position - b.position);
+          target.participantIds = target.participants.map((participant) => participant.participantId);
         }
       }
 
       const loserNextIdx = match.config?.loserNextMatchIndex as number | undefined;
+      const loserNextKey = match.config?.loserNextMatchKey as string | undefined;
       const loserNextSlot = match.config?.loserNextMatchSlot as string | undefined;
-      if (loserNextIdx !== undefined && loserNextIdx >= 0 && loserNextIdx < updated.length) {
+      if (loserNextKey || (loserNextIdx !== undefined && loserNextIdx >= 0)) {
         const loserId = match.participantIds.find(pid => pid !== match.result!.winnerId);
         if (loserId) {
-          const target = updated[loserNextIdx];
+          const target = loserNextKey
+            ? updated.find((candidate) => candidate.config?.engineMatchKey === loserNextKey)
+            : updated.find((candidate) => candidate.config?.engineMatchIndex === loserNextIdx);
           if (target && !target.participantIds.includes(loserId)) {
-            target.participantIds.push(loserId);
+            const position = loserNextSlot === "player2" ? 2 : 1;
+            target.participants = target.participants.filter((participant) => participant.position !== position);
             target.participants.push({
               matchId: target.id,
               participantId: loserId,
-              position: loserNextSlot === "player2" ? 2 : target.participants.length + 1,
+              position,
             });
+            target.participants.sort((a, b) => a.position - b.position);
+            target.participantIds = target.participants.map((participant) => participant.participantId);
           }
         }
       }

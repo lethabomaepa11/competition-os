@@ -14,7 +14,7 @@ export class SingleEliminationFormat implements FormatStrategy {
     const useSeeding = getBoolRule(rules, "seeding", FormatType.SingleElimination);
     const thirdPlace = getBoolRule(rules, "third_place_match", FormatType.SingleElimination);
 
-    let seeded = [...participants];
+    const seeded = [...participants];
     if (useSeeding) {
       seeded.sort((a, b) => (a.seed ?? 999) - (b.seed ?? 999));
     }
@@ -70,7 +70,9 @@ export class SingleEliminationFormat implements FormatStrategy {
         config: {
           seedParticipantIds,
           engineMatchIndex: seed.match_number - 1,
+          engineMatchKey: seed.match_id,
           nextMatchIndex: seed.next_match_index,
+          nextMatchKey: seed.next_match_index === null ? null : seeds[seed.next_match_index]?.match_id,
           nextMatchSlot: seed.next_match_slot,
           roundName: seed.round_name,
         },
@@ -215,19 +217,25 @@ export class SingleEliminationFormat implements FormatStrategy {
       if (match.status !== MatchStatus.Completed || !match.result?.winnerId) continue;
 
       const nextIdx = match.config?.nextMatchIndex as number | undefined;
+      const nextKey = match.config?.nextMatchKey as string | undefined;
       const nextSlot = match.config?.nextMatchSlot as string | undefined;
-      if (nextIdx === undefined || nextIdx < 0 || nextIdx >= updated.length) continue;
+      if (!nextKey && (nextIdx === undefined || nextIdx < 0)) continue;
 
-      const target = updated[nextIdx];
+      const target = nextKey
+        ? updated.find((candidate) => candidate.config?.engineMatchKey === nextKey)
+        : updated.find((candidate) => candidate.config?.engineMatchIndex === nextIdx);
       if (!target) continue;
 
       if (!target.participantIds.includes(match.result.winnerId)) {
-        target.participantIds.push(match.result.winnerId);
+        const position = nextSlot === "player2" ? 2 : 1;
+        target.participants = target.participants.filter((participant) => participant.position !== position);
         target.participants.push({
           matchId: target.id,
           participantId: match.result.winnerId,
-          position: nextSlot === "player2" ? 2 : target.participants.length + 1,
+          position,
         });
+        target.participants.sort((a, b) => a.position - b.position);
+        target.participantIds = target.participants.map((participant) => participant.participantId);
       }
 
       if (match.config?.roundName === "Semi-final" || match.config?.roundName === "Semi-Finals") {
