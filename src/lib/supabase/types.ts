@@ -311,6 +311,12 @@ export interface Database {
           score?: number | null;
         };
       };
+      match_comments: {
+        Row: { id: string; match_id: string; text: string; created_at: string };
+        Insert: { id?: string; match_id: string; text: string; created_at?: string };
+        Update: { text?: string };
+        Relationships: [];
+      };
       participants: {
         Row: {
           id: string;

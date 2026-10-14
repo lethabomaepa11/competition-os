@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Modal, Typography, Tag, Spin, Space } from "antd";
+import { useState, useEffect, useRef } from "react";
+import { Modal, Typography, Tag, Space } from "antd";
 import { TrophyOutlined, CommentOutlined, MinusCircleOutlined } from "@ant-design/icons";
 import type { Match, MatchComment, MatchScore } from "@/domain/match";
 import type { Participant } from "@/domain/participant";
@@ -28,13 +28,13 @@ export default function MatchDetailModal({
 }) {
   const [comments, setComments] = useState<MatchComment[]>([]);
   const [commentLoading, setCommentLoading] = useState(false);
-  const [lastCommentKey, setLastCommentKey] = useState("");
+  const [commentGenerating, setCommentGenerating] = useState(false);
+  const [commentError, setCommentError] = useState("");
+  const lastCommentKey = useRef("");
 
   const isLive = match.status === "in_progress";
   const isDraw = !isLive && match.result != null && !match.result.winnerId;
-  const matchScores: MatchScore[] = (match as any).scores?.length
-    ? (match as any).scores
-    : match.result?.scores ?? [];
+  const matchScores: MatchScore[] = match.scores?.length ? match.scores : match.result?.scores ?? [];
   const posOrder = new Map(match.participants.map(mp => [mp.participantId, mp.position]));
   const orderedScores = [...matchScores].sort((a, b) => (posOrder.get(a.participantId) ?? 0) - (posOrder.get(b.participantId) ?? 0));
   const commentKey = getCommentaryKey(matchScores);
@@ -55,25 +55,20 @@ export default function MatchDetailModal({
   }, [open, match.id]);
 
   useEffect(() => {
-    if (!isLive || !open || commentKey === lastCommentKey || matchScores.length === 0) return;
-    setLastCommentKey(commentKey);
+    if (!isLive || !open || commentKey === lastCommentKey.current || matchScores.length === 0) return;
+    lastCommentKey.current = commentKey;
 
     const timeout = setTimeout(async () => {
       try {
-        const participantInfo = matchScores.map((s) => {
-          const p = participants.find((pp) => pp.id === s.participantId);
-          return { name: p?.displayName ?? "?", score: s.value };
-        });
+        setCommentGenerating(true);
+        setCommentError("");
         const res = await fetch("/api/ai/commentary", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            matchId: match.id,
-            matchName: `${participantInfo.map(p => p.name).join(" vs ")}`,
-            participants: participantInfo,
-          }),
+          body: JSON.stringify({ matchId: match.id }),
         });
         const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? "Could not generate commentary.");
         if (json.data?.text) {
           setComments(prev => [...prev, {
             id: json.data.id ?? crypto.randomUUID(),
@@ -82,11 +77,15 @@ export default function MatchDetailModal({
             createdAt: new Date().toISOString(),
           }]);
         }
-      } catch { /* silent */ }
+      } catch (error) {
+        setCommentError(error instanceof Error ? error.message : "Could not generate commentary.");
+      } finally {
+        setCommentGenerating(false);
+      }
     }, 3000);
 
     return () => clearTimeout(timeout);
-  }, [commentKey, isLive, open]);
+  }, [commentKey, isLive, open, match.id, matchScores.length]);
 
   return (
     <Modal
@@ -204,7 +203,8 @@ export default function MatchDetailModal({
         <Text strong style={{ fontSize: 13, display: "block", marginBottom: 8 }}>
           <CommentOutlined style={{ marginRight: 6 }} />AI Commentary
         </Text>
-        <CommentaryFeed comments={comments} loading={commentLoading} />
+        <CommentaryFeed comments={comments} loading={commentLoading || commentGenerating} />
+        {commentError && <Text type="danger" style={{ display: "block", marginTop: 8 }}>{commentError}</Text>}
       </div>
     </Modal>
   );

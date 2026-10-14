@@ -24,7 +24,7 @@ export default function CommentaryFeed({ comments, loading }: { comments: MatchC
       )}
       {comments.map((c) => (
         <div key={c.id} style={{ display: "flex", gap: 8, padding: "6px 0", borderBottom: "1px solid #f0f0f0" }}>
-          <CommentOutlined style={{ color: "#8b5cf6", fontSize: 14, marginTop: 2, flexShrink: 0 }} />
+          <CommentOutlined style={{ color: "#2563eb", fontSize: 14, marginTop: 2, flexShrink: 0 }} />
           <div>
             <Text style={{ fontSize: 13, lineHeight: 1.5 }}>{c.text}</Text>
             <div>

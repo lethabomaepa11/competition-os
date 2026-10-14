@@ -144,6 +144,7 @@ export async function POST(
       case "create": {
         if (!item) return NextResponse.json({ error: "Missing item in request body" }, { status: 400 });
         if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        if (tb === "match_comments") return NextResponse.json({ error: "Match commentary is generated from verified match data." }, { status: 403 });
         if (tb === "organizations") {
           const { data: profileData } = await supabase.from("profiles").select("account_type").eq("id", user.id).single();
           const profile = profileData as unknown as { account_type: "operator" | "team" | "player" } | null;
@@ -177,6 +178,7 @@ export async function POST(
       }
 
       case "update": {
+        if (tb === "match_comments") return NextResponse.json({ error: "Match commentary is read-only." }, { status: 403 });
         const converted = mapKeys(updates, camelToSnake) as Record<string, unknown>;
         const payload = sanitizePayload(converted as Record<string, unknown>) as never;
         const { data, error } = await supabase.from(tb).update(payload).eq("id", id as string).select().maybeSingle();
@@ -186,6 +188,7 @@ export async function POST(
       }
 
       case "Delete": {
+        if (tb === "match_comments") return NextResponse.json({ error: "Match commentary is read-only." }, { status: 403 });
         if (tb === "organizations") {
           if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
           const { data: membership, error: membershipError } = await supabase

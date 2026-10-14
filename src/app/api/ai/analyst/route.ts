@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     if (!competition) return NextResponse.json({ error: "Competition not found." }, { status: 404 });
     const { data: membershipRow } = await supabase.from("organization_members").select("role").eq("organization_id", competition.organization_id).eq("member_id", user.id).maybeSingle();
     const membership = membershipRow as unknown as { role: string } | null;
-    if (!membership || !["owner", "admin", "manager", "referee"].includes(membership.role)) return NextResponse.json({ error: "You do not have access to request event analysis." }, { status: 403 });
+    if (!membership || !["owner", "admin", "moderator", "referee"].includes(membership.role)) return NextResponse.json({ error: "You do not have access to request event analysis." }, { status: 403 });
 
     const [{ data: matchRows }, { data: participantRows }] = await Promise.all([
       supabase.from("matches").select("id,event_id,status,winner_id,scores,updated_at").eq("event_id", body.eventId).in("status", ["completed", "walkover"]).order("updated_at", { ascending: true }).limit(1000),
