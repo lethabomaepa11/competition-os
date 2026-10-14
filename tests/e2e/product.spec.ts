@@ -292,13 +292,16 @@ test.describe("competition and event administration", () => {
 
   test("offers required pages and editable sections in the competition page editor", async ({ page }) => {
     await page.route("**/api/competitions/crud/Get", (route) => json(route, { data: {
-      id: "competition-pages-1", organizationId: organization.id, name: "Continental Cup", description: "A long enough description explaining the annual continental club tournament.", category: "football", entryType: "team", visibility: "public", eligibility: {}, status: "draft", pages: [], createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
+      id: "competition-pages-1", organizationId: organization.id, name: "Continental Cup", description: "A long enough description explaining the annual continental club tournament.", category: "football", entryType: "team", visibility: "public", eligibility: {}, status: "draft", pages: [{ id: "home", kind: "home", name: "Home", slug: "home", enabled: true, blocks: [{ id: "hero", type: "hero", title: "Welcome" }, { id: "stats", type: "statistics", title: "Progress" }, { id: "events", type: "event_list", title: "Programme" }] }, { id: "invite", kind: "invite", name: "Invite", slug: "invite", enabled: false, blocks: [] }, { id: "live", kind: "live", name: "Live", slug: "live", enabled: true, blocks: [] }], createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
     } }));
     await page.goto(`/o/${organization.slug}/competitions/competition-pages-1/pages`);
     await expect(page.getByRole("heading", { name: "Build competition pages" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Home/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /Invite/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /Live/ })).toBeVisible();
+    await expect(page.getByLabel("Section heading").first()).toHaveValue("Welcome");
+    await page.getByRole("button", { name: "Move section 1 down" }).click();
+    await expect(page.getByLabel("Section heading").first()).toHaveValue("Progress");
     await page.getByRole("button", { name: /Invite/ }).click();
     await page.getByRole("checkbox", { name: "Show Join link on Home and publish this page" }).check();
     await expect(page.getByText("Join is also linked from Home")).toBeVisible();
