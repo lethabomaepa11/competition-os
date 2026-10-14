@@ -2,156 +2,78 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Typography, Card, Row, Col, Button, Empty, Avatar, Space, Modal, Form, Input, message } from "antd";
-import { PlusOutlined, TeamOutlined, RightOutlined } from "@ant-design/icons";
+import { Avatar, Button, Form, Input, Modal, message } from "antd";
+import { ArrowRightOutlined, PlusOutlined, TeamOutlined, TrophyOutlined } from "@ant-design/icons";
 import { useApp } from "@/lib/app-context";
 import { OrganizationService } from "@/domain/services/organization.service";
+import styles from "./workspace.module.css";
 
-const { Title, Text } = Typography;
-
-function slugify(text: string): string {
-  return text.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/[\s_]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") || "org";
+function slugify(value: string) {
+  return value.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/[\s_]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") || "org";
 }
 
 export default function AppDashboard() {
   const router = useRouter();
-  const { currentMember, organizations, createOrg } = useApp();
-  const [modalOpen, setModalOpen] = useState(false);
+  const { currentMember, organizations, createOrg, ready } = useApp();
+  const [open, setOpen] = useState(false);
   const [slug, setSlug] = useState("");
   const [creating, setCreating] = useState(false);
   const [form] = Form.useForm();
-  const orgSvc = new OrganizationService();
 
-  useEffect(() => {
-    if (!currentMember) router.push("/login");
-  }, [currentMember, router]);
-
+  useEffect(() => { if (ready && !currentMember) router.push("/login"); }, [ready, currentMember, router]);
   if (!currentMember) return null;
 
-  const handleCreateOrg = async (values: { name: string }) => {
+  const create = async (values: { name: string }) => {
     setCreating(true);
     try {
+      const service = new OrganizationService();
       let finalSlug = slugify(values.name);
-      if (await orgSvc.getBySlug(finalSlug)) {
-        finalSlug = `${finalSlug}-${Date.now().toString(36).slice(-4)}`;
-      }
+      if (await service.getBySlug(finalSlug)) finalSlug = `${finalSlug}-${Date.now().toString(36).slice(-4)}`;
       const org = await createOrg(values.name, finalSlug);
-      message.success("Organization created!");
-      setModalOpen(false);
-      form.resetFields();
-      setSlug("");
+      message.success("Organization created");
+      setOpen(false); form.resetFields(); setSlug("");
       router.push(`/o/${org.slug}`);
-    } catch {
-      message.error("Failed to create organization");
-    } finally {
-      setCreating(false);
-    }
+    } catch { message.error("Could not create the organization"); }
+    finally { setCreating(false); }
   };
 
   return (
     <>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 36 }}>
-          <div>
-            <Text type="secondary" style={{ fontWeight: 600, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.06em" }}>Dashboard</Text>
-            <Title level={2} style={{ margin: "4px 0 0", fontSize: 28, fontWeight: 700 }}>
-              Your Organizations
-            </Title>
-          </div>
-          {organizations.length > 0 && (
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-              New Organization
-            </Button>
-          )}
-        </div>
+      <header className="page-header">
+        <div><span className="eyebrow">Operator portfolio</span><h1 className="page-title">Choose your arena.</h1><p className="page-subtitle">Every organization has its own competitions, people, blueprints, controls, and public audience.</p></div>
+        <div className="page-actions"><Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setOpen(true)}>New organization</Button></div>
+      </header>
 
-        {organizations.length === 0 ? (
-          <Card style={{ textAlign: "center", padding: 40 }}>
-            <Empty
-              description={
-                <div>
-                  <Text style={{ fontSize: 15, display: "block", marginBottom: 4 }}>Create your first organization</Text>
-                  <Text type="secondary" style={{ fontSize: 13 }}>Organizations group your competitions, members, and settings</Text>
-                </div>
-              }
-            >
-              <Button type="primary" size="large" onClick={() => setModalOpen(true)} style={{ marginTop: 8 }}>
-                Create Organization
-              </Button>
-            </Empty>
-          </Card>
-        ) : (
-          <Row gutter={[16, 16]}>
-            {organizations.map((org) => (
-              <Col xs={24} sm={12} key={org.id}>
-                <Card
-                  hoverable
-                  className="card-hover"
-                  onClick={() => router.push(`/o/${org.slug}`)}
-                >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                      <Avatar
-                        size={48}
-                        icon={<TeamOutlined />}
-                        style={{ fontSize: 20 }}
-                      />
-                      <div>
-                        <Title level={4} style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{org.name}</Title>
-                        <Text type="secondary" style={{ fontSize: 13 }}>{org.slug}</Text>
-                      </div>
-                    </div>
-                    <Button type="text" icon={<RightOutlined />} />
-                  </div>
-                </Card>
-              </Col>
-            ))}
-            <Col xs={24} sm={12}>
-              <Card
-                hoverable
-                styles={{ body: { display: "flex", alignItems: "center", justifyContent: "center", minHeight: 88, cursor: "pointer" } }}
-                onClick={() => setModalOpen(true)}
-              >
-                <Space>
-                  <PlusOutlined style={{ fontSize: 18 }} />
-                  <Text style={{ fontWeight: 500, cursor: "pointer" }}>Create Organization</Text>
-                </Space>
-              </Card>
-            </Col>
-          </Row>
-        )}
+      <div className={styles.portfolioMeta}><span><b>{String(organizations.length).padStart(2, "0")}</b> Organizations</span><span><b>{currentMember.displayName}</b> Operator</span><span><i /> Workspace online</span></div>
 
-      <Modal
-        title="Create Organization"
-        open={modalOpen}
-        onCancel={() => { setModalOpen(false); form.resetFields(); setSlug(""); }}
-        footer={null}
-        width={440}
-      >
-        <Form form={form} layout="vertical" onFinish={handleCreateOrg} requiredMark={false}>
-          <Form.Item
-            label="Organization Name"
-            name="name"
-            rules={[{ required: true, message: "Enter your organization name" }]}
-          >
-            <Input
-              placeholder="e.g., Boxfusion Gaming"
-              size="large"
-              autoFocus
-              onChange={(e) => setSlug(slugify(e.target.value))}
-            />
-          </Form.Item>
-          {slug && (
-            <div style={{ marginTop: -16, marginBottom: 20, paddingLeft: 2 }}>
-              <Text type="secondary" style={{ fontSize: 13 }}>
-                URL: <Text strong style={{ color: "inherit" }}>competitionos.io/o/{slug}</Text>
-              </Text>
-            </div>
-          )}
-          <Form.Item style={{ marginBottom: 0 }}>
-            <Button type="primary" htmlType="submit" block loading={creating} size="large">
-              Create Organization
-            </Button>
-          </Form.Item>
+      {organizations.length === 0 ? (
+        <section className={styles.emptyPortfolio}>
+          <div className={styles.emptyIcon}><TeamOutlined /></div>
+          <span className="eyebrow">Your first workspace</span>
+          <h2>Give the operation a home.</h2>
+          <p>Create an organization for your league, club, federation, school, company, or tournament brand.</p>
+          <Button type="primary" size="large" onClick={() => setOpen(true)}>Create organization <ArrowRightOutlined /></Button>
+        </section>
+      ) : (
+        <section className={styles.orgGrid} aria-label="Your organizations">
+          {organizations.map((org, index) => (
+            <button key={org.id} className={styles.orgCard} onClick={() => router.push(`/o/${org.slug}`)}>
+              <span className={styles.orgIndex}>{String(index + 1).padStart(2, "0")}</span>
+              <Avatar size={48} icon={<TrophyOutlined />} />
+              <div><strong>{org.name}</strong><span>/{org.slug}</span></div>
+              <ArrowRightOutlined className={styles.orgArrow} />
+            </button>
+          ))}
+          <button className={`${styles.orgCard} ${styles.addCard}`} onClick={() => setOpen(true)}><PlusOutlined /><div><strong>Add organization</strong><span>Open another arena</span></div></button>
+        </section>
+      )}
+
+      <Modal title="Create an organization" open={open} onCancel={() => { setOpen(false); form.resetFields(); setSlug(""); }} footer={null} width={500}>
+        <p className={styles.modalIntro}>Organizations separate competitions, teams, settings, and access.</p>
+        <Form form={form} layout="vertical" onFinish={create} requiredMark={false}>
+          <Form.Item label="Organization name" name="name" rules={[{ required: true, message: "Enter an organization name" }]}><Input placeholder="e.g. Continental Esports League" size="large" autoFocus onChange={(event) => setSlug(slugify(event.target.value))} /></Form.Item>
+          <div className={styles.slugPreview}><span>Workspace URL</span><code>competitionos.io/o/{slug || "your-organization"}</code></div>
+          <Button type="primary" htmlType="submit" block loading={creating} size="large">Create workspace <ArrowRightOutlined /></Button>
         </Form>
       </Modal>
     </>

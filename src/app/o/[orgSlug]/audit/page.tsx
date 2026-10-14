@@ -1,64 +1,33 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Table, Typography, Tag, Button, message } from "antd";
-import { UndoOutlined } from "@ant-design/icons";
+import { Button, message, Table, Tag } from "antd";
+import { AuditOutlined, UndoOutlined } from "@ant-design/icons";
 import { useApp } from "@/lib/app-context";
 import { getAuditLog, undoAudit } from "@/domain/audit";
 import type { AuditEntry } from "@/domain/types";
-
-const { Title } = Typography;
+import styles from "../command.module.css";
 
 export default function AuditPage() {
   const { currentOrg } = useApp();
   const [entries, setEntries] = useState<AuditEntry[]>([]);
-
-  useEffect(() => {
-    if (!currentOrg) return;
-    (async () => {
-      setEntries(await getAuditLog(currentOrg.id, { limit: 50 }));
-    })();
-  }, [currentOrg]);
-
-  const handleUndo = async (id: string) => {
-    const success = await undoAudit(id);
-    if (success) {
-      message.success("Action undone!");
-      if (currentOrg) setEntries(await getAuditLog(currentOrg.id, { limit: 50 }));
-    } else {
-      message.error("Undo failed");
-    }
-  };
-
+  const refresh = async () => { if (currentOrg) setEntries(await getAuditLog(currentOrg.id, { limit: 50 })); };
+  useEffect(() => { void refresh(); }, [currentOrg]);
   if (!currentOrg) return null;
+  const undo = async (id: string) => { if (await undoAudit(id)) { message.success("Action reversed"); await refresh(); } else message.error("This action could not be reversed"); };
 
   return (
-    <div>
-      <Title level={3}>Audit Log</Title>
-      <Table
-        dataSource={entries}
-        rowKey="id"
-        columns={[
-          { title: "Action", dataIndex: "action", key: "action", render: (a: string) => <Tag>{a}</Tag> },
-          { title: "Resource", dataIndex: "resourceType", key: "resourceType" },
-          { title: "Resource ID", dataIndex: "resourceId", key: "resourceId", ellipsis: true },
-          {
-            title: "Changes", dataIndex: "diff", key: "diff",
-            render: (d: Record<string, unknown>) => (
-              <span style={{ fontSize: 12 }}>{Object.keys(d).join(", ") || "none"}</span>
-            ),
-          },
-          { title: "Date", dataIndex: "createdAt", key: "createdAt", render: (d: string) => new Date(d).toLocaleString() },
-          {
-            title: "Actions", key: "actions",
-            render: (_: unknown, record: AuditEntry) => (
-              <Button size="small" icon={<UndoOutlined />} onClick={() => handleUndo(record.id)}>
-                Undo
-              </Button>
-            ),
-          },
-        ]}
-      />
-    </div>
+    <>
+      <header className="page-header"><div><span className="eyebrow">Governance and recovery</span><h1 className="page-title">Nothing happens in the dark.</h1><p className="page-subtitle">Review the latest organization changes, understand their scope, and reverse supported actions.</p></div></header>
+      <div className={styles.auditBanner}><AuditOutlined /><div><strong>Traceable by design</strong><span>The latest 50 mutations are shown below. Undo is available where a valid snapshot exists.</span></div><b>{entries.length} entries</b></div>
+      <Table dataSource={entries} rowKey="id" scroll={{ x: 850 }} columns={[
+        { title: "Action", dataIndex: "action", key: "action", render: (value: string) => <Tag>{value}</Tag> },
+        { title: "Resource", dataIndex: "resourceType", key: "resourceType" },
+        { title: "ID", dataIndex: "resourceId", key: "resourceId", ellipsis: true, width: 180 },
+        { title: "Changed fields", dataIndex: "diff", key: "diff", render: (diff: Record<string,unknown>) => Object.keys(diff).join(", ") || "None" },
+        { title: "Date", dataIndex: "createdAt", key: "createdAt", render: (date: string) => new Date(date).toLocaleString() },
+        { title: "", key: "actions", render: (_: unknown, record: AuditEntry) => <Button size="small" icon={<UndoOutlined />} onClick={() => undo(record.id)}>Undo</Button> },
+      ]} />
+    </>
   );
 }
