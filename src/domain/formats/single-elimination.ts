@@ -83,7 +83,7 @@ export class SingleEliminationFormat implements FormatStrategy {
           nextMatchIndex: seed.next_match_index,
           nextMatchKey: seed.next_match_index === null ? null : seeds[seed.next_match_index]?.match_id,
           nextMatchSlot: seed.next_match_slot,
-          roundName: seed.round_name,
+          roundName: rounds[roundIdx]?.name ?? seed.round_name,
         },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -184,8 +184,8 @@ export class SingleEliminationFormat implements FormatStrategy {
 
       let rank = participants.length;
       if (isWinner) rank = 1;
-      else if (thirdPlace && p.id === thirdWinnerId) rank = 2;
-      else if (isFinalist) rank = thirdPlace ? 3 : 2;
+      else if (isFinalist) rank = 2;
+      else if (thirdPlace && p.id === thirdWinnerId) rank = 3;
       else if (isSemiFinalist) rank = thirdPlace ? 4 : 3;
 
       const wins = matches.filter(m => m.status === MatchStatus.Completed && m.result?.winnerId === p.id).length;
@@ -223,7 +223,7 @@ export class SingleEliminationFormat implements FormatStrategy {
     });
 
     for (const match of updated) {
-      if (match.status !== MatchStatus.Completed || !match.result?.winnerId) continue;
+      if ((match.status !== MatchStatus.Completed && match.status !== MatchStatus.Walkover) || !match.result?.winnerId) continue;
 
       const nextIdx = match.config?.nextMatchIndex as number | undefined;
       const nextKey = match.config?.nextMatchKey as string | undefined;

@@ -45,6 +45,15 @@ export class DoubleEliminationFormat implements FormatStrategy {
     const rounds: Round[] = [];
     const roundForSeed = new Map<MatchSeed, Round>();
     let roundNumber = 1;
+    const winnersRoundCount = Math.max(0, ...seeds.filter((seed) => seed.bracket_type === "winners").map((seed) => seed.round));
+    const winnersRoundName = (value: number): string => {
+      const entrants = 2 ** (winnersRoundCount - value + 1);
+      if (entrants === 2) return "Winners Final";
+      if (entrants === 4) return "Winners Semi-Finals";
+      if (entrants === 8) return "Winners Quarter-Finals";
+      if (entrants >= 16) return `Winners Round of ${entrants}`;
+      return `Winners Round ${value}`;
+    };
 
     for (const bracketType of BRACKET_TYPE_ORDER) {
       const typeSeeds = seeds.filter(s => s.bracket_type === bracketType);
@@ -53,10 +62,10 @@ export class DoubleEliminationFormat implements FormatStrategy {
       for (const rn of roundNums) {
         const sampleSeed = typeSeeds.find(s => s.round === rn)!;
         const name = bracketType === "winners"
-          ? (sampleSeed.round_name ?? `WB Round ${rn}`)
+          ? winnersRoundName(rn)
           : bracketType === "losers"
-            ? (sampleSeed.round_name ?? `LB Round ${rn}`)
-            : "Grand Final";
+            ? (sampleSeed.round_name ?? `Lower Bracket Round ${rn}`).replace(/^LB\s+/i, "Lower Bracket ")
+            : bracketType === "grand_final_reset" ? "Grand Final Reset" : "Grand Final";
 
         const round: Round = {
           id: generateId(),

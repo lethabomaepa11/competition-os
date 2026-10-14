@@ -119,6 +119,74 @@ test.describe("competition structure integrity", () => {
     expect(roundOf16.map((round) => round.name)).toEqual(["Round of 16", "Quarter-Finals", "Semi-Finals", "Final", "Third Place"]);
   });
 
+  test("builds stable single and double elimination structures for 4, 8, 12 and 16 entrants", () => {
+    for (const size of [4, 8, 12, 16]) {
+      const single = new SingleEliminationFormat().createStages("event-1", participants(size), [])[0];
+      const bracketSize = 2 ** Math.ceil(Math.log2(size));
+      expect(single.matches.filter((match) => !match.config.thirdPlace)).toHaveLength(bracketSize - 1);
+      expect(single.matches.filter((match) => match.config.thirdPlace)).toHaveLength(1);
+      expect(single.rounds.at(-2)?.name).toBe("Final");
+      expect(single.matches.filter((match) => match.status === MatchStatus.Walkover)).toHaveLength(bracketSize - size);
+
+      const double = new DoubleEliminationFormat().createStages("event-1", participants(size), [{ key: "bracket_reset", value: true }])[0];
+      expect(double.rounds.some((round) => round.name === "Grand Final")).toBe(true);
+      expect(double.rounds.some((round) => round.name === "Grand Final Reset")).toBe(true);
+      expect(double.rounds.some((round) => round.name === "Round 1")).toBe(false);
+      expect(new Set(double.matches.map((match) => match.config.engineMatchKey)).size).toBe(double.matches.length);
+      expect(double.matches.filter((match) => match.status === MatchStatus.Walkover)).toHaveLength(bracketSize - size);
+    }
+  });
+
+  test("advances byes and completed results while keeping provisional results out of the bracket", () => {
+    const format = new SingleEliminationFormat();
+    const byeBracket = format.createStages("event-1", participants(12), [])[0];
+    const withByes = format.propagateResults(byeBracket.matches, byeBracket.rounds);
+    for (const bye of byeBracket.matches.filter((match) => match.status === MatchStatus.Walkover && match.config.nextMatchKey)) {
+      const target = withByes.find((match) => match.config.engineMatchKey === bye.config.nextMatchKey);
+      expect(target?.participantIds).toContain(bye.result?.winnerId);
+    }
+
+    const bracket = format.createStages("event-2", participants(8), [])[0];
+    const sources = bracket.matches.filter((match) => match.config.roundName === "Quarter-Finals").slice(0, 2);
+    const targetKey = sources[0].config.nextMatchKey;
+    expect(sources[1].config.nextMatchKey).toBe(targetKey);
+    const provisional = bracket.matches.map((match) => match.id === sources[0].id
+      ? { ...match, status: MatchStatus.InProgress, result: { winnerId: match.participantIds[0], scores: [], isWalkover: false } }
+      : match.id === sources[1].id
+        ? { ...match, status: MatchStatus.Completed, result: { winnerId: match.participantIds[0], scores: [], isWalkover: false } }
+        : match);
+    const partiallyAdvanced = format.propagateResults(provisional, bracket.rounds).find((match) => match.config.engineMatchKey === targetKey)!;
+    expect(partiallyAdvanced.participantIds).not.toContain(sources[0].participantIds[0]);
+    expect(partiallyAdvanced.participantIds).toContain(sources[1].participantIds[0]);
+  });
+
+  test("routes semi-final losers to third place and ranks the podium correctly", () => {
+    const entrants = participants(4);
+    const format = new SingleEliminationFormat();
+    const bracket = format.createStages("event-1", entrants, [{ key: "third_place_match", value: true }])[0];
+    const semiFinals = bracket.matches.filter((match) => match.config.roundName === "Semi-Finals");
+    const completedSemis = bracket.matches.map((match) => {
+      if (!semiFinals.some((semi) => semi.id === match.id)) return match;
+      return { ...match, status: MatchStatus.Completed, result: { winnerId: match.participantIds[0], scores: [], isWalkover: false } };
+    });
+    const afterSemis = format.propagateResults(completedSemis, bracket.rounds);
+    const final = afterSemis.find((match) => match.config.roundName === "Final" && !match.config.thirdPlace)!;
+    const third = afterSemis.find((match) => match.config.thirdPlace)!;
+    expect(final.participantIds).toEqual(semiFinals.map((match) => match.participantIds[0]));
+    expect(new Set(third.participantIds)).toEqual(new Set(semiFinals.map((match) => match.participantIds[1])));
+
+    const completed = afterSemis.map((match) => match.id === final.id
+      ? { ...match, status: MatchStatus.Completed, result: { winnerId: final.participantIds[0], scores: [], isWalkover: false } }
+      : match.id === third.id
+        ? { ...match, status: MatchStatus.Completed, result: { winnerId: third.participantIds[0], scores: [], isWalkover: false } }
+        : match);
+    const standings = format.calculateStandings(bracket.stage, completed, entrants, [{ key: "third_place_match", value: true }]);
+    expect(standings.find((entry) => entry.participantId === final.participantIds[0])?.rank).toBe(1);
+    expect(standings.find((entry) => entry.participantId === final.participantIds[1])?.rank).toBe(2);
+    expect(standings.find((entry) => entry.participantId === third.participantIds[0])?.rank).toBe(3);
+    expect(standings.find((entry) => entry.participantId === third.participantIds[1])?.rank).toBe(4);
+  });
+
   test("double elimination advances adjacent fixture winners into their declared slots", () => {
     const format = new DoubleEliminationFormat();
     const [{ rounds, matches }] = format.createStages("event-1", participants(8), []);
