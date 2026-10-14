@@ -88,6 +88,34 @@ test.describe("public product story", () => {
     await expect(page.getByRole("button", { name: /Create account and continue/ })).toBeVisible();
   });
 
+  test("shows organization invitation details and safely accepts for the invited account", async ({ page }) => {
+    await mockApp(page, true, "operator");
+    let accepted = false;
+    await page.route("**/api/organization-invites/invite-blue", async (route) => {
+      if (route.request().method() === "POST") {
+        accepted = true;
+        return json(route, { data: { organizationId: organization.id } });
+      }
+      return json(route, { data: { organizationId: organization.id, organizationName: organization.name, organizationSlug: organization.slug, email: member.email, role: "admin", status: "pending", inviterName: "Morgan Lee" } });
+    });
+    await page.goto("/invite/invite-blue");
+    await expect(page.getByRole("heading", { name: "Join the organization." })).toBeVisible();
+    await expect(page.getByText(organization.name, { exact: true })).toBeVisible();
+    await expect(page.getByText(member.email)).toBeVisible();
+    await expect(page.getByText("Morgan Lee invited you to join.")).toBeVisible();
+    await page.getByRole("button", { name: `Accept and join ${organization.name}` }).click();
+    await expect.poll(() => accepted).toBe(true);
+    await expect(page).toHaveURL(new RegExp(`/o/${organization.slug}$`));
+  });
+
+  test("blocks accepting an organization invite from the wrong signed-in email", async ({ page }) => {
+    await mockApp(page, true, "operator");
+    await page.route("**/api/organization-invites/invite-other", (route) => json(route, { data: { organizationId: organization.id, organizationName: organization.name, organizationSlug: organization.slug, email: "captain@league.com", role: "referee", status: "pending", inviterName: "Morgan Lee" } }));
+    await page.goto("/invite/invite-other");
+    await expect(page.getByText("Switch to the invited account")).toBeVisible();
+    await expect(page.getByRole("button", { name: `Accept and join ${organization.name}` })).toBeDisabled();
+  });
+
   test("publishes complete task guides", async ({ page }) => {
     await mockApp(page, false);
     await page.goto("/how-to");

@@ -2,142 +2,99 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, Typography, Button, Spin, message, Layout, Result, Tag, Space } from "antd";
-import { MailOutlined, CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
+import { Alert, Button, Card, Descriptions, Result, Spin, Tag } from "antd";
+import { ArrowRightOutlined, CheckCircleOutlined, MailOutlined, SafetyCertificateOutlined, TeamOutlined } from "@ant-design/icons";
 import { AppProvider, useApp } from "@/lib/app-context";
-import { InviteService } from "@/domain/services/invite.service";
-import { OrganizationService, MemberService } from "@/domain/services/organization.service";
-import type { Invite } from "@/domain/invite";
+import { AuthShell } from "@/components/common/auth-shell";
 
-const { Content } = Layout;
-const { Title, Text } = Typography;
+type OrganizationInvite = {
+  organizationId: string;
+  organizationName: string;
+  organizationSlug: string;
+  email: string;
+  role: string;
+  status: "pending" | "accepted" | "revoked" | "expired";
+  inviterName?: string;
+};
 
-function AcceptInviteInner() {
-  const params = useParams();
+function OrganizationInviteContent() {
+  const { token } = useParams<{ token: string }>();
   const router = useRouter();
-  const { currentMember } = useApp();
-  const [invite, setInvite] = useState<Invite | null>(null);
+  const { currentMember, ready } = useApp();
+  const [invite, setInvite] = useState<OrganizationInvite | null>(null);
   const [loading, setLoading] = useState(true);
-  const [accepted, setAccepted] = useState(false);
+  const [accepting, setAccepting] = useState(false);
   const [error, setError] = useState("");
-
-  const token = params.token as string;
+  const [acceptError, setAcceptError] = useState("");
 
   useEffect(() => {
-    (async () => {
-    const inviteSvc = new InviteService();
-    const inv = await inviteSvc.getByToken(token);
-    if (!inv) {
-      setError("Invite not found");
-    } else if (inv.status !== "pending") {
-      setError(`Invite is ${inv.status}`);
-    } else {
-      setInvite(inv);
-    }
-    setLoading(false);
-    })();
+    const controller = new AbortController();
+    fetch(`/api/organization-invites/${encodeURIComponent(token)}`, { signal: controller.signal })
+      .then(async (response) => {
+        const json = await response.json();
+        if (!response.ok) throw new Error(json.error ?? "Could not load the invitation");
+        setInvite(json.data);
+      })
+      .catch((reason) => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "Could not load the invitation"); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, [token]);
 
-  const handleAccept = async () => {
-    if (!invite) return;
-    if (!currentMember) {
-      router.push(`/login?redirect=/invite/${token}`);
-      return;
+  const loginPath = `/login?redirect=${encodeURIComponent(`/invite/${token}`)}`;
+  const emailMatches = !!currentMember?.email && !!invite?.email && currentMember.email.toLowerCase() === invite.email.toLowerCase();
+
+  const accept = async () => {
+    if (!currentMember) { router.push(loginPath); return; }
+    if (!emailMatches) return;
+    setAccepting(true);
+    try {
+      const response = await fetch(`/api/organization-invites/${encodeURIComponent(token)}`, { method: "POST" });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error ?? "Could not accept the invitation");
+      router.push(`/o/${invite?.organizationSlug}`);
+      router.refresh();
+    } catch (reason) {
+      setAcceptError(reason instanceof Error ? reason.message : "Could not accept the invitation");
+    } finally {
+      setAccepting(false);
     }
-    const orgSvc = new OrganizationService();
-    const memberSvc = new MemberService();
-    const member = (await memberSvc.getByEmail(invite.email)) ?? currentMember;
-    if (!member) { setError("Could not find your account"); return; }
-    await orgSvc.addMember(invite.organizationId, member.id, invite.role as any);
-    const inviteSvc = new InviteService();
-    await inviteSvc.accept(invite.token, member.id);
-    setAccepted(true);
-    message.success("You've joined the organization!");
   };
 
-  if (loading) return <Spin style={{ display: "flex", justifyContent: "center", marginTop: 100 }} />;
-
-  if (error) {
-    return (
-      <Content style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-        <Result status="error" title="Invalid Invite" subTitle={error} extra={<Button onClick={() => router.push("/")}>Go Home</Button>} />
-      </Content>
-    );
-  }
-
-  if (accepted) {
-    return (
-      <Content style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-        <Result status="success" title="Welcome!" subTitle="You joined the organization" extra={<Button type="primary" onClick={() => router.push("/app")}>Go to Dashboard</Button>} />
-      </Content>
-    );
-  }
+  if (loading || !ready) return <div className="loading-screen"><Spin size="large" /></div>;
+  if (error || !invite) return <AuthShell eyebrow="Organization invitation" title="Invitation unavailable." description="We could not verify this invitation. Ask the organization administrator to send a new link."><Result status="error" title="We couldn't open this invitation" subTitle={error || "This invitation may have been revoked."} extra={<Button type="primary" onClick={() => router.push("/")}>Return to CompetitionOS</Button>} /></AuthShell>;
+  if (invite.status !== "pending") return <AuthShell eyebrow="Organization invitation" title={invite.status === "accepted" ? "You’re already on the roster." : "This invitation is closed."} description={`Invitation status for ${invite.organizationName}.`}><Result status={invite.status === "accepted" ? "success" : "info"} title={invite.status === "accepted" ? "Invitation already accepted" : `Invitation ${invite.status}`} subTitle={invite.status === "accepted" ? `Your account has already joined ${invite.organizationName}.` : "Ask the organization administrator for a new invitation."} extra={<Button type="primary" onClick={() => router.push(invite.status === "accepted" ? `/o/${invite.organizationSlug}` : "/")}>{invite.status === "accepted" ? "Open organization" : "Return to CompetitionOS"}</Button>} /></AuthShell>;
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <div style={{
-        background: "linear-gradient(135deg, #0A0B0F 0%, #13141A 50%, #0A0B0F 100%)",
-        padding: "80px 24px",
-        textAlign: "center",
-        position: "relative",
-        overflow: "hidden",
-      }}>
-        <div style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: 400,
-          height: 400,
-          background: "radial-gradient(circle, rgba(232,166,35,0.08) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }} />
-        <Space style={{ marginBottom: 16 }}>
-          <MailOutlined style={{ fontSize: 32 }} />
-        </Space>
-        <Title level={2} style={{ margin: 0, fontSize: 28 }}>Organization Invite</Title>
-        <Text style={{ display: "block", marginTop: 8, fontSize: 15 }}>
-          You've been invited to join as <Tag color="gold" style={{ fontSize: 13 }}>{invite?.role}</Tag>
-        </Text>
+    <AuthShell eyebrow="Organization invitation" title="Your next competition starts here." description="Join the people running the competition and get access to the organization workspace, schedule, and tools assigned to your role.">
+      <div className="auth-card__heading">
+        <span className="eyebrow">Secure invitation</span>
+        <h1>Join the organization.</h1>
+        <p>{invite.inviterName ? `${invite.inviterName} invited you to join.` : "You’ve been invited to join this organization."}</p>
       </div>
+      <Card variant="outlined" style={{ margin: "24px 0", borderColor: "#d6e4ff", background: "#f7faff" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
+          <span aria-hidden="true" style={{ display: "grid", placeItems: "center", width: 48, height: 48, borderRadius: 12, background: "#eaf2ff", color: "#155eef", fontSize: 22 }}><TeamOutlined /></span>
+          <div><span style={{ color: "#52627a", fontSize: 12, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" }}>Organization</span><div style={{ color: "#14243a", fontSize: 20, fontWeight: 700 }}>{invite.organizationName}</div></div>
+        </div>
+        <Descriptions column={1} size="small">
+          <Descriptions.Item label="Your access"><Tag color="blue" style={{ textTransform: "capitalize" }}>{invite.role}</Tag></Descriptions.Item>
+          <Descriptions.Item label="Invited email"><span style={{ wordBreak: "break-word" }}><MailOutlined style={{ color: "#155eef", marginRight: 8 }} />{invite.email}</span></Descriptions.Item>
+        </Descriptions>
+      </Card>
 
-      <Content style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-        <Card style={{
-          width: 420,
-          textAlign: "center",
-          marginTop: -40,
-          position: "relative",
-          zIndex: 1,
-        }}>
-          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 12 }}>
-            {!currentMember && (
-              <Text style={{ fontSize: 13 }}>
-                You'll be automatically signed up with {invite?.email}
-              </Text>
-            )}
-            <Button
-              type="primary"
-              size="large"
-              block
-              icon={<CheckCircleOutlined />}
-              onClick={handleAccept}
-            >
-              Accept Invite
-            </Button>
-            <Button block icon={<CloseCircleOutlined />} onClick={() => router.push("/")}>
-              Decline
-            </Button>
-          </div>
-        </Card>
-      </Content>
-    </Layout>
+      {acceptError && <Alert showIcon type="error" style={{ marginBottom: 16 }} title="We couldn’t accept this invitation" description={acceptError} />}
+      {currentMember && !emailMatches && <Alert showIcon type="info" style={{ marginBottom: 16 }} title="Switch to the invited account" description={`This invitation is for ${invite.email}. You are signed in as ${currentMember.email ?? "another account"}; accept is available only to the invited email.`} action={<Button size="small" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); router.push(loginPath); }}>Switch account</Button>} />}
+
+      {!currentMember ? <>
+        <Button type="primary" size="large" block icon={<ArrowRightOutlined />} onClick={() => router.push(loginPath)}>Sign in to review invitation</Button>
+        <Button size="large" block style={{ marginTop: 10 }} onClick={() => router.push(`/register?redirect=${encodeURIComponent(`/invite/${token}`)}`)}>Create an account</Button>
+      </> : <Button type="primary" size="large" block icon={<CheckCircleOutlined />} loading={accepting} disabled={!emailMatches} onClick={accept}>Accept and join {invite.organizationName}</Button>}
+
+      <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center", color: "#697a91", fontSize: 12, marginTop: 20 }}><SafetyCertificateOutlined style={{ color: "#155eef" }} /> This secure link can only be accepted by the invited email address.</div>
+    </AuthShell>
   );
 }
 
 export default function AcceptInvitePage() {
-  return (
-    <AppProvider>
-      <AcceptInviteInner />
-    </AppProvider>
-  );
+  return <AppProvider><OrganizationInviteContent /></AppProvider>;
 }

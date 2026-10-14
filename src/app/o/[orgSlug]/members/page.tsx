@@ -4,43 +4,49 @@ import { useEffect, useState } from "react";
 import { Button, Form, Input, message, Modal, Select, Table, Tag, Typography } from "antd";
 import { CopyOutlined, PlusOutlined, StopOutlined, TeamOutlined } from "@ant-design/icons";
 import { useApp } from "@/lib/app-context";
-import { MemberService, OrganizationService } from "@/domain/services/organization.service";
-import { InviteService } from "@/domain/services/invite.service";
+import { OrganizationService } from "@/domain/services/organization.service";
 import { Role } from "@/domain/types";
 import type { Invite } from "@/domain/invite";
 import type { Member, OrganizationMember } from "@/domain/organization";
-import { sendMailEvent } from "@/lib/mail/client";
 import styles from "../command.module.css";
 
 type Row = OrganizationMember & { member: Member | undefined };
-const inviteColors: Record<string, string> = { pending: "orange", accepted: "green", revoked: "red", expired: "default" };
+const inviteColors: Record<string, string> = { pending: "blue", accepted: "blue", revoked: "default", expired: "default" };
 
 export default function MembersPage() {
   const { currentOrg, currentMember } = useApp();
   const [members, setMembers] = useState<Row[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [open, setOpen] = useState(false);
-  const orgService = new OrganizationService();
-  const memberService = new MemberService();
-  const inviteService = new InviteService();
-  const refresh = async () => { if (currentOrg) { const [people, pending] = await Promise.all([orgService.getMembers(currentOrg.id), inviteService.listByOrg(currentOrg.id)]); setMembers(people); setInvites(pending); } };
+  const refresh = async () => {
+    if (!currentOrg) return;
+    const [people, inviteResponse] = await Promise.all([
+      new OrganizationService().getMembers(currentOrg.id),
+      fetch(`/api/organizations/${currentOrg.id}/invites`),
+    ]);
+    const pending = await inviteResponse.json();
+    if (!inviteResponse.ok) throw new Error(pending.error ?? "Could not load invitations");
+    setMembers(people);
+    setInvites(pending.data ?? []);
+  };
   useEffect(() => {
     if (!currentOrg) return;
     let active = true;
-    Promise.all([new OrganizationService().getMembers(currentOrg.id), new InviteService().listByOrg(currentOrg.id)]).then(([people, pending]) => {
-      if (active) { setMembers(people); setInvites(pending); }
-    });
+    Promise.all([new OrganizationService().getMembers(currentOrg.id), fetch(`/api/organizations/${currentOrg.id}/invites`).then((response) => response.json())]).then(([people, pending]) => {
+      if (active) { setMembers(people); setInvites(pending.data ?? []); }
+    }).catch((error) => { if (active) message.error(error instanceof Error ? error.message : "Could not load organization members"); });
     return () => { active = false; };
   }, [currentOrg]);
   if (!currentOrg) return null;
 
   const invite = async (values: { email: string; displayName: string; role: Role }) => {
     if (!currentMember) return;
-    const existingMember = await memberService.getByEmail(values.email);
-    if (existingMember && (await orgService.getMembers(currentOrg.id)).some((item) => item.memberId === existingMember.id)) { message.warning("This person is already a member"); return; }
-    const record = await inviteService.create(currentOrg.id, values.email, values.role, currentMember.id);
-    sendMailEvent({ kind: "organization_invite", to: [{ email: values.email, name: values.displayName }], actionUrl: `${window.location.origin}/invite/${record.token}`, params: { organizationName: currentOrg.name, role: values.role, inviterName: currentMember.displayName, actionLabel: "Accept invite" } });
-    message.success("Invitation sent"); setOpen(false); await refresh();
+    const response = await fetch(`/api/organizations/${currentOrg.id}/invites`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
+    const json = await response.json();
+    if (!response.ok) { message.error(json.error ?? "Could not create invitation"); return; }
+    message.success(json.data.emailSent ? "Invitation sent" : "Invitation created. Copy the link while email delivery is unavailable.");
+    setOpen(false);
+    await refresh();
   };
 
   return (
@@ -58,7 +64,7 @@ export default function MembersPage() {
         { title: "Role", dataIndex: "role", key: "role", render: (role: string) => <Tag>{role}</Tag> },
         { title: "Status", dataIndex: "status", key: "status", render: (status: string) => <Tag color={inviteColors[status]}>{status}</Tag> },
         { title: "Invite link", key: "link", render: (_: unknown, record: Invite) => record.status === "pending" ? <Typography.Text copyable={{ text: `${window.location.origin}/invite/${record.token}` }}>{record.token.slice(0, 12)}…</Typography.Text> : "—" },
-        { title: "", key: "action", render: (_: unknown, record: Invite) => record.status === "pending" ? <Button size="small" danger icon={<StopOutlined />} onClick={async () => { await inviteService.revoke(record.id); await refresh(); }}>Revoke</Button> : null },
+        { title: "", key: "action", render: (_: unknown, record: Invite) => record.status === "pending" ? <Button size="small" icon={<StopOutlined />} onClick={async () => { const response = await fetch(`/api/organizations/${currentOrg.id}/invites/${record.id}`, { method: "DELETE" }); const json = await response.json(); if (!response.ok) { message.error(json.error ?? "Could not revoke invitation"); return; } await refresh(); message.success("Invitation revoked"); }}>Revoke</Button> : null },
       ]} /></>}
 
       <Modal title="Invite to the organization" open={open} onCancel={() => setOpen(false)} footer={null} width={520}>
