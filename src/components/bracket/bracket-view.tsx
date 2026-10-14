@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useCallback } from "react";
-import { Tag, Empty, Typography, Button, message } from "antd";
+import { useMemo, useRef, useCallback, useState } from "react";
+import { Tag, Empty, Typography, Button, message, Modal, Descriptions } from "antd";
 import { Bracket } from "bracketkit";
 import type { BracketRound } from "bracketkit";
 import type { Match } from "@/domain/match";
@@ -30,6 +30,7 @@ interface BracketMatchData {
 }
 
 export function BracketView({ matches, participants, rounds }: Props) {
+  const [selectedMatch, setSelectedMatch] = useState<BracketMatchData | null>(null);
   const participantMap = useMemo(
     () => new Map(participants.map((p) => [p.id, p.displayName])),
     [participants],
@@ -166,14 +167,27 @@ export function BracketView({ matches, participants, rounds }: Props) {
               {round.name}
             </div>
           )}
-          renderMatch={(match) => <MatchCard match={match} />}
+          renderMatch={(match) => <MatchCard match={match} onClick={() => setSelectedMatch(match)} />}
         />
       </div>
+      <Modal
+        title="Fixture details"
+        open={selectedMatch !== null}
+        onCancel={() => setSelectedMatch(null)}
+        footer={<Button type="primary" onClick={() => setSelectedMatch(null)}>Done</Button>}
+      >
+        {selectedMatch && <Descriptions column={1} bordered size="small">
+          <Descriptions.Item label="Fixture">{selectedMatch.p1Name} vs {selectedMatch.p2Name}</Descriptions.Item>
+          <Descriptions.Item label="Status">{selectedMatch.status.replaceAll("_", " ")}</Descriptions.Item>
+          {(selectedMatch.p1Score !== undefined || selectedMatch.p2Score !== undefined) && <Descriptions.Item label="Score">{selectedMatch.p1Score ?? "—"} – {selectedMatch.p2Score ?? "—"}</Descriptions.Item>}
+          {selectedMatch.winner && <Descriptions.Item label="Winner">{selectedMatch.winner}</Descriptions.Item>}
+        </Descriptions>}
+      </Modal>
     </div>
   );
 }
 
-function MatchCard({ match }: { match: BracketMatchData }) {
+function MatchCard({ match, onClick }: { match: BracketMatchData; onClick: () => void }) {
   const isP1Winner = match.winner === match.p1Name;
   const isP2Winner = match.winner === match.p2Name;
   const isEmpty = match.p1Name === "TBD" && match.p2Name === "TBD";
@@ -186,10 +200,25 @@ function MatchCard({ match }: { match: BracketMatchData }) {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`View fixture: ${match.p1Name} versus ${match.p2Name}`}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick();
+        }
+      }}
       style={{
-        border: `1px solid ${isCompleted ? "#2ABFAA" : isWalkover ? "#E8A623" : undefined}`,
+        border: `1px solid ${isCompleted ? "#1677ff" : isWalkover ? "#8c8c8c" : "#d9e2ef"}`,
         borderRadius: 12,
         padding: "10px 12px",
+        background: "#fff",
+        color: "inherit",
+        textAlign: "left",
+        cursor: "pointer",
+        width: "100%",
         opacity: isWalkover ? 0.7 : 1,
         minWidth: 190,
         transition: "all 0.2s ease",
@@ -209,7 +238,7 @@ function MatchCard({ match }: { match: BracketMatchData }) {
               marginBottom: 6,
               padding: "4px 6px",
               borderRadius: 6,
-              background: isP1Winner ? "rgba(232,166,35,0.08)" : "transparent",
+              background: isP1Winner ? "rgba(22,119,255,0.08)" : "transparent",
             }}
           >
             <Text
@@ -243,7 +272,7 @@ function MatchCard({ match }: { match: BracketMatchData }) {
               alignItems: "center",
               padding: "4px 6px",
               borderRadius: 6,
-              background: isP2Winner ? "rgba(232,166,35,0.08)" : "transparent",
+              background: isP2Winner ? "rgba(22,119,255,0.08)" : "transparent",
             }}
           >
             <Text
@@ -275,7 +304,7 @@ function MatchCard({ match }: { match: BracketMatchData }) {
       {isCompleted && match.winner && !isEmpty && (
         <div style={{ marginTop: 6, textAlign: "center" }}>
           <Tag
-            color="green"
+            color="blue"
             style={{ fontSize: 11, fontWeight: 600, borderRadius: 6 }}
           >
             Winner: {match.winner}
@@ -285,7 +314,7 @@ function MatchCard({ match }: { match: BracketMatchData }) {
       {isWalkover && (
         <div style={{ marginTop: 6, textAlign: "center" }}>
           <Tag
-            color="orange"
+            color="default"
             style={{ fontSize: 11, fontWeight: 600, borderRadius: 6 }}
           >
             Walkover

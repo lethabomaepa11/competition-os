@@ -56,7 +56,6 @@ import { RegistrationService } from "@/domain/services/registration.service";
 import { ParticipantInviteService } from "@/domain/services/participant-invite.service";
 import { MemberService } from "@/domain/services/organization.service";
 import type { ParticipantInvite } from "@/domain/participant-invite";
-import { StandingsService } from "@/domain/services/standings.service";
 import type { Event, Round } from "@/domain/event";
 import type { Stage } from "@/domain/event";
 import type { Participant } from "@/domain/participant";
@@ -83,6 +82,9 @@ import { MatchListView } from "@/components/match/match-list";
 import { StandingsTable } from "@/components/standings/standings-table";
 import { GroupStandingsView } from "@/components/standings/group-standings-view";
 import { BracketView } from "@/components/bracket/bracket-view";
+import { createGroupStageBracketPreview } from "@/domain/formats/group-stage-preview";
+import { getFormat } from "@/domain/formats/registry";
+import type { RuleOverride } from "@/domain/types";
 import { compactRecipients, sendMailEvent } from "@/lib/mail/client";
 
 const { Title, Text } = Typography;
@@ -267,6 +269,7 @@ export default function EventDetailPage() {
   const [progressionLinks, setProgressionLinks] = useState<ProgressionLink[]>(
     [],
   );
+  const [eventRules, setEventRules] = useState<RuleOverride[]>([]);
   const [newPhaseFormat, setNewPhaseFormat] = useState<FormatType>(
     FormatType.SingleElimination,
   );
@@ -282,7 +285,6 @@ export default function EventDetailPage() {
 
   const evtSvc = new EventService();
   const regSvc = new RegistrationService();
-  const standingSvc = new StandingsService();
   const inviteSvc = new ParticipantInviteService();
   const progSvc = new ProgressionService();
   const memberSvc = new MemberService();
@@ -311,6 +313,7 @@ export default function EventDetailPage() {
       setStages(detail.stages);
       setInvites(detail.invites);
       setAllRounds(detail.rounds);
+      setEventRules(detail.ruleSets[0]?.rules ?? []);
       const plan = detail.event.config?.progressionPlan as ProgressionPlan | null ?? null;
       setPhasePlan(plan);
       setProgressionLinks(detail.progressionLinks);
@@ -326,17 +329,21 @@ export default function EventDetailPage() {
       if (detail.stages.length > 0 && nextSelectedId !== selectedStageId) {
         setSelectedStageId(nextSelectedId);
       }
-      if (currentMember && currentOrg) {
-        setIsAdmin(await canEditMatches(currentMember.id, currentOrg.id));
-      }
+      const nextPhaseIdx = detail.stages.findIndex((s) => s.id === nextSelectedId);
+      const hasNextPhase = !!plan?.phases?.[nextPhaseIdx];
+      const permissionChecks = await Promise.all([
+        currentMember && currentOrg ? canEditMatches(currentMember.id, currentOrg.id) : Promise.resolve(false),
+        nextSelectedId && hasNextPhase
+          ? progSvc.canAdvance(detail.event.id, nextSelectedId).catch(() => false)
+          : Promise.resolve(false),
+      ]);
+      setIsAdmin(permissionChecks[0]);
       setOtherEvents(detail.otherEvents);
       if (nextSelectedId) {
-        const nextPhaseIdx = detail.stages.findIndex((s) => s.id === nextSelectedId);
         const nextPhase = (plan?.phases && nextPhaseIdx >= 0 && nextPhaseIdx < plan.phases.length) ? plan.phases[nextPhaseIdx] : null;
         const canAdv =
           detail.stages.some((s) => s.id === nextSelectedId) &&
-          nextPhase !== null &&
-          (await progSvc.canAdvance(detail.event.id, nextSelectedId));
+          nextPhase !== null && permissionChecks[1];
         setCanAdvance(canAdv);
       }
     }
@@ -377,10 +384,13 @@ export default function EventDetailPage() {
   useEffect(() => {
     if (!event || !selectedStageId) return;
     (async () => {
-      const result = await standingSvc.calculate(event.id, selectedStageId);
-      setStandings(result);
+      const stage = stages.find((item) => item.id === selectedStageId);
+      if (!stage) { setStandings([]); return; }
+      const roundIds = new Set(allRounds.filter((round) => round.stageId === stage.id).map((round) => round.id));
+      const stageMatches = matches.filter((match) => roundIds.has(match.roundId));
+      setStandings(getFormat(stage.type).calculateStandings(stage, stageMatches, participants, eventRules));
     })();
-  }, [matches, participants, selectedStageId]);
+  }, [event, stages, allRounds, matches, participants, eventRules, selectedStageId]);
 
   const handleRegister = async (values: { displayName: string }) => {
     if (!event || !currentMember) return;
@@ -790,6 +800,8 @@ export default function EventDetailPage() {
     return result;
   }, [progressionLinks]);
 
+  const selectedStage = stages.find((s) => s.id === selectedStageId) ?? null;
+
   const bracketStage = useMemo(
     () =>
       stages.find(
@@ -810,6 +822,11 @@ export default function EventDetailPage() {
     const roundIds = new Set(bracketRounds.map((r) => r.id));
     return matches.filter((m) => roundIds.has(m.roundId));
   }, [bracketStage, bracketRounds, matches]);
+  const projectedBracket = useMemo(() => {
+    if (!event || event.format !== FormatType.GroupStage || !selectedStage || bracketStage) return null;
+    const nextPhaseFormat = phasePlan?.phases[selectedStage.orderIndex]?.format ?? FormatType.SingleElimination;
+    return createGroupStageBracketPreview(event, selectedStage, standings, participants, eventRules, nextPhaseFormat);
+  }, [event, selectedStage, bracketStage, phasePlan, standings, participants, eventRules]);
 
   const playableMatches = useMemo(
     () => sortedStageMatches.filter((m) => m.status !== MatchStatus.Walkover),
@@ -819,14 +836,13 @@ export default function EventDetailPage() {
   if (!currentOrg || !event) return null;
 
   const isInitialized = stages.length > 0;
-  const selectedStage = stages.find((s) => s.id === selectedStageId) ?? null;
   const isKnockout =
     event.format === FormatType.SingleElimination ||
     event.format === FormatType.DoubleElimination;
   const isSwiss = event.format === FormatType.Swiss;
   const isGroupStage = event.format === FormatType.GroupStage;
   const showStandings = true;
-  const showBracket = isKnockout || bracketStage !== null;
+  const showBracket = isKnockout || bracketStage !== null || projectedBracket !== null;
 
   const completedRoundNumbers = new Set(
     selectedStageMatches
@@ -1497,13 +1513,21 @@ export default function EventDetailPage() {
       ? [
           {
             key: "bracket",
-            label: "Bracket",
+            label: projectedBracket ? "Bracket preview" : "Bracket",
             children: (
-              <BracketView
-                matches={bracketMatches}
-                participants={participants}
-                rounds={bracketRounds}
-              />
+              <div>
+                {projectedBracket && !bracketStage && <Card size="small" style={{ marginBottom: 16, borderColor: "#d6e4ff", background: "#f7faff" }}>
+                  <Text strong>Projected knockout draw</Text>
+                  <Text type="secondary" style={{ display: "block", marginTop: 4 }}>
+                    Based on the current group tables: {projectedBracket.participantIds.length} places across {groupNames.length} groups. Pairings update with results and are not final until the group stage ends.
+                  </Text>
+                </Card>}
+                <BracketView
+                  matches={projectedBracket && !bracketStage ? projectedBracket.matches : bracketMatches}
+                  participants={participants}
+                  rounds={projectedBracket && !bracketStage ? projectedBracket.rounds : bracketRounds}
+                />
+              </div>
             ),
           },
         ]

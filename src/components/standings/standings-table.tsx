@@ -146,9 +146,16 @@ export function StandingsTable({ standings, event, hideGroupColumn, hideHeader }
     );
   }
   columns.push({
-    title: "Qualified",
+    title: isGroupStage ? "Qualification" : "Qualified",
     key: "qualified",
-    render: (q: boolean) => (q ? <Tag color="green">Yes</Tag> : <Tag>No</Tag>),
+    render: (_: unknown, record: StandingsEntry) => {
+      if (isGroupStage) {
+        const status = record.qualificationStatus ?? (record.qualified ? "projected" : "outside");
+        const label = status === "clinched" ? "Qualified" : status === "projected" ? "In place" : "Outside";
+        return <Tag color={status === "outside" ? "default" : "blue"}>{label}</Tag>;
+      }
+      return record.qualified ? <Tag color="blue">Yes</Tag> : <Tag>No</Tag>;
+    },
   });
 
   return (

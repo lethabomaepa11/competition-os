@@ -256,6 +256,24 @@ export class GroupStageFormat implements FormatStrategy {
         e.qualified = qualifiersPerGroup > 0 && i < qualifiersPerGroup;
       });
 
+      const remainingMatches = new Map(groupPids.map((pid) => [pid, 0]));
+      for (const match of groupMatches) {
+        if ([MatchStatus.Completed, MatchStatus.Walkover, MatchStatus.Cancelled].includes(match.status)) continue;
+        for (const pid of match.participantIds) {
+          remainingMatches.set(pid, (remainingMatches.get(pid) ?? 0) + 1);
+        }
+      }
+      const qualifierSlots = Math.min(Math.max(0, qualifiersPerGroup), entries.length);
+      for (const entry of entries) {
+        if (!entry.qualified) {
+          entry.qualificationStatus = "outside";
+          continue;
+        }
+        const teamsAbleToCatch = entries.filter((other) => other.participantId !== entry.participantId
+          && other.points + (remainingMatches.get(other.participantId) ?? 0) * winPts >= entry.points).length;
+        entry.qualificationStatus = teamsAbleToCatch < qualifierSlots ? "clinched" : "projected";
+      }
+
       allEntries.push(...entries);
     }
 

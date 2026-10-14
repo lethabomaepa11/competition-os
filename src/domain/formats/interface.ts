@@ -19,6 +19,7 @@ export interface StandingsEntry {
   draws: number;
   stats: Record<string, number>;
   qualified: boolean;
+  qualificationStatus?: "clinched" | "projected" | "outside";
   groupName?: string;
 }
 

@@ -81,7 +81,6 @@ export async function GET(
 
     const [
       { data: participants },
-      { data: teams },
       { data: ruleSets },
       { data: invites },
       { data: progressionLinks },
@@ -89,7 +88,6 @@ export async function GET(
       { data: otherEvents },
     ] = await Promise.all([
       supabase.from("participants").select("*").eq("event_id", id),
-      supabase.from("teams").select("*"),
       supabase.from("rule_sets").select("*").eq("event_id", id),
       supabase.from("participant_invites").select("*").eq("event_id", id),
       supabase.from("progression_links").select("*").eq("event_id", id),
@@ -145,7 +143,7 @@ export async function GET(
         rounds: allRounds,
         matches: allMatches,
         participants: mapKeys(participants ?? [], snakeToCamel),
-        teams: mapKeys(teams ?? [], snakeToCamel),
+        teams: [],
         ruleSets: mapKeys(ruleSets ?? [], snakeToCamel),
         invites: mapKeys(invites ?? [], snakeToCamel),
         progressionLinks: mapKeys(progressionLinks ?? [], snakeToCamel),
