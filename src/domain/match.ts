@@ -36,6 +36,8 @@ export interface Match extends Timestamps {
   eventId: ID;
   bracketGroup?: BracketGroup;
   status: MatchStatus;
+  /** In-progress score snapshot stored on the match row. */
+  scores?: MatchScore[];
   participantIds: ID[];
   participants: MatchParticipant[];
   result?: MatchResult;
