@@ -22,6 +22,7 @@ export function createGroupStageBracketPreview(
   rules: RuleOverride[],
   targetFormat: FormatType,
 ): GroupStageBracketPreview | null {
+  if (sourceStage.type !== "group_stage") return null;
   if (targetFormat !== "single_elimination" && targetFormat !== "double_elimination") return null;
 
   const sourceFormat = getFormat(sourceStage.type);

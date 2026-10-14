@@ -1,9 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { DoubleEliminationFormat } from "../../src/domain/formats/double-elimination";
 import { LeagueFormat } from "../../src/domain/formats/league";
-import { MatchStatus } from "../../src/domain/types";
+import { GroupStageFormat } from "../../src/domain/formats/group-stage";
+import { createGroupStageBracketPreview } from "../../src/domain/formats/group-stage-preview";
+import { EventStatus, FormatType, MatchStatus, ParticipantType, RegistrationPolicy } from "../../src/domain/types";
 import type { Participant } from "../../src/domain/participant";
 import type { Match } from "../../src/domain/match";
+import type { Event } from "../../src/domain/event";
+import type { StandingsEntry } from "../../src/domain/formats/interface";
 
 function participants(count: number): Participant[] {
   return Array.from({ length: count }, (_, index) => ({
@@ -58,5 +62,57 @@ test.describe("competition structure integrity", () => {
     const pairings = matches.map((match) => [...match.participantIds].sort().join(":"));
     expect(pairings).toHaveLength(15);
     expect(new Set(pairings).size).toBe(15);
+  });
+
+  test("group-stage preview seeds only ranked qualifiers even when standings arrive shuffled", () => {
+    const entrants = participants(12);
+    const rules = [
+      { key: "group_count", value: 4 },
+      { key: "qualifiers_per_group", value: 2 },
+    ];
+    const [source] = new GroupStageFormat().createStages("event-1", entrants, rules);
+    const standings: StandingsEntry[] = [];
+    const groups = source.stage.config.groups as string[][];
+    groups.forEach((group, groupIndex) => {
+      group.forEach((participantId, index) => {
+        standings.push({
+          participantId,
+          displayName: participantId,
+          rank: index + 1,
+          points: group.length - index,
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          stats: { groupIndex },
+          qualified: index < 2,
+        });
+      });
+    });
+    const event: Event = {
+      id: "event-1",
+      competitionId: "competition-1",
+      name: "Qualification Test",
+      format: FormatType.GroupStage,
+      participantType: ParticipantType.Individual,
+      status: EventStatus.InProgress,
+      registrationPolicy: RegistrationPolicy.Open,
+      config: {},
+      createdAt: "2026-10-14T00:00:00.000Z",
+      updatedAt: "2026-10-14T00:00:00.000Z",
+    };
+
+    const preview = createGroupStageBracketPreview(
+      event,
+      source.stage,
+      [...standings].reverse(),
+      entrants,
+      rules,
+      FormatType.SingleElimination,
+    );
+
+    const expectedQualifiers = new Set(groups.flatMap((group) => group.slice(0, 2)));
+    expect(preview?.participantIds).toHaveLength(8);
+    expect(new Set(preview?.participantIds)).toEqual(expectedQualifiers);
+    expect(preview?.participantIds.every((id) => expectedQualifiers.has(id))).toBe(true);
   });
 });

@@ -281,7 +281,10 @@ export class GroupStageFormat implements FormatStrategy {
   }
 
   advanceParticipants(stage: Stage, standings: StandingsEntry[], _rules: RuleOverride[]): string[] {
-    const qualifiersPerGroup = stage.config?.qualifiersPerGroup as number ?? 2;
+    const configuredQualifiers = Number(stage.config?.qualifiersPerGroup ?? 2);
+    const qualifiersPerGroup = Number.isFinite(configuredQualifiers)
+      ? Math.max(0, Math.floor(configuredQualifiers))
+      : 2;
     const groups = this.readGroups(stage);
 
     const byGroup = new Map<number, StandingsEntry[]>();
@@ -294,13 +297,16 @@ export class GroupStageFormat implements FormatStrategy {
     const qualifiers: string[] = [];
     const sortedGroupIndices = groups.map((_, i) => i);
 
+    const rankedGroups = new Map(sortedGroupIndices.map((gIdx) => [gIdx, (byGroup.get(gIdx) ?? [])
+        .slice()
+        .sort((a, b) => a.rank - b.rank || b.points - a.points || a.displayName.localeCompare(b.displayName))
+        .slice(0, qualifiersPerGroup)]));
+
     for (let rank = 0; rank < qualifiersPerGroup; rank++) {
       for (const gIdx of sortedGroupIndices) {
-        const groupEntries = byGroup.get(gIdx) ?? [];
-        const alreadyTaken = new Set(qualifiers);
-        const available = groupEntries.filter(e => !alreadyTaken.has(e.participantId));
-        if (rank < available.length) {
-          qualifiers.push(available[rank].participantId);
+        const entry = rankedGroups.get(gIdx)?.[rank];
+        if (entry && !qualifiers.includes(entry.participantId)) {
+          qualifiers.push(entry.participantId);
         }
       }
     }
