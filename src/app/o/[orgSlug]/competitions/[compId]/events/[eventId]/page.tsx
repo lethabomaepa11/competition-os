@@ -1261,8 +1261,8 @@ export default function EventDetailPage() {
   );
 
   const matchesTab = isGroupStage ? (
-    <div>
-      <div style={{ marginBottom: 16 }}>
+    <div className="detail-page">
+      <div className="event-hero" style={{ marginBottom: 16 }}>
         <Space>
           <Button
             type={selectedGroupIndex === null ? "primary" : "default"}
@@ -1649,6 +1649,7 @@ export default function EventDetailPage() {
           />
         )}
         <div
+          className="entity-header"
           style={{
             display: "flex",
             justifyContent: "space-between",
@@ -1656,8 +1657,8 @@ export default function EventDetailPage() {
             marginBottom: 16,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Title level={3} style={{ margin: 0 }}>
+          <div className="entity-heading" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <Title level={3} className="page-title" style={{ margin: 0 }}>
               {event.name}
             </Title>
             <ImageUpload

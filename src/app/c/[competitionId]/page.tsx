@@ -2,145 +2,89 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Card, Typography, Tag, Descriptions, Spin, Alert, Space, Row, Col } from "antd";
-import { TrophyOutlined, CalendarOutlined, TeamOutlined, ScheduleOutlined } from "@ant-design/icons";
+import { Alert, Progress, Spin, Tag } from "antd";
+import { ArrowRightOutlined, CalendarOutlined, ScheduleOutlined, TeamOutlined, TrophyOutlined } from "@ant-design/icons";
+import { BrandMark } from "@/components/common/brand-mark";
 import { CompetitionService } from "@/domain/services/competition.service";
 import { EventService } from "@/domain/services/event.service";
 import { RegistrationService } from "@/domain/services/registration.service";
 import { OrganizationService } from "@/domain/services/organization.service";
 import type { Competition } from "@/domain/competition";
-import type { Event, Stage } from "@/domain/event";
+import type { Event } from "@/domain/event";
 import type { Match } from "@/domain/match";
-import type { Participant } from "@/domain/participant";
 import { MatchStatus } from "@/domain/types";
+import styles from "./page.module.css";
 
-const { Title, Text } = Typography;
+type PublicEvent = Event & { participantCount: number; matchCount: number; completedCount: number };
 
 export default function PublicCompetitionPage() {
-  const params = useParams();
-  const competitionId = params.competitionId as string;
+  const competitionId = useParams().competitionId as string;
   const [competition, setCompetition] = useState<Competition | null>(null);
   const [orgName, setOrgName] = useState("");
-  const [events, setEvents] = useState<(Event & { participantCount: number; matchCount: number; completedCount: number })[]>([]);
+  const [events, setEvents] = useState<PublicEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
-    if (!competitionId) return;
-    const compSvc = new CompetitionService();
-    const evtSvc = new EventService();
-    const regSvc = new RegistrationService();
-    const orgSvc = new OrganizationService();
-
-    const comp = await compSvc.get(competitionId);
-    setCompetition(comp ?? null);
-
-    if (comp) {
-      const org = await orgSvc.get(comp.organizationId);
-      setOrgName(org?.name ?? "");
-
-      const evts = await evtSvc.list(comp.id);
-      const enriched = [];
-      for (const e of evts) {
-        const participants = await regSvc.getParticipants(e.id);
-        const stages = await evtSvc.getStages(e.id);
-        const allRounds = [];
-        for (const s of stages) {
-          const rounds = await evtSvc.getRounds(s.id);
-          allRounds.push(...rounds);
-        }
-        const roundIds = new Set(allRounds.map(r => r.id));
-        const allMatches = (await evtSvc.getMatches(e.id)).filter((m: Match) => roundIds.has(m.roundId));
-        enriched.push({
-          ...e,
-          participantCount: participants.length,
-          matchCount: allMatches.length,
-          completedCount: allMatches.filter((m: Match) => m.status === MatchStatus.Completed).length,
-        });
+      const competitionService = new CompetitionService();
+      const eventService = new EventService();
+      const registrationService = new RegistrationService();
+      const record = await competitionService.get(competitionId);
+      setCompetition(record ?? null);
+      if (record) {
+        const [organization, eventRecords] = await Promise.all([new OrganizationService().get(record.organizationId), eventService.list(record.id)]);
+        setOrgName(organization?.name ?? "");
+        setEvents(await Promise.all(eventRecords.map(async (event) => {
+          const [participants, matches] = await Promise.all([registrationService.getParticipants(event.id), eventService.getMatches(event.id)]);
+          return { ...event, participantCount: participants.length, matchCount: matches.length, completedCount: matches.filter((match: Match) => match.status === MatchStatus.Completed).length };
+        })));
       }
-      setEvents(enriched);
-    }
-    setLoading(false);
+      setLoading(false);
     })();
   }, [competitionId]);
 
-  if (loading) return <Spin style={{ display: "flex", justifyContent: "center", marginTop: 100 }} />;
-
-  if (!competition) {
-    return (
-      <div style={{ maxWidth: 800, margin: "40px auto", padding: "0 16px" }}>
-        <Alert message="Competition not found" type="error" showIcon />
-      </div>
-    );
-  }
-
-  const statusColors: Record<string, string> = {
-    draft: "default",
-    published: "blue",
-    in_progress: "green",
-    completed: "purple",
-    archived: "orange",
-  };
+  if (loading) return <div className={styles.loading}><Spin size="large" /></div>;
+  if (!competition) return <div className={styles.loading}><Alert message="Competition not found" type="error" showIcon /></div>;
+  const totalMatches = events.reduce((sum, event) => sum + event.matchCount, 0);
+  const completedMatches = events.reduce((sum, event) => sum + event.completedCount, 0);
+  const completion = totalMatches ? Math.round((completedMatches / totalMatches) * 100) : 0;
 
   return (
-    <div style={{ maxWidth: 900, margin: "40px auto", padding: "0 16px" }}>
-      <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <Space align="center" style={{ marginBottom: 8 }}>
-          <TrophyOutlined style={{ fontSize: 32, color: "#faad14" }} />
-          <Title level={2} style={{ margin: 0 }}>{competition.name}</Title>
-        </Space>
-        {orgName && <Text type="secondary" style={{ display: "block", fontSize: 16 }}>Organized by {orgName}</Text>}
-        <Tag color={statusColors[competition.status] ?? "default"} style={{ marginTop: 8 }}>{competition.status}</Tag>
-      </div>
+    <main className={styles.page}>
+      <nav className={styles.nav}><BrandMark dark /><span><i /> Official competition page</span><small>CompetitionOS broadcast</small></nav>
+      <header className={styles.hero}>
+        {competition.coverImage && <img src={competition.coverImage} alt="" />}
+        <div className={styles.heroShade} />
+        <div className={styles.heroContent}>
+          <div className={styles.tags}><Tag color="lime">{competition.status.replace(/_/g," ")}</Tag><Tag>{competition.game?.name ?? "Open competition"}</Tag></div>
+          <span className={styles.organizer}>Presented by {orgName || "Competition organizer"}</span>
+          <h1>{competition.name}</h1>
+          {competition.description && <p>{competition.description}</p>}
+          <div className={styles.heroMeta}>
+            <span><TrophyOutlined /> {events.length} events</span>
+            <span><ScheduleOutlined /> {completedMatches}/{totalMatches} matches</span>
+            {competition.dateStart && <span><CalendarOutlined /> {new Date(competition.dateStart).toLocaleDateString()}</span>}
+          </div>
+        </div>
+      </header>
 
-      {competition.description && (
-        <Card style={{ marginBottom: 16 }}>
-          <Text>{competition.description}</Text>
-        </Card>
-      )}
+      <section className={styles.content}>
+        <div className={styles.overview}>
+          <div><span>Competition progress</span><strong>{completion}%</strong><Progress percent={completion} showInfo={false} strokeColor="#B8FF3D" railColor="#DDE3E0" /></div>
+          <div><span>Total fixtures</span><strong>{String(totalMatches).padStart(2,"0")}</strong><small>Across {events.length} event{events.length === 1 ? "" : "s"}</small></div>
+          <div><span>Competitors</span><strong>{String(events.reduce((sum,event) => sum + event.participantCount,0)).padStart(2,"0")}</strong><small>Registered entries</small></div>
+        </div>
 
-      <Descriptions bordered size="small" column={2} style={{ marginBottom: 24 }}>
-        {competition.game?.name && <Descriptions.Item label="Game">{competition.game.name}</Descriptions.Item>}
-        <Descriptions.Item label="Events">{events.length}</Descriptions.Item>
-        <Descriptions.Item label="Visibility">{competition.visibility}</Descriptions.Item>
-        {competition.dateStart && <Descriptions.Item label="Start">{new Date(competition.dateStart).toLocaleDateString()}</Descriptions.Item>}
-        {competition.dateEnd && <Descriptions.Item label="End">{new Date(competition.dateEnd).toLocaleDateString()}</Descriptions.Item>}
-      </Descriptions>
-
-      <Title level={4}>Events</Title>
-      <Row gutter={[16, 16]}>
-        {events.map(e => (
-          <Col key={e.id} xs={24} sm={12} md={8}>
-            <Card
-              size="small"
-              style={{ height: "100%" }}
-              title={<Space><ScheduleOutlined /> {e.name}</Space>}
-            >
-              <Space direction="vertical" style={{ width: "100%" }}>
-                <Tag>{e.format}</Tag>
-                <div style={{ display: "flex", justifyContent: "space-between", width: "100%", fontSize: 13 }}>
-                  <span><TeamOutlined /> {e.participantCount} participants</span>
-                  <span><ScheduleOutlined /> {e.completedCount}/{e.matchCount} matches</span>
-                </div>
-                {e.dateStart && (
-                  <Text style={{ fontSize: 12, color: "#888" }}>
-                    <CalendarOutlined /> {new Date(e.dateStart).toLocaleDateString()}
-                  </Text>
-                )}
-              </Space>
-            </Card>
-          </Col>
-        ))}
-        {events.length === 0 && (
-          <Col span={24}>
-            <Text type="secondary">No events yet.</Text>
-          </Col>
-        )}
-      </Row>
-
-      <div style={{ textAlign: "center", marginTop: 32, padding: 16, borderTop: "1px solid #f0f0f0" }}>
-        <Text type="secondary" style={{ fontSize: 12 }}>Powered by CompetitionOS</Text>
-      </div>
-    </div>
+        <div className={styles.sectionHeading}><div><span>Competition programme</span><h2>Events and progress.</h2></div><p>Follow every format from opening fixture to final result.</p></div>
+        <div className={styles.eventGrid}>
+          {events.map((event, index) => {
+            const percent = event.matchCount ? Math.round((event.completedCount / event.matchCount) * 100) : 0;
+            return <article key={event.id} className={styles.eventCard}><div className={styles.eventTop}><span>{String(index + 1).padStart(2,"0")}</span><Tag color={event.status === "in_progress" ? "green" : "default"}>{event.status.replace(/_/g," ")}</Tag></div><h3>{event.name}</h3><p>{event.format.replace(/_/g," ")}</p><div className={styles.eventStats}><span><TeamOutlined /> {event.participantCount} entries</span><span><ScheduleOutlined /> {event.completedCount}/{event.matchCount} complete</span></div><Progress percent={percent} showInfo={false} strokeColor="#B8FF3D" railColor="#E3E8E5" /><footer><span>{event.dateStart ? new Date(event.dateStart).toLocaleDateString() : "Date TBC"}</span><ArrowRightOutlined /></footer></article>;
+          })}
+          {events.length === 0 && <div className={styles.empty}>The competition programme will appear here when events are published.</div>}
+        </div>
+      </section>
+      <footer className={styles.footer}><BrandMark dark /><span>Official competition data</span><small>© {new Date().getFullYear()}</small></footer>
+    </main>
   );
 }

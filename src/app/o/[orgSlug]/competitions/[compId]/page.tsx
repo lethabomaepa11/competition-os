@@ -169,7 +169,7 @@ export default function CompetitionDetailPage() {
 
   const handleEditCompetition = async (values: {
     name: string;
-    description?: string;
+    description: string;
     visibility: Visibility;
     coverImage?: string;
     content?: Record<string, unknown>;
@@ -182,7 +182,7 @@ export default function CompetitionDetailPage() {
         competition.id,
         {
           name: values.name,
-          description: values.description ?? "",
+          description: values.description,
           visibility: values.visibility,
           coverImage: values.coverImage,
           content: values.content,
@@ -313,8 +313,9 @@ export default function CompetitionDetailPage() {
   );
 
   return (
-    <div>
+    <div className="detail-page">
       <div
+        className="entity-header"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -324,8 +325,9 @@ export default function CompetitionDetailPage() {
           gap: 12,
         }}
       >
-        <div>
-          <Title level={3} style={{ margin: 0 }}>
+        <div className="entity-heading">
+          <span className="eyebrow">Competition control</span>
+          <Title level={3} className="page-title" style={{ margin: 0 }}>
             {competition.name}
           </Title>
           {competition.description && (
@@ -540,6 +542,7 @@ export default function CompetitionDetailPage() {
       </Row>
 
       <div
+        className="section-heading"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -566,8 +569,7 @@ export default function CompetitionDetailPage() {
           <Col key={evt.id} xs={24} sm={12} md={8}>
             <Card
               hoverable
-              className="card-hover"
-              style={{ borderRadius: 14, border: "1px solid #E2E8F0" }}
+              className="card-hover event-ops-card"
               onClick={() =>
                 router.push(
                   `/o/${currentOrg.slug}/competitions/${competition.id}/events/${evt.id}`,
@@ -859,8 +861,8 @@ export default function CompetitionDetailPage() {
               onUpload={(url) => editForm.setFieldValue("coverImage", url)}
             />
           </Form.Item>
-          <Form.Item label="Description" name="description">
-            <Input.TextArea rows={3} placeholder="Optional description" />
+          <Form.Item label="Description" name="description" rules={[{ required: true, message: "Describe the competition" }, { min: 20, message: "Use at least 20 characters so participants understand the competition" }, { max: 600, message: "Keep the description under 600 characters" }]} extra="Explain who it is for, what is being contested, and what makes this competition distinct.">
+            <Input.TextArea rows={4} showCount maxLength={600} placeholder="Describe the competition, its audience, and what competitors are playing for." />
           </Form.Item>
           <Form.Item
             label="Content"

@@ -47,6 +47,7 @@ import { AiInsights } from "@/components/ai/ai-insights";
 import { PlayerStats } from "@/components/stats/player-stats";
 import { AppProvider, useApp } from "@/lib/app-context";
 import { BetPanel } from "@/components/bet/bet-panel";
+import { BrandMark } from "@/components/common/brand-mark";
 
 const { Title, Text } = Typography;
 
@@ -613,9 +614,15 @@ function LiveContent() {
   ];
 
   return (
-    <div>
+    <div className="live-page">
+      <header className="live-broadcast-bar">
+        <BrandMark dark />
+        <span><i className="status-dot status-dot--live" /> Live competition broadcast</span>
+        <small>Powered by CompetitionOS</small>
+      </header>
       {/* Hero section */}
       <div
+        className="live-hero"
         style={{
           position: "relative",
           minHeight:
@@ -749,7 +756,7 @@ function LiveContent() {
       </div>
 
       {/* Content area */}
-      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "0 16px" }}>
+      <div className="live-content" style={{ maxWidth: 1180, margin: "0 auto", padding: "0 16px" }}>
         {/* TipTap content card */}
         {competition?.content && (
           <Card
