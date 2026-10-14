@@ -39,13 +39,22 @@ export class SingleEliminationFormat implements FormatStrategy {
     const rounds: Round[] = [];
     const matches: Match[] = [];
 
+    const roundName = (roundNumber: number): string => {
+      const remainingEntrants = 2 ** (totalRounds - roundNumber + 1);
+      if (remainingEntrants <= 2) return "Final";
+      if (remainingEntrants === 4) return "Semi-Finals";
+      if (remainingEntrants === 8) return "Quarter-Finals";
+      if (remainingEntrants === 16) return "Round of 16";
+      if (remainingEntrants === 32) return "Round of 32";
+      if (remainingEntrants === 64) return "Round of 64";
+      return `Round ${roundNumber}`;
+    };
+
     for (let r = 1; r <= totalRounds; r++) {
-      const isFinal = r === totalRounds;
-      const isSemi = !thirdPlace && r === totalRounds - 1;
       const round: Round = {
         id: generateId(),
         stageId: stage.id,
-        name: isFinal ? "Final" : isSemi ? "Semi-Finals" : `Round ${r}`,
+        name: roundName(r),
         roundNumber: r,
         config: {},
         createdAt: new Date().toISOString(),
