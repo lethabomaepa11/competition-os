@@ -11,6 +11,7 @@ export interface Database {
           email: string;
           display_name: string;
           avatar_url: string | null;
+          account_type: "operator" | "team" | "player";
           created_at: string;
           updated_at: string;
         };
@@ -19,11 +20,13 @@ export interface Database {
           email: string;
           display_name: string;
           avatar_url?: string | null;
+          account_type?: "operator" | "team" | "player";
         };
         Update: {
           email?: string;
           display_name?: string;
           avatar_url?: string | null;
+          account_type?: "operator" | "team" | "player";
         };
       };
       organizations: {
@@ -85,6 +88,10 @@ export interface Database {
           date_start: string | null;
           date_end: string | null;
           status: string;
+          category: string;
+          entry_type: "individual" | "team";
+          eligibility: Json;
+          published_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -100,6 +107,10 @@ export interface Database {
           date_start?: string | null;
           date_end?: string | null;
           status?: string;
+          category?: string;
+          entry_type?: "individual" | "team";
+          eligibility?: Json;
+          published_at?: string | null;
         };
         Update: {
           name?: string;
@@ -110,6 +121,10 @@ export interface Database {
           date_start?: string | null;
           date_end?: string | null;
           status?: string;
+          category?: string;
+          entry_type?: "individual" | "team";
+          eligibility?: Json;
+          published_at?: string | null;
         };
         Relationships: [];
       };
@@ -313,6 +328,9 @@ export interface Database {
           name: string;
           member_ids: string[];
           avatar_url: string | null;
+          category: string;
+          team_type: string;
+          description: string;
           created_at: string;
           updated_at: string;
         };
@@ -321,11 +339,17 @@ export interface Database {
           name: string;
           member_ids?: string[];
           avatar_url?: string | null;
+          category?: string;
+          team_type?: string;
+          description?: string;
         };
         Update: {
           name?: string;
           member_ids?: string[];
           avatar_url?: string | null;
+          category?: string;
+          team_type?: string;
+          description?: string;
         };
       };
       rule_sets: {

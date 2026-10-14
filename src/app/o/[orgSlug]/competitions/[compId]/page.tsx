@@ -55,8 +55,10 @@ import {
   FormatType,
   Visibility,
   EventStatus,
+  ParticipantType,
   RuleValueType,
 } from "@/domain/types";
+import { SPORT_CATEGORIES } from "@/domain/categories";
 import { FormatRuleDefinitions } from "@/domain/rules";
 import type { ProgressionPlan, PhaseConfig } from "@/domain/progression";
 import { autoQualifierCount } from "@/domain/progression";
@@ -170,6 +172,8 @@ export default function CompetitionDetailPage() {
   const handleEditCompetition = async (values: {
     name: string;
     description: string;
+    category: string;
+    entryType: ParticipantType;
     visibility: Visibility;
     coverImage?: string;
     content?: Record<string, unknown>;
@@ -183,6 +187,8 @@ export default function CompetitionDetailPage() {
         {
           name: values.name,
           description: values.description,
+          category: values.category,
+          entryType: values.entryType,
           visibility: values.visibility,
           coverImage: values.coverImage,
           content: values.content,
@@ -864,6 +870,10 @@ export default function CompetitionDetailPage() {
           <Form.Item label="Description" name="description" rules={[{ required: true, message: "Describe the competition" }, { min: 20, message: "Use at least 20 characters so participants understand the competition" }, { max: 600, message: "Keep the description under 600 characters" }]} extra="Explain who it is for, what is being contested, and what makes this competition distinct.">
             <Input.TextArea rows={4} showCount maxLength={600} placeholder="Describe the competition, its audience, and what competitors are playing for." />
           </Form.Item>
+          <Row gutter={12}>
+            <Col span={12}><Form.Item label="Sport or category" name="category" rules={[{ required: true }]}><Select size="large" options={SPORT_CATEGORIES.map((item) => ({ ...item }))} /></Form.Item></Col>
+            <Col span={12}><Form.Item label="Registration type" name="entryType" rules={[{ required: true }]}><Select size="large" options={[{ value: ParticipantType.Team, label: "Teams" }, { value: ParticipantType.Individual, label: "Individual players" }]} /></Form.Item></Col>
+          </Row>
           <Form.Item
             label="Content"
             name={["content"]}

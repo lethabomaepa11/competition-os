@@ -133,6 +133,17 @@ export async function POST(
 
       case "create": {
         if (!item) return NextResponse.json({ error: "Missing item in request body" }, { status: 400 });
+        if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        if (tb === "organizations") {
+          const { data: profileData } = await supabase.from("profiles").select("account_type").eq("id", user.id).single();
+          const profile = profileData as unknown as { account_type: "operator" | "team" | "player" } | null;
+          const { count } = await supabase.from("organization_members").select("id", { count: "exact", head: true }).eq("member_id", user.id);
+          if (profile?.account_type !== "operator") return NextResponse.json({ error: "An operator account is required" }, { status: 403 });
+          if ((count ?? 0) > 0) return NextResponse.json({ error: "Operator accounts are limited to their onboarding organization" }, { status: 409 });
+        }
+        if (tb === "teams") {
+          return NextResponse.json({ error: "Teams are created during team account onboarding" }, { status: 403 });
+        }
         const converted = mapKeys(item, camelToSnake) as Record<string, unknown>;
         const payload = sanitizePayload(stripGeneratedId(converted)) as Record<string, unknown>;
         const { randomUUID } = await import("crypto");

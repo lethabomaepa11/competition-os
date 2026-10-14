@@ -1,24 +1,36 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Avatar, Button, Dropdown, Layout, Menu } from "antd";
-import { AppstoreOutlined, BarChartOutlined, LogoutOutlined, TeamOutlined, TrophyOutlined, UserOutlined } from "@ant-design/icons";
+import { Avatar, Button, Dropdown, Layout, Menu, Spin } from "antd";
+import { AppstoreOutlined, BarChartOutlined, BellOutlined, BookOutlined, LogoutOutlined, TeamOutlined, TrophyOutlined, UserOutlined } from "@ant-design/icons";
 import { AppProvider, useApp } from "@/lib/app-context";
 import { BrandMark } from "@/components/common/brand-mark";
 import styles from "./layout.module.css";
 
-const items = [
-  { key: "/app", label: "Organizations", icon: <AppstoreOutlined /> },
+const participantItems = [
+  { key: "/app", label: "Home", icon: <AppstoreOutlined /> },
   { key: "/app/events", label: "My events", icon: <TrophyOutlined /> },
   { key: "/app/performance", label: "Performance", icon: <BarChartOutlined /> },
   { key: "/app/teams", label: "Teams", icon: <TeamOutlined /> },
+  { key: "/app/opportunities", label: "Tournaments", icon: <BellOutlined /> },
+  { key: "/how-to", label: "How to", icon: <BookOutlined /> },
 ];
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentMember, logout } = useApp();
+  const { currentMember, organizations, ready, logout } = useApp();
+  const items = participantItems.filter((item) => item.key !== "/app/teams" || currentMember?.accountType === "team");
   const activeKey = [...items].sort((a, b) => b.key.length - a.key.length).find((item) => pathname === item.key || pathname.startsWith(`${item.key}/`))?.key ?? "/app";
+
+  useEffect(() => {
+    if (!ready) return;
+    if (!currentMember) router.replace("/login");
+    else if (currentMember.accountType === "operator") router.replace(organizations[0] ? `/o/${organizations[0].slug}` : "/login");
+  }, [ready, currentMember, organizations, router]);
+
+  if (!ready || !currentMember || currentMember.accountType === "operator") return <div className={styles.loading}><Spin size="large" /></div>;
 
   const accountMenu = {
     items: [
@@ -32,7 +44,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
     <Layout className={styles.shell}>
       <header className={styles.header}>
         <button className={styles.brand} onClick={() => router.push("/app")} aria-label="Go to workspace home"><BrandMark dark /></button>
-        <span className={styles.mode}>Operator workspace</span>
+        <span className={styles.mode}>{currentMember.accountType === "team" ? "Team workspace" : "Player workspace"}</span>
         {currentMember && (
           <Dropdown menu={accountMenu} placement="bottomRight">
             <Button type="text" className={styles.account}>

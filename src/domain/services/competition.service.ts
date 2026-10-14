@@ -1,5 +1,5 @@
 import { type Competition } from "../competition";
-import { type ID, CompetitionStatus, Visibility } from "../types";
+import { type ID, CompetitionStatus, ParticipantType, Visibility } from "../types";
 import { GetAll, GetWhere, Get, create, update, Delete } from "../../lib/store";
 import { generateId } from "../../lib/id";
 import { writeAudit } from "../audit";
@@ -19,6 +19,9 @@ export class CompetitionService {
     organizationId: ID;
     name: string;
     description: string;
+    category: string;
+    entryType: ParticipantType;
+    eligibility?: Competition["eligibility"];
     visibility?: Visibility;
     game?: { name: string; category?: string };
   }, actorId: ID): Promise<Competition> {
@@ -32,6 +35,9 @@ export class CompetitionService {
       organizationId: data.organizationId,
       name,
       description,
+      category: data.category,
+      entryType: data.entryType,
+      eligibility: data.eligibility ?? {},
       visibility: data.visibility ?? Visibility.Public,
       game: data.game,
       status: CompetitionStatus.Draft,
@@ -67,6 +73,9 @@ export class CompetitionService {
       organizationId: original.organizationId,
       name: `${original.name} (Copy)`,
       description: original.description,
+      category: original.category,
+      entryType: original.entryType,
+      eligibility: original.eligibility,
       visibility: original.visibility,
       game: original.game,
     }, actorId);

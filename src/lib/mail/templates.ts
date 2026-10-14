@@ -8,6 +8,7 @@ export type MailEventKind =
   | "organization_invite"
   | "competition_invite_created"
   | "participant_invite"
+  | "team_invite"
   | "participant_registered"
   | "participant_dropped"
   | "competition_published"
@@ -46,6 +47,7 @@ const subjects: Record<MailEventKind, string> = {
   organization_invite: "You have been invited to {{organizationName}}",
   competition_invite_created: "Competition invite link created for {{competitionName}}",
   participant_invite: "You have been invited to compete in {{eventName}}",
+  team_invite: "Join {{teamName}} on CompetitionOS",
   participant_registered: "Registration confirmed for {{eventName}}",
   participant_dropped: "Participant dropped from {{eventName}}",
   competition_published: "{{competitionName}} is published",
@@ -72,6 +74,7 @@ const descriptions: Record<MailEventKind, string> = {
   organization_invite: "You have been invited to join {{organizationName}} as {{role}}.",
   competition_invite_created: "A shareable competition invite link was created for {{competitionName}}.",
   participant_invite: "{{inviterName}} invited you to participate in {{eventName}}.",
+  team_invite: "{{inviterName}} invited you to join the {{teamName}} roster.",
   participant_registered: "{{participantName}}, your registration for {{eventName}} is confirmed.",
   participant_dropped: "{{participantName}} was marked as dropped from {{eventName}}.",
   competition_published: "{{competitionName}} is now visible to its intended audience.",

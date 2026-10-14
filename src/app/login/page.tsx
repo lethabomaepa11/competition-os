@@ -17,7 +17,8 @@ export default function LoginPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Could not sign in");
       message.success("Welcome back");
-      router.push("/app");
+      const requested = new URLSearchParams(window.location.search).get("redirect");
+      router.push(requested?.startsWith("/") && !requested.startsWith("//") ? requested : (json.nextPath ?? "/app"));
       router.refresh();
     } catch (err: unknown) {
       message.error(err instanceof Error ? err.message : "Could not sign in");
@@ -25,7 +26,7 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthShell eyebrow="Operator access" title="The next match is already moving." description="Return to your competitions, live operations, people, and public broadcast views.">
+    <AuthShell eyebrow="Secure account access" title="Return to your competition workspace." description="Operators, team captains, and players each return to the tools and records assigned to their account.">
       <div className="auth-card__heading"><span className="eyebrow">Secure sign in</span><h1>Welcome back.</h1><p>Enter the command center.</p></div>
       <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
         <Form.Item label="Email address" name="email" rules={[{ required: true, type: "email", message: "Enter a valid email address" }]}><Input prefix={<MailOutlined />} placeholder="operator@league.com" size="large" autoComplete="email" /></Form.Item>
@@ -34,7 +35,7 @@ export default function LoginPage() {
         <Button type="primary" htmlType="submit" block loading={loading} size="large">Sign in <ArrowRightOutlined /></Button>
       </Form>
       <Divider plain>New to CompetitionOS?</Divider>
-      <Button block size="large" onClick={() => router.push("/register")}>Create an operator account</Button>
+      <Button block size="large" onClick={() => router.push("/register")}>Create an account</Button>
     </AuthShell>
   );
 }
