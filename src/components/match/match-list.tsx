@@ -29,11 +29,8 @@ import type { Participant } from "@/domain/participant";
 import { MatchStatus, FormatType, type ID } from "@/domain/types";
 import { MatchService } from "@/domain/services/match.service";
 import { EventService } from "@/domain/services/event.service";
-import { MemberService } from "@/domain/services/organization.service";
 import { getStringRule } from "@/domain/rules";
 import { ScoreAuditService } from "@/domain/services/score-audit.service";
-import { compactRecipients, sendMailEvent } from "@/lib/mail/client";
-import type { MailEventKind } from "@/lib/mail/templates";
 import dayjs from "dayjs";
 
 const { Text } = Typography;
@@ -67,7 +64,6 @@ export function MatchListView({
   const matchSvc = new MatchService();
   const evtSvc = new EventService();
   const auditSvc = new ScoreAuditService();
-  const memberSvc = new MemberService();
 
   useEffect(() => {
     (async () => {
@@ -128,48 +124,6 @@ export function MatchListView({
   };
 
   const participantMap = new Map(participants.map((p) => [p.id, p]));
-
-  const getMatchName = (match: Match) =>
-    match.participants
-      .map((p) => participantMap.get(p.participantId)?.displayName ?? "TBD")
-      .join(" vs ");
-
-  const notifyMatch = async (
-    kind: Extract<
-      MailEventKind,
-      | "match_scheduled"
-      | "match_started"
-      | "match_result_submitted"
-      | "match_disputed"
-      | "match_dispute_resolved"
-    >,
-    match: Match,
-    params: Record<string, string | number | boolean | null | undefined> = {},
-  ) => {
-    const members = await Promise.all(
-      match.participants.map(async (matchParticipant) => {
-        const participant = participantMap.get(matchParticipant.participantId);
-        if (!participant) return null;
-        const member = await memberSvc.get(participant.memberId);
-        return member
-          ? { email: member.email, name: member.displayName }
-          : null;
-      }),
-    );
-    const recipients = compactRecipients(members);
-    if (recipients.length === 0) return;
-    const event = await evtSvc.get(eventId);
-    sendMailEvent({
-      kind,
-      to: recipients,
-      params: {
-        eventName: event?.name,
-        matchName: getMatchName(match),
-        actionLabel: "Open match",
-        ...params,
-      },
-    });
-  };
 
   const undoableIds = useMemo(() => {
     const completed = matches
@@ -332,18 +286,11 @@ export function MatchListView({
                     }
                     onChange={async (d) => {
                       const scheduledAt = d?.toISOString() ?? "";
-                      const match = await matchSvc.schedule(
+                      await matchSvc.schedule(
                         record.id,
                         scheduledAt,
                         record.venue,
                       );
-                      if (match) {
-                        await notifyMatch("match_scheduled", match, {
-                          scheduledAt: scheduledAt
-                            ? dayjs(scheduledAt).format("MMM D, YYYY h:mm A")
-                            : "TBD",
-                        });
-                      }
                       onMatchUpdate();
                       setDateEditId(null);
                     }}
@@ -385,41 +332,21 @@ export function MatchListView({
                     defaultValue={record.venue}
                     onPressEnter={async (e) => {
                       const venue = (e.target as HTMLInputElement).value;
-                      const match = await matchSvc.schedule(
+                      await matchSvc.schedule(
                         record.id,
                         record.scheduledAt ?? "",
                         venue,
                       );
-                      if (match) {
-                        await notifyMatch("match_scheduled", match, {
-                          scheduledAt: record.scheduledAt
-                            ? dayjs(record.scheduledAt).format(
-                                "MMM D, YYYY h:mm A",
-                              )
-                            : "TBD",
-                          venue,
-                        });
-                      }
                       onMatchUpdate();
                       setVenueEditId(null);
                     }}
                     onBlur={async (e) => {
                       const venue = e.target.value;
-                      const match = await matchSvc.schedule(
+                      await matchSvc.schedule(
                         record.id,
                         record.scheduledAt ?? "",
                         venue,
                       );
-                      if (match) {
-                        await notifyMatch("match_scheduled", match, {
-                          scheduledAt: record.scheduledAt
-                            ? dayjs(record.scheduledAt).format(
-                                "MMM D, YYYY h:mm A",
-                              )
-                            : "TBD",
-                          venue,
-                        });
-                      }
                       onMatchUpdate();
                       setVenueEditId(null);
                     }}
