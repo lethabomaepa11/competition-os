@@ -362,6 +362,13 @@ export default function EventDetailPage() {
     // Load the event selected by the route when this screen mounts or changes.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh();
+    // Opening the event also settles walkovers owed by entrants who have withdrawn.
+    void fetch(`/api/events/${eventId}/propagate`, { method: "POST" })
+      .then((res) => res.json())
+      .then((json) => {
+        if ((json.data?.walkoverCount ?? 0) + (json.data?.changedCount ?? 0) > 0) refresh();
+      })
+      .catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
@@ -1340,7 +1347,8 @@ export default function EventDetailPage() {
                     onClick={async () => {
                       await regSvc.dropOut(record.id);
                       await regenerateFixturesIfNeeded();
-                      refresh();
+                      // Propagation awards walkovers for the dropped entrant's pending fixtures.
+                      await handleMatchUpdate();
                     }}
                   >
                     Drop Out

@@ -244,7 +244,9 @@ export class GroupStageFormat implements FormatStrategy {
       }
 
       for (const match of groupMatches) {
-        if (match.status !== MatchStatus.Completed || !match.result) continue;
+        // A forfeited fixture (walkover between two entrants) counts as a win for the entrant who turned up.
+        const forfeit = match.status === MatchStatus.Walkover && match.participantIds.length === 2;
+        if ((match.status !== MatchStatus.Completed && !forfeit) || !match.result) continue;
         if (match.participantIds.length < 2) {
           if (match.result.isWalkover && match.participantIds.length === 1) {
             const pid = match.participantIds[0];

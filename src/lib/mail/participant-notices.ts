@@ -145,25 +145,32 @@ class Notices {
   }
 
   result(match: Match): ParticipantNotice[] {
-    if (match.status !== MatchStatus.Completed || !match.result) return [];
+    const walkover = match.status === MatchStatus.Walkover;
+    if ((match.status !== MatchStatus.Completed && !walkover) || !match.result) return [];
     const { winnerId } = match.result;
     const scores = new Map(match.result.scores.map((s) => [s.participantId, s.value]));
     const [first, second] = this.players(match);
-    const scoreline = scores.size > 0
-      ? `${this.name(first)} ${scores.get(first) ?? 0}–${scores.get(second) ?? 0} ${this.name(second)}`
-      : this.matchName(match);
+    const scoreline = walkover
+      ? `${this.matchName(match)} (walkover)`
+      : scores.size > 0
+        ? `${this.name(first)} ${scores.get(first) ?? 0}–${scores.get(second) ?? 0} ${this.name(second)}`
+        : this.matchName(match);
     const propagated = this.propagatedStage(match);
     const label = this.label(match);
     const thirdPlace = !!match.config?.thirdPlace;
 
     return this.pairs(match).map(([player, opponent]) => {
-      const score = scores.size > 0 ? ` ${scores.get(player) ?? 0}–${scores.get(opponent) ?? 0}` : "";
+      const score = scores.size > 0 && !walkover ? ` ${scores.get(player) ?? 0}–${scores.get(opponent) ?? 0}` : "";
       const outcome = winnerId === player ? "Won" : winnerId ? "Lost" : "Draw";
-      let message = outcome === "Won"
-        ? `Well played, ${this.name(player)}! You beat ${this.name(opponent)}${score} in your ${label} match.`
-        : outcome === "Lost"
-          ? `${this.name(player)}, you lost${score} to ${this.name(opponent)} in your ${label} match.`
-          : `${this.name(player)}, your ${label} match against ${this.name(opponent)} ended in a${score} draw.`;
+      let message = walkover
+        ? outcome === "Won"
+          ? `${this.name(player)}, ${this.name(opponent)} has withdrawn, so you win your ${label} match by walkover.`
+          : `${this.name(player)}, your ${label} match against ${this.name(opponent)} was awarded to them by walkover.`
+        : outcome === "Won"
+          ? `Well played, ${this.name(player)}! You beat ${this.name(opponent)}${score} in your ${label} match.`
+          : outcome === "Lost"
+            ? `${this.name(player)}, you lost${score} to ${this.name(opponent)} in your ${label} match.`
+            : `${this.name(player)}, your ${label} match against ${this.name(opponent)} ended in a${score} draw.`;
       let next: string | undefined;
       if (propagated) {
         const upcoming = this.pendingMatchFor(propagated, match, player);
@@ -187,7 +194,7 @@ class Notices {
         key: `match_result:${match.id}:${match.result?.finalizedAt ?? match.updatedAt}:${player}`,
         participantId: player,
         mail: this.mail("player_match_result", { matchName: this.matchName(match), scoreline, message },
-          [["Result", outcome], ["Score", score.trim() || undefined], ["Opponent", this.name(opponent)], ["Stage", label], ["Next", next]]),
+          [["Result", walkover && outcome !== "Draw" ? `${outcome} by walkover` : outcome], ["Score", score.trim() || undefined], ["Opponent", this.name(opponent)], ["Stage", label], ["Next", next]]),
       };
     });
   }

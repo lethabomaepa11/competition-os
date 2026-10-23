@@ -4,7 +4,10 @@ import type { Database } from "@/lib/supabase/types";
 import { getFormat } from "@/domain/formats/registry";
 import { MatchStatus } from "@/domain/types";
 import type { FormatType } from "@/domain/types";
-import type { MatchScore } from "@/domain/match";
+import type { Match, MatchScore } from "@/domain/match";
+import type { Round } from "@/domain/event";
+import { deliverParticipantNotifications } from "@/lib/mail/participant-delivery";
+import { settleWithdrawals } from "@/domain/walkovers";
 
 function snakeToCamel(str: string): string {
   return str.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
@@ -129,30 +132,52 @@ export async function POST(
       group_stage: "group_stage" as FormatType,
     };
 
-    let propagated: any[] = allMatches as any[];
-    const seenTypes = new Set<string>();
-    for (const stage of stages) {
-      if (seenTypes.has(stage.type as string)) continue;
-      seenTypes.add(stage.type as string);
-      const ft = stageTypeToFormat[stage.type as string];
-      if (!ft) continue;
-      const stageRoundIds = new Set(
-        allRounds.filter((r) => r.stageId === stage.id).map((r) => r.id),
-      );
-      let stageOnlyMatches = propagated.filter((m) =>
-        stageRoundIds.has(m.roundId),
-      );
-      stageOnlyMatches = stageOnlyMatches.sort((a, b) => {
-        const aIdx = (a.config as Record<string, unknown> | undefined)?.["engineMatchIndex"] as number ?? 0;
-        const bIdx = (b.config as Record<string, unknown> | undefined)?.["engineMatchIndex"] as number ?? 0;
-        return aIdx - bIdx;
-      });
-      const propagatedStage = getFormat(ft).propagateResults(
-        stageOnlyMatches as any,
-        allRounds as any,
-      );
-      const propMap = new Map(propagatedStage.map((m) => [(m as any).id as string, m]));
-      propagated = propagated.map((m) => propMap.get(m.id) ?? m);
+    const propagateStages = (input: Match[]): Match[] => {
+      let output = input;
+      const seenTypes = new Set<string>();
+      for (const stage of stages) {
+        if (seenTypes.has(stage.type as string)) continue;
+        seenTypes.add(stage.type as string);
+        const ft = stageTypeToFormat[stage.type as string];
+        if (!ft) continue;
+        const stageRoundIds = new Set(
+          allRounds.filter((r) => r.stageId === stage.id).map((r) => r.id),
+        );
+        let stageOnlyMatches = output.filter((m) =>
+          stageRoundIds.has(m.roundId),
+        );
+        stageOnlyMatches = stageOnlyMatches.sort((a, b) => {
+          const aIdx = (a.config as Record<string, unknown> | undefined)?.["engineMatchIndex"] as number ?? 0;
+          const bIdx = (b.config as Record<string, unknown> | undefined)?.["engineMatchIndex"] as number ?? 0;
+          return aIdx - bIdx;
+        });
+        const propagatedStage = getFormat(ft).propagateResults(
+          stageOnlyMatches,
+          allRounds as unknown as Round[],
+        );
+        const propMap = new Map(propagatedStage.map((m) => [m.id, m]));
+        output = output.map((m) => propMap.get(m.id) ?? m);
+      }
+      return output;
+    };
+    // A withdrawn entrant forfeits every fixture they have not started; the opponent advances by walkover.
+    const { data: entrantRows } = await (supabase.from("participants" as never) as any)
+      .select("id, status")
+      .eq("event_id", id);
+    const withdrawn = new Set(((entrantRows ?? []) as { id: string; status: string }[])
+      .filter((entrant) => entrant.status === "dropped_out" || entrant.status === "disqualified")
+      .map((entrant) => entrant.id));
+    const finalizedAt = new Date().toISOString();
+    const settled = settleWithdrawals(propagateStages(allMatches as unknown as Match[]), withdrawn, propagateStages, finalizedAt);
+    const propagated = settled.matches;
+    const walkovers = settled.walkovers;
+
+    for (const [matchId, winnerId] of walkovers) {
+      await (supabase.from("matches" as never) as any)
+        .update({ status: MatchStatus.Walkover, winner_id: winnerId, is_walkover: true, scores: [], finalized_at: finalizedAt })
+        .eq("id", matchId);
+      const raw = rawMatches.find((m) => m.id === matchId);
+      if (raw) raw.status = MatchStatus.Walkover;
     }
 
     // Find changed matches and save to DB
@@ -181,6 +206,19 @@ export async function POST(
           result: null,
           score: null,
         });
+      }
+    }
+
+    if (walkovers.size > 0) {
+      try {
+        await deliverParticipantNotifications(
+          supabase,
+          id,
+          request.nextUrl.origin,
+          [...walkovers.keys()].map((matchId) => ({ type: "match_result" as const, matchId })),
+        );
+      } catch (error) {
+        console.warn("Walkover notifications failed:", error);
       }
     }
 
@@ -234,6 +272,7 @@ export async function POST(
       data: {
         matchCount: rawMatches.length,
         changedCount: changedIds.size,
+        walkoverCount: walkovers.size,
         canAdvance,
       },
     });
