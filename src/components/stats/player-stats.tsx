@@ -12,7 +12,9 @@ import {
 } from "@ant-design/icons";
 import type { Match } from "@/domain/match";
 import type { Participant } from "@/domain/participant";
+import type { StandingsEntry } from "@/domain/formats/interface";
 import { MatchStatus } from "@/domain/types";
+import { QualificationTag } from "@/components/standings/qualification-tag";
 
 const { Title, Text } = Typography;
 
@@ -26,12 +28,20 @@ interface PlayerStats {
   gf: number;
   ga: number;
   gd: number;
+  pts: number;
   winRate: number;
+}
+
+/** Overall table order: points, goal difference, goals scored, wins. */
+function compareByPoints(a: PlayerStats, b: PlayerStats): number {
+  return b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || b.w - a.w;
 }
 
 function computeStats(
   matches: Match[],
   participants: Participant[],
+  winPoints: number,
+  drawPoints: number,
 ): PlayerStats[] {
   const completed = matches.filter(
     (m) =>
@@ -52,6 +62,7 @@ function computeStats(
       gf: 0,
       ga: 0,
       gd: 0,
+      pts: 0,
       winRate: 0,
     });
   }
@@ -92,6 +103,7 @@ function computeStats(
   for (const stat of statsMap.values()) {
     if (stat.mp > 0) {
       stat.gd = stat.gf - stat.ga;
+      stat.pts = stat.w * winPoints + stat.d * drawPoints;
       stat.winRate = Math.round((stat.w / stat.mp) * 100);
     }
   }
@@ -136,7 +148,7 @@ function RankingList({
   formatValue,
   emptyLabel,
 }: {
-  items: { participantId: string; displayName: string; value: number }[];
+  items: { participantId: string; displayName: string; value: number; note?: React.ReactNode }[];
   valueLabel: string;
   valueColor: string;
   formatValue?: (v: number) => string;
@@ -178,6 +190,7 @@ function RankingList({
           >
             {item.displayName}
           </Text>
+          {item.note}
           <Tag
             style={{
               fontWeight: 700,
@@ -198,13 +211,36 @@ function RankingList({
 interface PlayerStatsProps {
   matches: Match[];
   participants: Participant[];
+  /** Group-stage standings; adds group and qualification context to the rankings. */
+  standings?: StandingsEntry[];
+  winPoints?: number;
+  drawPoints?: number;
 }
 
-export function PlayerStats({ matches, participants }: PlayerStatsProps) {
+export function PlayerStats({
+  matches,
+  participants,
+  standings = [],
+  winPoints = 3,
+  drawPoints = 1,
+}: PlayerStatsProps) {
   const stats = useMemo(
-    () => computeStats(matches, participants),
-    [matches, participants],
+    () => computeStats(matches, participants, winPoints, drawPoints),
+    [matches, participants, winPoints, drawPoints],
   );
+
+  const standingsById = useMemo(
+    () => new Map(standings.map((entry) => [entry.participantId, entry])),
+    [standings],
+  );
+  const showQualification = standings.some((entry) => entry.qualificationStatus);
+  const showGroup = standings.some((entry) => entry.groupName);
+
+  const qualificationNote = (participantId: string) => {
+    const entry = standingsById.get(participantId);
+    if (!entry || !["withdrawn", "replacement"].includes(entry.qualificationStatus ?? "")) return undefined;
+    return <QualificationTag entry={entry} standings={standings} />;
+  };
 
   const topScorers = useMemo(
     () =>
@@ -232,19 +268,14 @@ export function PlayerStats({ matches, participants }: PlayerStatsProps) {
     [stats],
   );
 
-  const bestPlayers = useMemo(
-    () =>
-      [...stats]
-        .sort(
-          (a, b) => b.winRate - a.winRate || b.w - a.w,
-        )
-        .map((s) => ({
-          participantId: s.participantId,
-          displayName: s.displayName,
-          value: s.winRate,
-        })),
-    [stats],
-  );
+  const rankedByPoints = useMemo(() => [...stats].sort(compareByPoints), [stats]);
+
+  const bestPlayers = rankedByPoints.map((s) => ({
+    participantId: s.participantId,
+    displayName: s.displayName,
+    value: s.pts,
+    note: qualificationNote(s.participantId),
+  }));
 
   const columns = [
     {
@@ -266,6 +297,18 @@ export function PlayerStats({ matches, participants }: PlayerStatsProps) {
         </Text>
       ),
     },
+    ...(showGroup
+      ? [{
+          title: "Group",
+          key: "group",
+          width: 70,
+          align: "center" as const,
+          render: (_: unknown, record: PlayerStats) => {
+            const group = standingsById.get(record.participantId)?.groupName;
+            return group ? <Tag>{group}</Tag> : "-";
+          },
+        }]
+      : []),
     {
       title: "MP",
       dataIndex: "mp",
@@ -349,6 +392,26 @@ export function PlayerStats({ matches, participants }: PlayerStatsProps) {
         </Tag>
       ),
     },
+    {
+      title: "Pts",
+      dataIndex: "pts",
+      key: "pts",
+      width: 60,
+      align: "center" as const,
+      render: (v: number) => (
+        <span style={{ fontWeight: 800, fontSize: 15 }}>{v}</span>
+      ),
+    },
+    ...(showQualification
+      ? [{
+          title: "Qualification",
+          key: "qualification",
+          render: (_: unknown, record: PlayerStats) => {
+            const entry = standingsById.get(record.participantId);
+            return entry ? <QualificationTag entry={entry} standings={standings} /> : null;
+          },
+        }]
+      : []),
   ];
 
   if (stats.length === 0) {
@@ -398,9 +461,9 @@ export function PlayerStats({ matches, participants }: PlayerStatsProps) {
           >
             <RankingList
               items={bestPlayers}
-              valueLabel="Win Rate"
+              valueLabel="Points"
               valueColor="#f59e0b"
-              formatValue={(v) => `${v}%`}
+              formatValue={(v) => `${v} pts`}
               emptyLabel="No matches played yet"
             />
           </StatCard>
@@ -417,14 +480,15 @@ export function PlayerStats({ matches, participants }: PlayerStatsProps) {
         }
       >
         <Table
-          dataSource={[...stats].sort(
-            (a, b) => b.w - a.w || b.gd - a.gd || b.gf - a.gf,
-          )}
+          dataSource={rankedByPoints}
           rowKey="participantId"
           columns={columns}
           pagination={false}
           size="small"
           scroll={{ x: true }}
+          onRow={(record) => ({
+            style: standingsById.get(record.participantId)?.qualificationStatus === "withdrawn" ? { opacity: 0.55 } : undefined,
+          })}
         />
       </Card>
     </div>

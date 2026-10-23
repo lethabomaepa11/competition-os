@@ -43,6 +43,8 @@ interface Props {
   autoAnalyze?: boolean;
   eventId?: string;
   allowAi?: boolean;
+  winPoints?: number;
+  drawPoints?: number;
 }
 
 function getSeverityColor(severity: InterestingFact["severity"]): string {
@@ -186,6 +188,7 @@ function ParticipantStatBar({
   p1Name,
   p2Name,
   suffix = "",
+  format = String,
 }: {
   label: string;
   p1Val: number;
@@ -193,6 +196,7 @@ function ParticipantStatBar({
   p1Name: string;
   p2Name: string;
   suffix?: string;
+  format?: (value: number) => string;
 }) {
   const total = p1Val + p2Val;
   const p1Pct = total > 0 ? Math.round((p1Val / total) * 100) : 50;
@@ -216,7 +220,7 @@ function ParticipantStatBar({
             fontWeight: 500,
           }}
         >
-          {p1Val}
+          {format(p1Val)}
           {suffix}
         </Text>
         <Progress
@@ -226,7 +230,7 @@ function ParticipantStatBar({
           style={{ flex: 1, margin: 0 }}
         />
         <Text style={{ fontSize: 12, minWidth: 60, fontWeight: 500 }}>
-          {p2Val}
+          {format(p2Val)}
           {suffix}
         </Text>
       </div>
@@ -244,6 +248,8 @@ export function AiInsights({
   autoAnalyze = true,
   eventId,
   allowAi = false,
+  winPoints = 3,
+  drawPoints = 1,
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -330,12 +336,19 @@ export function AiInsights({
       .slice(0, 10);
   }, [matchInsights]);
 
+  const pointsFor = useCallback(
+    (p: ParticipantScoreSummary) => p.wins * winPoints + p.draws * drawPoints,
+    [winPoints, drawPoints],
+  );
+
   const topPlayers = useMemo(() => {
     const withMatches = Array.from(participantStats.values()).filter(
       (p) => p.totalMatches >= 1,
     );
-    return withMatches.sort((a, b) => b.wins - a.wins).slice(0, 5);
-  }, [participantStats]);
+    return withMatches
+      .sort((a, b) => pointsFor(b) - pointsFor(a) || b.wins - a.wins)
+      .slice(0, 5);
+  }, [participantStats, pointsFor]);
 
   const playerDeepDives = useMemo(() => {
     return Array.from(participantStats.values())
@@ -478,7 +491,7 @@ export function AiInsights({
                           fontWeight: 700,
                         }}
                       >
-                        {p.wins}
+                        {pointsFor(p)}
                       </Text>
                       <Text
                         type="secondary"
@@ -486,10 +499,10 @@ export function AiInsights({
                           display: "block",
                         }}
                       >
-                        Wins
+                        Points
                       </Text>
                       <Text type="secondary" style={{ fontSize: 11 }}>
-                        Avg: {p.avgScoreFor.toFixed(1)} | {p.wins + p.losses + p.draws} games
+                        {p.wins}W {p.draws}D {p.losses}L | Avg: {p.avgScoreFor.toFixed(1)}
                       </Text>
                     </Card>
                   </Col>
@@ -557,45 +570,46 @@ export function AiInsights({
                           p2Val={Math.round(p2.avgScoreFor * 10)}
                           p1Name={p1Name}
                           p2Name={p2Name}
+                          format={(v) => (v / 10).toFixed(1)}
                         />
                       </div>
                     )}
 
                     <Space wrap size={4} style={{ marginTop: 4 }}>
-                      {p1?.currentWinStreak && p1.currentWinStreak >= 2 && (
+                      {(p1?.currentWinStreak ?? 0) >= 2 && (
                         <Tag
                           icon={<RiseOutlined />}
                           color="blue"
                           style={{ fontSize: 10 }}
                         >
-                          {p1Name}: {p1.currentWinStreak}W streak
+                          {p1Name}: {p1?.currentWinStreak}W streak
                         </Tag>
                       )}
-                      {p2?.currentWinStreak && p2.currentWinStreak >= 2 && (
+                      {(p2?.currentWinStreak ?? 0) >= 2 && (
                         <Tag
                           icon={<RiseOutlined />}
                           color="blue"
                           style={{ fontSize: 10 }}
                         >
-                          {p2Name}: {p2.currentWinStreak}W streak
+                          {p2Name}: {p2?.currentWinStreak}W streak
                         </Tag>
                       )}
-                      {p1?.currentLossStreak && p1.currentLossStreak >= 2 && (
+                      {(p1?.currentLossStreak ?? 0) >= 2 && (
                         <Tag
                           icon={<FallOutlined />}
                           color="default"
                           style={{ fontSize: 10 }}
                         >
-                          {p1Name}: {p1.currentLossStreak}L streak
+                          {p1Name}: {p1?.currentLossStreak}L streak
                         </Tag>
                       )}
-                      {p2?.currentLossStreak && p2.currentLossStreak >= 2 && (
+                      {(p2?.currentLossStreak ?? 0) >= 2 && (
                         <Tag
                           icon={<FallOutlined />}
                           color="red"
                           style={{ fontSize: 10 }}
                         >
-                          {p2Name}: {p2.currentLossStreak}L streak
+                          {p2Name}: {p2?.currentLossStreak}L streak
                         </Tag>
                       )}
                     </Space>

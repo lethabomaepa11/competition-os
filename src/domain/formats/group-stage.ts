@@ -8,6 +8,15 @@ import { generateId } from "../../lib/id";
 import { generateGroupStage } from "@kurovu146/bracket-engine";
 
 const GROUP_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P"];
+const WITHDRAWN_STATUSES: Participant["status"][] = ["dropped_out", "disqualified"];
+
+/** Overall table order across groups: points, goal difference, goals scored, then name. */
+function compareOverall(a: StandingsEntry, b: StandingsEntry): number {
+  return b.points - a.points
+    || (b.stats.goalDifference ?? 0) - (a.stats.goalDifference ?? 0)
+    || (b.stats.goalsFor ?? 0) - (a.stats.goalsFor ?? 0)
+    || a.displayName.localeCompare(b.displayName);
+}
 
 export class GroupStageFormat implements FormatStrategy {
   readonly type = "group_stage";
@@ -157,6 +166,9 @@ export class GroupStageFormat implements FormatStrategy {
 
     const allEntries: StandingsEntry[] = [];
     const groupLabels = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P"];
+    // Withdrawn entrants stay in the table so the results they played still count.
+    const withdrawnIds = new Set(participants.filter(p => WITHDRAWN_STATUSES.includes(p.status)).map(p => p.id));
+    const vacatedPlaces: StandingsEntry[] = [];
 
     for (const [gIdx, groupPids] of participantsByGroup.entries()) {
       const groupLabel = groupLabels[gIdx] || `Group ${gIdx + 1}`;
@@ -265,17 +277,38 @@ export class GroupStageFormat implements FormatStrategy {
       }
       const qualifierSlots = Math.min(Math.max(0, qualifiersPerGroup), entries.length);
       for (const entry of entries) {
+        if (withdrawnIds.has(entry.participantId)) {
+          if (entry.qualified) vacatedPlaces.push(entry);
+          entry.qualified = false;
+          entry.qualificationStatus = "withdrawn";
+          continue;
+        }
         if (!entry.qualified) {
           entry.qualificationStatus = "outside";
           continue;
         }
         const teamsAbleToCatch = entries.filter((other) => other.participantId !== entry.participantId
+          && !withdrawnIds.has(other.participantId)
           && other.points + (remainingMatches.get(other.participantId) ?? 0) * winPts >= entry.points).length;
         entry.qualificationStatus = teamsAbleToCatch < qualifierSlots ? "clinched" : "projected";
       }
 
       allEntries.push(...entries);
     }
+
+    // A vacated qualifying place goes to the best-ranked non-qualifier across all groups.
+    const candidates = allEntries
+      .filter(e => !e.qualified && e.qualificationStatus !== "withdrawn")
+      .sort(compareOverall);
+    vacatedPlaces
+      .sort((a, b) => a.rank - b.rank || (a.stats.groupIndex ?? 0) - (b.stats.groupIndex ?? 0))
+      .forEach((vacated, i) => {
+        const replacement = candidates[i];
+        if (!replacement) return;
+        replacement.qualified = true;
+        replacement.qualificationStatus = "replacement";
+        replacement.replacesParticipantId = vacated.participantId;
+      });
 
     return allEntries;
   }
@@ -305,10 +338,15 @@ export class GroupStageFormat implements FormatStrategy {
     for (let rank = 0; rank < qualifiersPerGroup; rank++) {
       for (const gIdx of sortedGroupIndices) {
         const entry = rankedGroups.get(gIdx)?.[rank];
-        if (entry && !qualifiers.includes(entry.participantId)) {
+        if (entry && entry.qualificationStatus !== "withdrawn" && !qualifiers.includes(entry.participantId)) {
           qualifiers.push(entry.participantId);
         }
       }
+    }
+
+    // Replacements for withdrawn qualifiers enter as the lowest seeds, in overall order.
+    for (const entry of standings.filter(e => e.qualificationStatus === "replacement").sort(compareOverall)) {
+      if (!qualifiers.includes(entry.participantId)) qualifiers.push(entry.participantId);
     }
 
     return qualifiers;

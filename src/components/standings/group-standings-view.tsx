@@ -99,6 +99,7 @@ export function GroupStandingsView({ standings, event, groupNames }: Props) {
             event={event}
             hideGroupColumn
             hideHeader
+            allStandings={standings}
           />
         </Card>
       ))}

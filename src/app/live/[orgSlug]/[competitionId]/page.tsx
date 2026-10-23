@@ -98,10 +98,14 @@ function LiveContent() {
     setParticipants(loadedParticipants);
 
     if (loadedStages.length > 0) {
+      // Group tables stay the reference once a knockout stage follows the groups.
+      const standingsStage = loadedStages[0].type === "group_stage"
+        ? loadedStages[0]
+        : loadedStages[loadedStages.length - 1];
       try {
         const result = await standingSvc.calculate(
           eventId,
-          loadedStages[loadedStages.length - 1].id,
+          standingsStage.id,
         );
         setStandings(result);
       } catch {
@@ -241,6 +245,9 @@ function LiveContent() {
 
   const groupConfig = stages[0]?.config?.groups as string[][] | undefined;
   const isGroupStage = stages.length > 0 && stages[0].type === "group_stage" && !!groupConfig;
+  const firstStageConfig = stages[0]?.config ?? {};
+  const winPoints = typeof firstStageConfig.winPts === "number" ? firstStageConfig.winPts : 3;
+  const drawPoints = typeof firstStageConfig.drawPts === "number" ? firstStageConfig.drawPts : 1;
 
   const groupNames = useMemo(() => {
     if (!isGroupStage || !groupConfig) return [];
@@ -547,6 +554,8 @@ function LiveContent() {
                 participants={participants}
                 eventId={activeEvent.id}
                 autoAnalyze
+                winPoints={winPoints}
+                drawPoints={drawPoints}
               />
             ) : (
               <Empty description="Select an event to view insights" />
@@ -609,7 +618,13 @@ function LiveContent() {
               </Space>
             ),
             children: (
-              <PlayerStats matches={matches} participants={participants} />
+              <PlayerStats
+                matches={matches}
+                participants={participants}
+                standings={isGroupStage ? standings : undefined}
+                winPoints={winPoints}
+                drawPoints={drawPoints}
+              />
             ),
           },
         ]

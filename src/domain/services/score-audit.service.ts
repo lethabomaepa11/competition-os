@@ -334,18 +334,20 @@ export class ScoreAuditService {
 
     const allCompleted = allMatches.filter(m => m.status === MatchStatus.Completed && m.result);
     if (allCompleted.length > 0) {
-      const highestScoringParticipant = allCompleted.reduce<{ pid: ID; score: number; name: string } | null>((best, m) => {
+      const highestScoringParticipant = allCompleted.reduce<{ pid: ID; score: number; name?: string } | null>((best, m) => {
+        let top = best;
         for (const s of m.result?.scores ?? []) {
-          if (!best || s.value > best.score) {
+          if (!top || s.value > top.score) {
             const name = s.participantId === p1Summary.participantId ? p1Summary.displayName :
-              s.participantId === p2Summary.participantId ? p2Summary.displayName : "?";
-            return { pid: s.participantId, score: s.value, name };
+              s.participantId === p2Summary.participantId ? p2Summary.displayName : undefined;
+            top = { pid: s.participantId, score: s.value, name };
           }
         }
-        return best;
+        return top;
       }, null);
 
-      if (highestScoringParticipant) {
+      // Only insights for a match featuring the record holder can name them.
+      if (highestScoringParticipant?.name) {
         facts.push({
           type: "high_score",
           title: "High Scorer",

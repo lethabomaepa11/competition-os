@@ -19,7 +19,9 @@ export interface StandingsEntry {
   draws: number;
   stats: Record<string, number>;
   qualified: boolean;
-  qualificationStatus?: "clinched" | "projected" | "outside";
+  qualificationStatus?: "clinched" | "projected" | "outside" | "replacement" | "withdrawn";
+  /** Withdrawn entrant whose qualifying place this entry inherits. */
+  replacesParticipantId?: string;
   groupName?: string;
 }
 

@@ -68,7 +68,8 @@ export class ProgressionService {
     if (currentPhaseIdx >= plan.phases.length) throw new Error("No next phase configured");
     const nextPhase = plan.phases[currentPhaseIdx];
 
-    const participants = await GetWhere<Participant>("participants", { eventId, status: "active" });
+    const allParticipants = await GetWhere<Participant>("participants", { eventId });
+    const participants = allParticipants.filter(p => p.status === "active");
     const allMatches = await GetWhere<Match>("matches", { eventId });
     const rulesets = await GetWhere<RuleSet>("rulesets", { eventId });
     const rules = rulesets[0]?.rules ?? [];
@@ -78,7 +79,9 @@ export class ProgressionService {
     const sourceStageRoundIds = new Set(sourceStageRounds.map(r => r.id));
     const sourceStageMatches = allMatches.filter(m => sourceStageRoundIds.has(m.roundId));
 
-    const standings = format.calculateStandings(sourceStage, sourceStageMatches, participants, rules);
+    // Group tables keep withdrawn entrants so their results count and their place can be handed on.
+    const standingsParticipants = sourceStage.type === "group_stage" ? allParticipants : participants;
+    const standings = format.calculateStandings(sourceStage, sourceStageMatches, standingsParticipants, rules);
     const qualifierIds = format.advanceParticipants(sourceStage, standings, rules);
 
     const qualifierParticipants = qualifierIds
