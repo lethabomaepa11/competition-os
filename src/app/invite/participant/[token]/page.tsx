@@ -52,7 +52,7 @@ function AcceptParticipantInviteInner() {
       const regRes = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: invite.email, password, displayName: invite.displayName }),
+        body: JSON.stringify({ email: invite.email, password, displayName: invite.displayName, accountType: "player", sendCredentials: true }),
       });
       if (!regRes.ok) {
         const json = await regRes.json();
