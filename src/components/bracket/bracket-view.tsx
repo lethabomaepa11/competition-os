@@ -105,7 +105,8 @@ export function BracketView({ matches, participants, rounds }: Props) {
       .map(([roundId, roundMatches]) => ({
         id: roundId,
         name: roundNameMap.get(roundId) ?? `Round ${roundId.slice(0, 4)}`,
-        matches: roundMatches,
+        // Fixture order keeps each match beside the two fixtures that feed it.
+        matches: roundMatches.sort((a, b) => (a.fixtureNumber ?? 0) - (b.fixtureNumber ?? 0)),
       }))
       .sort(
         (a, b) =>

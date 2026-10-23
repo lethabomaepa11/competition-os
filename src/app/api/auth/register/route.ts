@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 import type { Database } from "@/lib/supabase/types";
+import { deliverMail } from "@/lib/mail/send";
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,7 +9,7 @@ export async function POST(request: NextRequest) {
     if (!body || typeof body !== "object" || Array.isArray(body)) {
       return NextResponse.json({ error: "Registration details must be sent as an object" }, { status: 400 });
     }
-    const { email, password, displayName, accountType, organizationName, teamName, category, teamType } = body as Record<string, unknown>;
+    const { email, password, displayName, accountType, organizationName, teamName, category, teamType, sendCredentials } = body as Record<string, unknown>;
     const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
     const normalizedName = typeof displayName === "string" ? displayName.trim() : "";
     if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || typeof password !== "string" || password.length < 6 || typeof displayName !== "string" || normalizedName.length < 2 || normalizedName.length > 100) {
@@ -56,6 +57,16 @@ export async function POST(request: NextRequest) {
       } },
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+    // Invite flows create the account with a generated password and email it to its owner.
+    if (sendCredentials === true) {
+      await deliverMail({
+        kind: "account_created",
+        to: [{ email: normalizedEmail, name: normalizedName }],
+        actionUrl: `${request.nextUrl.origin}/login`,
+        params: { password, actionLabel: "Sign in" },
+      }).catch(() => undefined);
+    }
 
     return response;
   } catch (err) {

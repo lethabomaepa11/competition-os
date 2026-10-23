@@ -5,6 +5,8 @@ import { getFormat } from "@/domain/formats/registry";
 import type { Participant } from "@/domain/participant";
 import type { Stage, Round } from "@/domain/event";
 import type { Match } from "@/domain/match";
+import { deliverMail } from "@/lib/mail/send";
+import type { MailEventPayload, MailRecipient } from "@/lib/mail/templates";
 
 function snakeToCamel(str: string): string {
   return str.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
@@ -171,11 +173,11 @@ export async function POST(
       .in("id", participants.map((p: any) => p.memberId));
     const profileMap = new Map(((rawProfiles ?? []) as any[]).map((p: any) => [p.id, p]));
     const recipients = participants
-      .map((p: any) => {
+      .map((p: any): MailRecipient | null => {
         const profile = profileMap.get(p.memberId);
         return profile ? { email: profile.email, name: profile.display_name } : null;
       })
-      .filter(Boolean);
+      .filter((recipient: MailRecipient | null): recipient is MailRecipient => recipient !== null);
 
     if (recipients.length > 0) {
       const host = request.headers.get("host") ?? "localhost:3000";
@@ -186,18 +188,12 @@ export async function POST(
       const actionUrl = `${baseUrl}/o/${orgSlug}/competitions/${compId}/events/${id}`;
       const eventName = (event as any).name ?? "Event";
 
-      const mailPayloads = [
+      const mailPayloads: MailEventPayload[] = [
         { kind: "event_started", to: recipients, actionUrl, params: { eventName, actionLabel: "View event" } },
         { kind: "bracket_generated", to: recipients, actionUrl, params: { eventName, actionLabel: "View fixtures" } },
       ];
 
-      for (const payload of mailPayloads) {
-        fetch(`${baseUrl}/api/mail`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(payload),
-        }).catch(() => {});
-      }
+      await Promise.all(mailPayloads.map((payload) => deliverMail(payload).catch(() => undefined)));
     }
 
     return NextResponse.json({

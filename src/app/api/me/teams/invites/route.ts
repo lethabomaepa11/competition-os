@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { deliverMail } from "@/lib/mail/send";
 
 function client(request: NextRequest) {
   return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { cookies: { getAll: () => request.cookies.getAll(), setAll() {} } });
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     const shareUrl = `${request.nextUrl.origin}/invite/team/${invite.token}`;
     if (normalizedEmail) {
       const { data: profile } = await supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle();
-      void fetch(`${request.nextUrl.origin}/api/mail`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "team_invite", to: [{ email: normalizedEmail }], actionUrl: shareUrl, params: { inviterName: profile?.display_name ?? user.email ?? "A team captain", teamName: team.name, actionLabel: "Join team" } }) }).catch(() => undefined);
+      await deliverMail({ kind: "team_invite", to: [{ email: normalizedEmail }], actionUrl: shareUrl, params: { inviterName: profile?.display_name ?? user.email ?? "A team captain", teamName: team.name, actionLabel: "Join team" } }).catch(() => undefined);
     }
     return NextResponse.json({ data: { id: invite.id, email: invite.email, status: invite.status, expiresAt: invite.expires_at, createdAt: invite.created_at, shareUrl } }, { status: 201 });
   } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Could not create invite" }, { status: 500 }); }

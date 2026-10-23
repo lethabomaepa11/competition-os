@@ -23,9 +23,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const origin = request.headers.get("origin") ?? "http://localhost:3000";
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/reset-password`,
+    // The PKCE code verifier is stored as a cookie on this response; the reset page exchanges the code.
+    const { error } = await supabase.auth.resetPasswordForEmail(String(email).trim().toLowerCase(), {
+      redirectTo: `${request.nextUrl.origin}/reset-password`,
     });
 
     if (error) {

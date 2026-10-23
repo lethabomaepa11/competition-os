@@ -98,7 +98,7 @@ function AcceptCompetitionInviteInner() {
       const regRes = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: values.email, password, displayName: values.displayName }),
+        body: JSON.stringify({ email: values.email, password, displayName: values.displayName, accountType: "player", sendCredentials: true }),
       });
       if (!regRes.ok) {
         const json = await regRes.json();
@@ -106,15 +106,6 @@ function AcceptCompetitionInviteInner() {
         setAuthLoading(false);
         return;
       }
-      sendMailEvent({
-        kind: "account_created",
-        to: [{ email: values.email, name: values.displayName }],
-        params: {
-          password,
-          actionLabel: "Sign in",
-        },
-        actionUrl: `${window.location.origin}/login`,
-      });
       const logRes = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
