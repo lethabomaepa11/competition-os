@@ -71,7 +71,8 @@ export class ProgressionService {
 
     const allParticipants = await GetWhere<Participant>("participants", { eventId });
     const participants = allParticipants.filter(p => p.status === "active");
-    const allMatches = await GetWhere<Match>("matches", { eventId });
+    // Raw rows carry neither players nor results; standings need both.
+    const allMatches = await new MatchService().list(eventId);
     const rulesets = await GetWhere<RuleSet>("rulesets", { eventId });
     const rules = rulesets[0]?.rules ?? [];
 
