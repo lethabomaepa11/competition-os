@@ -1,4 +1,4 @@
-﻿-- Guest predictions are additive: existing authenticated rows and profiles remain intact.
+-- Guest predictions are additive: existing authenticated rows and profiles remain intact.
 alter table bets alter column better_id drop not null;
 alter table bets add column if not exists guest_token_hash text;
 
