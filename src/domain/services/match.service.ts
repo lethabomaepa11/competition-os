@@ -121,7 +121,8 @@ export class MatchService {
       if (list) list.push(mp); else byMatchId.set(mp.matchId, [mp]);
     }
     for (const match of matches) {
-      const mps = byMatchId.get(match.id) ?? [];
+      // Slot order (player 1, player 2) is what brackets and score sheets display.
+      const mps = (byMatchId.get(match.id) ?? []).sort((a, b) => a.position - b.position);
       match.participantIds = mps.map((mp) => mp.participantId);
       match.participants = mps;
       expandResult(match as unknown as Record<string, unknown>);
