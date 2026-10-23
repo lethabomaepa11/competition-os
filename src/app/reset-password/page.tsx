@@ -1,20 +1,56 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Form, Input, message, Result } from "antd";
+import { Button, Form, Input, message, Result, Spin } from "antd";
 import { ArrowRightOutlined, LockOutlined } from "@ant-design/icons";
 import { AuthShell } from "@/components/common/auth-shell";
+
+/** Reads whichever recovery credential Supabase put on the link. */
+function recoveryPayload(): Record<string, string> | null {
+  const query = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.slice(1));
+  const code = query.get("code");
+  if (code) return { code };
+  const tokenHash = query.get("token_hash");
+  if (tokenHash) return { tokenHash };
+  const accessToken = hash.get("access_token");
+  const refreshToken = hash.get("refresh_token");
+  if (accessToken && refreshToken) return { accessToken, refreshToken };
+  return null;
+}
 
 export default function ResetPasswordPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
-  const [hasToken, setHasToken] = useState(false);
+  const [linkState, setLinkState] = useState<"checking" | "ready" | "invalid">("checking");
+  const [linkError, setLinkError] = useState("This link is invalid or has expired.");
+  const verified = useRef(false);
 
   useEffect(() => {
-    const task = window.setTimeout(() => setHasToken(window.location.hash.includes("type=recovery")), 0);
-    return () => window.clearTimeout(task);
+    // Recovery codes are single-use, so verify once even if the effect re-runs.
+    if (verified.current) return;
+    verified.current = true;
+    const payload = recoveryPayload();
+    const linkProblem = new URLSearchParams(window.location.search).get("error_description")
+      ?? new URLSearchParams(window.location.hash.slice(1)).get("error_description");
+    window.history.replaceState(null, "", window.location.pathname);
+    if (!payload) {
+      const task = window.setTimeout(() => {
+        if (linkProblem) setLinkError(linkProblem);
+        setLinkState("invalid");
+      }, 0);
+      return () => window.clearTimeout(task);
+    }
+    fetch("/api/auth/recovery", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+      .then(async (res) => {
+        if (res.ok) { setLinkState("ready"); return; }
+        const json = await res.json().catch(() => ({}));
+        setLinkError(json.error ?? "This link is invalid or has expired.");
+        setLinkState("invalid");
+      })
+      .catch(() => setLinkState("invalid"));
   }, []);
 
   const onFinish = async (values: { password: string }) => {
@@ -30,8 +66,10 @@ export default function ResetPasswordPage() {
   };
 
   let content;
-  if (!hasToken) {
-    content = <Result status="info" title="Reset link unavailable" subTitle="This link is invalid or has expired." extra={<Button type="primary" onClick={() => router.push("/forgot-password")}>Request a new link</Button>} />;
+  if (linkState === "checking") {
+    content = <Result icon={<Spin size="large" />} title="Checking your reset link" subTitle="One moment while we verify it." />;
+  } else if (linkState === "invalid") {
+    content = <Result status="info" title="Reset link unavailable" subTitle={linkError} extra={<Button type="primary" onClick={() => router.push("/forgot-password")}>Request a new link</Button>} />;
   } else if (done) {
     content = <Result status="success" title="Password updated" subTitle="Your account is secure and ready." extra={<Button type="primary" onClick={() => router.push("/login")}>Sign in</Button>} />;
   } else {

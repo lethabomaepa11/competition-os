@@ -24,14 +24,14 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <AuthShell fallback="/login" eyebrow="Account recovery" title="A quick reset. Then back to matchday." description="We will send a secure recovery link to the email connected to your operator account.">
+    <AuthShell fallback="/login" eyebrow="Account recovery" title="A quick reset. Then back to matchday." description="We will send a secure recovery link to the email connected to your account. Open it in this browser.">
       {sent ? (
-        <Result status="success" title="Check your inbox" subTitle="If the account exists, a secure reset link is on its way." extra={<Button type="primary" onClick={() => router.push("/login")}>Return to sign in</Button>} />
+        <Result status="success" title="Check your inbox" subTitle="If the account exists, a secure reset link is on its way. Open it in this same browser." extra={<Button type="primary" onClick={() => router.push("/login")}>Return to sign in</Button>} />
       ) : (
         <>
           <div className="auth-card__heading"><span className="eyebrow">Recover access</span><h1>Reset password.</h1><p>Enter the email connected to your account.</p></div>
           <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
-            <Form.Item label="Email address" name="email" rules={[{ required: true, type: "email", message: "Enter a valid email address" }]}><Input prefix={<MailOutlined />} placeholder="operator@league.com" size="large" autoComplete="email" /></Form.Item>
+            <Form.Item label="Email address" name="email" rules={[{ required: true, type: "email", message: "Enter a valid email address" }]}><Input prefix={<MailOutlined />} placeholder="you@example.com" size="large" autoComplete="email" /></Form.Item>
             <Button type="primary" htmlType="submit" block loading={loading} size="large">Send recovery link <ArrowRightOutlined /></Button>
           </Form>
           <Button type="link" block style={{ marginTop: 16 }} onClick={() => router.push("/login")}>Return to sign in</Button>
