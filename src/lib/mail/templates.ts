@@ -27,13 +27,21 @@ export type MailEventKind =
   | "bracket_generated"
   | "standings_updated"
   | "bet_placed"
-  | "bet_settled";
+  | "bet_settled"
+  | "player_match_scheduled"
+  | "player_match_started"
+  | "player_match_result"
+  | "player_next_match"
+  | "player_qualified"
+  | "player_not_qualified";
 
 export type MailEventPayload = {
   kind: MailEventKind;
   to: MailRecipient[];
   params: Record<string, string | number | boolean | null | undefined>;
   actionUrl?: string;
+  /** Label/value rows shown in a summary card under the message. */
+  details?: { label: string; value: string }[];
 };
 
 type RenderedMail = {
@@ -67,6 +75,12 @@ const subjects: Record<MailEventKind, string> = {
   standings_updated: "Standings updated for {{eventName}}",
   bet_placed: "Bet placed on {{matchName}}",
   bet_settled: "Bet settled for {{matchName}}",
+  player_match_scheduled: "Match scheduled: {{matchName}}",
+  player_match_started: "You're up: {{matchName}}",
+  player_match_result: "Result: {{scoreline}}",
+  player_next_match: "Your next opponent: {{matchName}}",
+  player_qualified: "You've qualified for the {{roundName}} of {{eventName}}",
+  player_not_qualified: "{{eventName}}: the knockout bracket is set",
 };
 
 const descriptions: Record<MailEventKind, string> = {
@@ -94,6 +108,12 @@ const descriptions: Record<MailEventKind, string> = {
   standings_updated: "The standings for {{eventName}} were recalculated.",
   bet_placed: "{{betterName}} placed a bet on {{matchName}}.",
   bet_settled: "A bet on {{matchName}} was settled.",
+  player_match_scheduled: "{{message}}",
+  player_match_started: "{{message}}",
+  player_match_result: "{{message}}",
+  player_next_match: "{{message}}",
+  player_qualified: "{{message}}",
+  player_not_qualified: "{{message}}",
 };
 
 function escapeHtml(value: unknown): string {
@@ -118,6 +138,13 @@ export function renderMailEvent(payload: MailEventPayload): RenderedMail {
   const actionLabel = escapeHtml(String(payload.params.actionLabel ?? "Open CompetitionOS"));
   const actionUrl = payload.actionUrl ? escapeHtml(payload.actionUrl) : "";
   const preheader = escapeHtml(subject);
+  const details = payload.details ?? [];
+  const detailsHtml = details.length > 0
+    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 24px;background:#f4f8ff;border:1px solid #d6e4ff;border-radius:10px;">${details.map((row, index) => `<tr><td style="padding:10px 16px;${index > 0 ? "border-top:1px solid #e3ecfb;" : ""}font-size:11px;color:#667992;text-transform:uppercase;letter-spacing:.08em;width:38%;">${escapeHtml(row.label)}</td><td style="padding:10px 16px;${index > 0 ? "border-top:1px solid #e3ecfb;" : ""}font-size:15px;font-weight:700;color:#14243a;">${escapeHtml(row.value)}</td></tr>`).join("")}</table>`
+    : "";
+  const footer = payload.kind.includes("invite")
+    ? "This is an automated transactional email from CompetitionOS. If you weren’t expecting this invitation, you can ignore it."
+    : "This is an automated transactional email from CompetitionOS, sent because you take part in this competition.";
 
   const htmlContent = `<!doctype html>
 <html>
@@ -143,9 +170,10 @@ export function renderMailEvent(payload: MailEventPayload): RenderedMail {
                 <h1 style="font-size:26px;line-height:1.2;margin:0 0 14px;color:#14243a;">${escapeHtml(subject)}</h1>
                 <p style="font-size:15px;line-height:1.7;margin:0 0 24px;color:#52627a;">${description}</p>
                 ${payload.kind === "organization_invite" && payload.params.role ? `<div style="margin:0 0 24px;padding:14px 16px;background:#f4f8ff;border:1px solid #d6e4ff;border-radius:10px;"><div style="font-size:11px;color:#667992;text-transform:uppercase;letter-spacing:.08em;">Organization access</div><div style="margin-top:5px;color:#155eef;font-size:16px;font-weight:700;">${escapeHtml(payload.params.role)} · ${escapeHtml(payload.params.organizationName ?? "Organization")}</div></div>` : ""}
+                ${detailsHtml}
                 ${actionUrl ? `<a href="${actionUrl}" style="display:inline-block;background:#155eef;color:#ffffff;text-decoration:none;font-weight:700;padding:13px 20px;border-radius:9px;">${actionLabel}</a>` : ""}
                 ${actionUrl ? `<p style="font-size:12px;line-height:1.6;margin:22px 0 0;color:#667992;">If the button doesn’t open, copy this secure link:<br /><a href="${actionUrl}" style="color:#155eef;word-break:break-all;">${actionUrl}</a></p>` : ""}
-                <p style="font-size:12px;line-height:1.5;margin:25px 0 0;padding-top:18px;border-top:1px solid #e7edf5;color:#7b8aa0;">This is an automated transactional email from CompetitionOS. If you weren’t expecting this invitation, you can ignore it.</p>
+                <p style="font-size:12px;line-height:1.5;margin:25px 0 0;padding-top:18px;border-top:1px solid #e7edf5;color:#7b8aa0;">${footer}</p>
               </td>
             </tr>
           </table>
@@ -159,6 +187,7 @@ export function renderMailEvent(payload: MailEventPayload): RenderedMail {
     subject,
     "",
     description.replace(/&#039;/g, "'"),
+    ...details.map((row) => `${row.label}: ${row.value}`),
     payload.actionUrl ? `\n${actionLabel}: ${payload.actionUrl}` : "",
     "",
     "CompetitionOS",

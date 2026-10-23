@@ -11,6 +11,7 @@ import { getFormat } from "../formats/registry";
 import { GetWhere, Get, create, update, Delete } from "../../lib/store";
 import { MatchService } from "./match.service";
 import { generateId } from "../../lib/id";
+import { notifyParticipants } from "../../lib/mail/client";
 
 const LINK_KEY = "progression_links";
 
@@ -131,6 +132,7 @@ export class ProgressionService {
         createdAt: new Date().toISOString(),
       };
       await create(LINK_KEY, link);
+      notifyParticipants(eventId, { type: "bracket_generated", stageId: createdStage.id });
 
       return { stage: result.stage, rounds: result.rounds, matches: result.matches };
     }

@@ -4,6 +4,7 @@ import { GetWhere, GetWhereIn, Get, create, update, Delete } from "../../lib/sto
 import { writeAudit } from "../audit";
 import { ScoreAuditService } from "./score-audit.service";
 import { BetService } from "./bet.service";
+import { notifyParticipants } from "../../lib/mail/client";
 
 const MATCH_KEY = "matches";
 
@@ -137,6 +138,7 @@ export class MatchService {
     });
     if (match) {
       await this.auditSvc.recordMatchStart(matchId, match.eventId);
+      notifyParticipants(match.eventId, { type: "match_started", matchId });
     }
     if (before && match) {
       await writeAudit("", actorId ?? "", "match.started", "match", matchId, before as unknown as Record<string, unknown>, match as unknown as Record<string, unknown>);
@@ -170,6 +172,7 @@ export class MatchService {
     if (match) {
       await this.auditSvc.recordMatchFinalize(matchId, match.eventId, result);
       await this.betSvc.settleBets(match);
+      notifyParticipants(match.eventId, { type: "match_result", matchId });
     }
     if (before && match) {
       await writeAudit("", actorId ?? "", "match.finalized", "match", matchId, before as unknown as Record<string, unknown>, match as unknown as Record<string, unknown>);
@@ -196,7 +199,9 @@ export class MatchService {
   }
 
   async schedule(matchId: ID, scheduledAt: string, venue?: string): Promise<Match | undefined> {
-    return update<Match>(MATCH_KEY, matchId, { scheduledAt, venue });
+    const match = await update<Match>(MATCH_KEY, matchId, { scheduledAt, venue });
+    if (match) notifyParticipants(match.eventId, { type: "match_scheduled", matchId });
+    return match;
   }
 
   async syncParticipants(match: Match): Promise<void> {
