@@ -31,7 +31,8 @@ export function createGroupStageBracketPreview(
     .filter((id) => participantById.has(id));
   if (participantIds.length < 2) return null;
 
-  const qualifiedParticipants = participantIds.map((id) => participantById.get(id)!);
+  // The group finish, not the registration seed, decides the knockout draw.
+  const qualifiedParticipants = participantIds.map((id, index) => ({ ...participantById.get(id)!, seed: index + 1 }));
   const bracket = getFormat(targetFormat).createStages(event.id, qualifiedParticipants, rules)[0];
   if (!bracket) return null;
 

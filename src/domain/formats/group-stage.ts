@@ -18,6 +18,61 @@ function compareOverall(a: StandingsEntry, b: StandingsEntry): number {
     || a.displayName.localeCompare(b.displayName);
 }
 
+/** Bracket slot of each seed in a standard knockout draw (seed 1 v 8, 4 v 5 | 2 v 7, 3 v 6). */
+function standardSlots(entrants: number): number[] {
+  let order = [1];
+  while (order.length < entrants) {
+    const pairSum = order.length * 2 + 1;
+    order = order.flatMap((seed) => [seed, pairSum - seed]);
+  }
+  const slots: number[] = [];
+  order.forEach((seed, slot) => { slots[seed - 1] = slot; });
+  return slots;
+}
+
+/**
+ * Reorders seeds so entrants from the same group meet as late as possible.
+ * Only entrants in the same tier (finishing position) swap, so group winners
+ * keep the top seeds and still open against another group's runner-up.
+ * Lower seeds are swapped first so stronger seeds keep their merit order.
+ */
+function separateGroups(seeds: { id: string; group: number; tier: number }[]): string[] {
+  const order = [...seeds];
+  const slots = standardSlots(order.length);
+  const rounds = Math.log2(slots.length);
+  const clashCost = () => {
+    let cost = 0;
+    for (let i = 0; i < order.length; i++) {
+      for (let j = i + 1; j < order.length; j++) {
+        if (order[i].group !== order[j].group) continue;
+        // Entrants in slots a and b first meet in round floor(log2(a ^ b)) + 1; earlier costs more.
+        const meetRound = Math.floor(Math.log2(slots[i] ^ slots[j])) + 1;
+        cost += 4 ** (rounds - meetRound);
+      }
+    }
+    return cost;
+  };
+
+  let best = clashCost();
+  for (let improved = true; improved;) {
+    improved = false;
+    for (let i = order.length - 1; i > 0; i--) {
+      for (let j = i - 1; j >= 0; j--) {
+        if (order[i].tier !== order[j].tier) continue;
+        [order[i], order[j]] = [order[j], order[i]];
+        const cost = clashCost();
+        if (cost < best) {
+          best = cost;
+          improved = true;
+        } else {
+          [order[i], order[j]] = [order[j], order[i]];
+        }
+      }
+    }
+  }
+  return order.map((seed) => seed.id);
+}
+
 export class GroupStageFormat implements FormatStrategy {
   readonly type = "group_stage";
 
@@ -327,7 +382,6 @@ export class GroupStageFormat implements FormatStrategy {
       byGroup.get(gIdx)!.push(entry);
     }
 
-    const qualifiers: string[] = [];
     const sortedGroupIndices = groups.map((_, i) => i);
 
     const rankedGroups = new Map(sortedGroupIndices.map((gIdx) => [gIdx, (byGroup.get(gIdx) ?? [])
@@ -335,21 +389,30 @@ export class GroupStageFormat implements FormatStrategy {
         .sort((a, b) => a.rank - b.rank || b.points - a.points || a.displayName.localeCompare(b.displayName))
         .slice(0, qualifiersPerGroup)]));
 
+    const seeds: { id: string; group: number; tier: number }[] = [];
+    const addSeed = (entry: StandingsEntry, tier: number) => {
+      if (seeds.some(seed => seed.id === entry.participantId)) return;
+      seeds.push({ id: entry.participantId, group: entry.stats?.groupIndex ?? 0, tier });
+    };
+    const replacements = standings.filter(e => e.qualificationStatus === "replacement").sort(compareOverall);
+    const replacementTier = (entry: StandingsEntry) =>
+      (standings.find(e => e.participantId === entry.replacesParticipantId)?.rank ?? qualifiersPerGroup) - 1;
+
     for (let rank = 0; rank < qualifiersPerGroup; rank++) {
-      for (const gIdx of sortedGroupIndices) {
-        const entry = rankedGroups.get(gIdx)?.[rank];
-        if (entry && entry.qualificationStatus !== "withdrawn" && !qualifiers.includes(entry.participantId)) {
-          qualifiers.push(entry.participantId);
-        }
+      // Within a tier the better overall record takes the higher seed.
+      const tier = sortedGroupIndices
+        .map(gIdx => rankedGroups.get(gIdx)?.[rank])
+        .filter((entry): entry is StandingsEntry => !!entry && entry.qualificationStatus !== "withdrawn")
+        .sort(compareOverall);
+      for (const entry of tier) addSeed(entry, rank);
+      // A replacement seeds in the tier of the place it took, behind that tier's own qualifiers.
+      for (const entry of replacements) {
+        if (replacementTier(entry) === rank) addSeed(entry, rank);
       }
     }
+    for (const entry of replacements) addSeed(entry, qualifiersPerGroup);
 
-    // Replacements for withdrawn qualifiers enter as the lowest seeds, in overall order.
-    for (const entry of standings.filter(e => e.qualificationStatus === "replacement").sort(compareOverall)) {
-      if (!qualifiers.includes(entry.participantId)) qualifiers.push(entry.participantId);
-    }
-
-    return qualifiers;
+    return separateGroups(seeds);
   }
 
   private parseGroupIndex(bracketType: string): number {

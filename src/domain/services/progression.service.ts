@@ -86,7 +86,9 @@ export class ProgressionService {
 
     const qualifierParticipants = qualifierIds
       .map(id => participants.find(p => p.id === id))
-      .filter((p): p is Participant => p !== undefined);
+      .filter((p): p is Participant => p !== undefined)
+      // The group finish, not the registration seed, decides the knockout draw.
+      .map((p, i) => sourceStage.type === "group_stage" ? { ...p, seed: i + 1 } : p);
 
     if (qualifierParticipants.length < 2) {
       throw new Error("Not enough qualifiers to create next stage");
