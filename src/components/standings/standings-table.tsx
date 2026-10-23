@@ -8,6 +8,7 @@ import { FormatType } from "@/domain/types";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { DownloadOutlined, FilePdfOutlined } from "@ant-design/icons";
+import { QualificationTag } from "@/components/standings/qualification-tag";
 
 const { Title } = Typography;
 
@@ -16,9 +17,11 @@ interface Props {
   event: Event;
   hideGroupColumn?: boolean;
   hideHeader?: boolean;
+  /** Whole-event standings when `standings` is a single group's slice. */
+  allStandings?: StandingsEntry[];
 }
 
-export function StandingsTable({ standings, event, hideGroupColumn, hideHeader }: Props) {
+export function StandingsTable({ standings, event, hideGroupColumn, hideHeader, allStandings }: Props) {
   const tableRef = useRef<HTMLDivElement>(null);
 
   const exportStandings = useCallback(async (format: "png" | "pdf") => {
@@ -150,9 +153,7 @@ export function StandingsTable({ standings, event, hideGroupColumn, hideHeader }
     key: "qualified",
     render: (_: unknown, record: StandingsEntry) => {
       if (isGroupStage) {
-        const status = record.qualificationStatus ?? (record.qualified ? "projected" : "outside");
-        const label = status === "clinched" ? "Qualified" : status === "projected" ? "In place" : "Outside";
-        return <Tag color={status === "outside" ? "default" : "blue"}>{label}</Tag>;
+        return <QualificationTag entry={record} standings={allStandings ?? standings} />;
       }
       return record.qualified ? <Tag color="blue">Yes</Tag> : <Tag>No</Tag>;
     },
@@ -211,6 +212,7 @@ export function StandingsTable({ standings, event, hideGroupColumn, hideHeader }
         rowKey="participantId"
         pagination={false}
         columns={columns}
+        onRow={(record) => ({ style: record.qualificationStatus === "withdrawn" ? { opacity: 0.55 } : undefined })}
       />
     </div>
   );

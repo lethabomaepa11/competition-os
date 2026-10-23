@@ -230,7 +230,7 @@ create policy "Users can read competition profiles"
 create table team_invites (
   id uuid primary key default gen_random_uuid(),
   team_id uuid not null references teams(id) on delete cascade,
-  token text not null unique default encode(gen_random_bytes(24), 'hex'),
+  token text not null unique default encode(extensions.gen_random_bytes(24), 'hex'),
   email text,
   invited_by uuid not null references profiles(id) on delete cascade,
   status invite_status not null default 'pending',
